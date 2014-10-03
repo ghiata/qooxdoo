@@ -207,7 +207,7 @@ qx.Class.define("qx.test.lang.Json",
       // check keys
       this.assertEquals(
         ["juhu", "foo", "age"].sort().toString(),
-        qx.lang.Object.getKeys(data).sort().toString()
+        Object.keys(data).sort().toString()
       );
 
       // check values
@@ -240,7 +240,8 @@ qx.Class.define("qx.test.lang.Json",
     isIe8 : function()
     {
       return qx.core.Environment.get("engine.name") === "mshtml" &&
-             qx.core.Environment.get("engine.version") == 8;
+             (qx.core.Environment.get("engine.version") == 8 ||
+              qx.core.Environment.get("browser.documentmode") == 8);
     },
 
     isFirefox : function()

@@ -89,12 +89,10 @@ qx.Class.define("qx.test.mobile.core.Widget",
       this.assertEquals(className, "");
 
       widget.addCssClass("affe");
-      var className = qx.bom.element.Class.get(element);
-      this.assertEquals(className, "affe");
+      this.assertTrue(widget.hasCssClass("affe"));
 
       widget.removeCssClass("affe");
-      var className = qx.bom.element.Class.get(element);
-      this.assertEquals(className, "");
+      this.assertFalse(widget.hasCssClass("affe"));
 
       widget.destroy();
     },
@@ -192,8 +190,7 @@ qx.Class.define("qx.test.mobile.core.Widget",
       this.assertFalse(widget.isVisible(), "Exclude: Widget should not be visible");
       this.assertTrue(widget.isExcluded(), "Exclude: Widget should be excluded");
       this.assertTrue(widget.isHidden(), "Exclude: Widget should be hidden");
-      this.assertFalse(widget.isSeeable(), "Exclude: Widget should not be seeable");
-      this.assertEquals("none", widget._getStyle("display"), "Exclude: Display style should be display");
+      this.assertTrue(widget.hasCssClass("exclude"), "Exclude: No exclude class set");
       this.assertEquals("visible", widget._getStyle("visibility"), "Exclude: Visibility style should be null");
 
       widget.show();
@@ -204,7 +201,8 @@ qx.Class.define("qx.test.mobile.core.Widget",
       this.assertFalse(widget.isExcluded(), "Hide: Widget should not be excluded");
       this.assertTrue(widget.isHidden(), "Hide: Widget should be hidden");
       this.assertTrue(widget.isSeeable(), "Hide: Widget should be seeable");
-      this.assertEquals("block", widget._getStyle("display"), "Hide: Display style should be null");
+      this.assertEquals("block", widget._getStyle("display"), "Hide: Display style should be block");
+      this.assertFalse(widget.hasCssClass("exclude"), "Hide: Exclude class set");
       this.assertEquals("hidden", widget._getStyle("visibility"), "Hide: Visibility style should be hidden");
 
       widget.show();
@@ -219,41 +217,58 @@ qx.Class.define("qx.test.mobile.core.Widget",
       this.assertFalse(widget.isExcluded(), "Show: Widget should not be excluded");
       this.assertFalse(widget.isHidden(), "Show: Widget should not be hidden");
       this.assertTrue(widget.isSeeable(), "Show: Widget should be seeable");
-      this.assertEquals("block", widget._getStyle("display"), "Show: Display style should be null");
-      this.assertEquals("visible", widget._getStyle("visibility"), "Show: Visibility style should be null");
+      this.assertEquals("block", widget._getStyle("display"), "Show: Display style should be block");
+      this.assertFalse(widget.hasCssClass("exclude"), "Hide: Exclude class set");
+      this.assertEquals("visible", widget._getStyle("visibility"), "Show: Visibility style should be visible");
     },
-    
+
     testEnabled : function()
     {
       var widget = new qx.ui.mobile.core.Widget();
       this.getRoot().add(widget);
+
       this.assertEquals(true,widget.getEnabled());
       this.assertFalse(qx.bom.element.Class.has(widget.getContainerElement(),'disabled'));
 
       widget.setEnabled(false);
       this.assertEquals(false,widget.getEnabled());
       this.assertEquals(true,qx.bom.element.Class.has(widget.getContainerElement(),'disabled'));
-      this.assertEquals('none', qx.bom.element.Style.get(widget.getContainerElement(),'pointer-events'));
+
+      this.assertEquals('none', qx.bom.element.Style.get(widget.getContainerElement(),'pointerEvents'));
 
       widget.destroy();
-      
+
       widget = new qx.ui.mobile.core.Widget();
       this.getRoot().add(widget);
-      
+
       widget.setEnabled(true);
       widget.setAnonymous(true);
       this.assertFalse(qx.bom.element.Class.has(widget.getContainerElement(),'disabled'));
-      this.assertEquals('none', qx.bom.element.Style.get(widget.getContainerElement(),'pointer-events'));
-      
+      this.assertEquals('none', qx.bom.element.Style.get(widget.getContainerElement(),'pointerEvents'));
+
       widget.setEnabled(false);
       this.assertEquals(true,qx.bom.element.Class.has(widget.getContainerElement(),'disabled'));
-      this.assertEquals('none', qx.bom.element.Style.get(widget.getContainerElement(),'pointer-events'));
-      
+      this.assertEquals('none', qx.bom.element.Style.get(widget.getContainerElement(),'pointerEvents'));
+
       widget.setEnabled(true);
-      this.assertEquals('none', qx.bom.element.Style.get(widget.getContainerElement(),'pointer-events'));
-      
+      this.assertEquals('none', qx.bom.element.Style.get(widget.getContainerElement(),'pointerEvents'));
+
       widget.destroy();
-      
+
+    },
+
+
+    testToggleCss : function() {
+        var widget = new qx.ui.mobile.core.Widget();
+        this.getRoot().add(widget);
+
+        widget.toggleCssClass("test");
+        this.assertTrue(widget.hasCssClass("test"));
+
+        widget.toggleCssClass("test");
+        this.assertFalse(widget.hasCssClass("test"));
+
+        widget.destroy();
     }
   }
 });

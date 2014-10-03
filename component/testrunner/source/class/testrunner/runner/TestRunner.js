@@ -33,14 +33,25 @@ qx.Class.define("testrunner.runner.TestRunner", {
   */
   construct : function()
   {
+    this.TEST_MIXINS  = [qx.dev.unit.MMock, qx.dev.unit.MRequirements];
+    if (qx.core.Environment.get("testrunner.performance")) {
+      this.TEST_MIXINS.push(qx.dev.unit.MMeasure);
+    }
+
+    if (qx.core.Environment.get("testrunner.reportServer")) {
+      var viewClass = qx.Class.getByName(qx.core.Environment.get("testrunner.view"));
+      qx.Class.include(viewClass, testrunner.view.MReportResult);
+    }
+
     this.base(arguments);
-    
+
     // Get log appender element from view
     if (this.view.getLogAppenderElement) {
       this.__logAppender = new qx.log.appender.Element();
       qx.log.Logger.unregister(this.__logAppender);
       this.__logAppender.setElement(this.view.getLogAppenderElement());
-      if (qx.core.Environment.get("testrunner.testOrigin") != "iframe") {
+
+      if (this._origin != "iframe") {
         qx.log.Logger.register(this.__logAppender);
       }
     }
@@ -55,28 +66,20 @@ qx.Class.define("testrunner.runner.TestRunner", {
 
   members :
   {
+    origin : null,
     __iframe : null,
     frameWindow : null,
     __loadAttempts : null,
     __loadTimer : null,
     __logAppender : null,
-    
-    
-    _getTestNameSpace : function()
-    {
-      // Test namespace set by URI parameter
-      var params = location.search;
-      if (params.indexOf("testclass=") > 0 ) {
-        return params.substr(params.indexOf("testclass=") + 10);
-      } 
-      return qx.core.Environment.get("qx.testNameSpace");
-    },
-    
-    
+    _externalTestClasses : null,
+
+    TEST_MIXINS : null,
+
+
     _loadTests : function()
     {
-      var origin = qx.core.Environment.get("testrunner.testOrigin");
-      switch(origin) {
+      switch(this._origin) {
         case "iframe":
           // Load the tests from a standalone AUT
           this.__iframe = this.view.getIframe();
@@ -92,10 +95,49 @@ qx.Class.define("testrunner.runner.TestRunner", {
         case "external":
           this._loadExternalTests();
           break;
+        case "push":
+          var pushType = "code";
+          //var pushType = "uri";
+
+          if (pushType == "uri") {
+            this.__iframe = this.view.getIframe();
+            this.frameWindow = qx.bom.Iframe.getWindow(this.__iframe);
+
+            var evtFunc = function(event) {
+              // Load the tests from a standalone AUT
+              qx.event.Registration.addListener(this.__iframe, "load", this._onLoadIframe, this);
+              var src = event.data + "?testclass=" + this._testNameSpace;
+              this.setTestSuiteState("loading");
+              this.view.setAutUri(src);
+            };
+
+            var boundEvtFunc = evtFunc.bind(this);
+
+            window.setTimeout(function() {
+              boundEvtFunc({data : "html/tests-source.html"});
+            }, 1000);
+          }
+          else if (pushType == "code") {
+            var req = new qx.io.request.Xhr("../build/script/tests.js");
+            req.addListener("success", function(e) {
+              var test = req.getResponse();
+              this.__iframe = this.view.getIframe();
+              var doc = qx.bom.Iframe.getDocument(this.__iframe);
+              var el =doc.createElement("script");
+              el.text = test;
+              doc.getElementsByTagName("head")[0].appendChild(el);
+
+              this.loader = qx.bom.Iframe.getWindow(this.__iframe).testrunner.TestLoader.getInstance();
+              this.loader.setTestNamespace(this._testNameSpace);
+              this._wrapAssertions(this.frameWindow);
+              this._getTestModel();
+            }, this);
+            req.send();
+          }
       }
     },
-    
-    
+
+
     /**
      * Loads test classes that are a part of the TestRunner application.
      *
@@ -112,17 +154,32 @@ qx.Class.define("testrunner.runner.TestRunner", {
     },
 
 
+    // overridden
+    _defineTestClass : function(testClassName, membersMap)
+    {
+      var qxClass = qx.Class;
+      var classDef = {
+        extend : qx.dev.unit.TestCase,
+        members : membersMap
+      };
+      if (this.TEST_MIXINS) {
+        classDef.include = this.TEST_MIXINS;
+      }
+      return qxClass.define(testClassName, classDef);
+    },
+
+
     _runTests : function() {
       if (this.__logAppender) {
         this.__logAppender.clear();
       }
       this.base(arguments);
     },
-    
-    
+
+
     _getTestResult : function()
     {
-      if (qx.core.Environment.get("testrunner.testOrigin") == "iframe") {
+      if (this._origin == "iframe" || this._origin == "push") {
         var frameWindow = qx.bom.Iframe.getWindow(this.__iframe);
         var testResult = new frameWindow.qx.dev.unit.TestResult();
 
@@ -134,7 +191,7 @@ qx.Class.define("testrunner.runner.TestRunner", {
 
 
     _onTestEnd : function(ev) {
-      if (qx.core.Environment.get("testrunner.testOrigin") == "iframe") {
+      if (this._origin == "iframe" || this._origin == "push") {
         if (this.__logAppender) {
           this.__fetchIframeLog();
         }
@@ -142,13 +199,13 @@ qx.Class.define("testrunner.runner.TestRunner", {
 
       this.base(arguments);
     },
-    
-    
+
+
     /**
      * Waits until the test application in the iframe has finished loading, then
      * retrieves its TestLoader.
      * @param ev {qx.event.type.Event} Iframe's "load" event
-     * 
+     *
      * @lint ignoreDeprecated(alert)
      */
     _onLoadIframe : function(ev)
@@ -181,6 +238,7 @@ qx.Class.define("testrunner.runner.TestRunner", {
                   "protocol instead.");
 
             // Quit
+            this.setTestSuiteState("error");
             return;
           }
         }
@@ -222,11 +280,17 @@ qx.Class.define("testrunner.runner.TestRunner", {
         }
       }
 
+      if (window.name == "selenium_myiframe") {
+        this.frameWindow.selenium = true;
+      }
+
       if (this.__logAppender) {
         this.__logAppender.clear();
       }
 
-      this._wrapAssertions(this.frameWindow);
+      if (qx.core.Environment.get("engine.name") !== "opera") {
+        this._wrapAssertions(this.frameWindow);
+      }
       this._getTestModel();
     },
 

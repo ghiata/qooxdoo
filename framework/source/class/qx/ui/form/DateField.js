@@ -35,6 +35,8 @@
  *
  * @childControl list {qx.ui.control.DateChooser} date chooser component
  * @childControl popup {qx.ui.popup.Popup} popup which shows the list control
+ * @childControl textfield {qx.ui.form.TextField} text field for manual date entry
+ * @childControl button {qx.ui.form.Button} button that opens the list control
  */
 qx.Class.define("qx.ui.form.DateField",
 {
@@ -69,13 +71,14 @@ qx.Class.define("qx.ui.form.DateField",
     this._createChildControl("button");
 
     // register listeners
-    this.addListener("click", this._onClick, this);
+    this.addListener("tap", this._onTap, this);
     this.addListener("blur", this._onBlur, this);
 
     // forward the focusin and focusout events to the textfield. The textfield
     // is not focusable so the events need to be forwarded manually.
     this.addListener("focusin", function(e) {
       textField.fireNonBubblingEvent("focusin", qx.event.type.Focus);
+      textField.setTextSelection(0,0);
     }, this);
 
     this.addListener("focusout", function(e) {
@@ -86,7 +89,7 @@ qx.Class.define("qx.ui.form.DateField",
     this._setDefaultDateFormat();
 
     // adds a locale change listener
-    this._addLocaleChangeLeistener();
+    this._addLocaleChangeListener();
   },
 
 
@@ -241,7 +244,7 @@ qx.Class.define("qx.ui.form.DateField",
      * On every change, {@link #_setDefaultDateFormat} is called to reinitialize
      * the format. You can easily override that method to prevent that behavior.
      */
-    _addLocaleChangeLeistener : function() {
+    _addLocaleChangeListener : function() {
       // listen for locale changes
       if (qx.core.Environment.get("qx.dynlocale"))
       {
@@ -251,6 +254,7 @@ qx.Class.define("qx.ui.form.DateField",
           }, this);
       }
     },
+
 
     /*
     ---------------------------------------------------------------------------
@@ -416,6 +420,7 @@ qx.Class.define("qx.ui.form.DateField",
           control.setFocusable(false);
           control.setKeepActive(true);
           control.addState("inner");
+          control.addListener("execute", this.toggle, this);
           this._add(control);
           break;
 
@@ -430,7 +435,7 @@ qx.Class.define("qx.ui.form.DateField",
           control = new qx.ui.popup.Popup(new qx.ui.layout.VBox);
           control.setAutoHide(false);
           control.add(this.getChildControl("list"));
-          control.addListener("mouseup", this._onChangeDate, this);
+          control.addListener("pointerup", this._onChangeDate, this);
           control.addListener("changeVisibility", this._onPopupChangeVisibility, this);
           break;
       }
@@ -448,9 +453,9 @@ qx.Class.define("qx.ui.form.DateField",
    */
 
    /**
-    * Handler method which handles the click on the calender popup.
+    * Handler method which handles the tap on the calender popup.
     *
-    * @param e {qx.event.type.Mouse} The mouse event of the click.
+    * @param e {qx.event.type.Pointer} The pointer event.
     */
     _onChangeDate : function(e)
     {
@@ -466,16 +471,10 @@ qx.Class.define("qx.ui.form.DateField",
     /**
      * Toggles the popup's visibility.
      *
-     * @param e {qx.event.type.Mouse} Mouse click event
+     * @param e {qx.event.type.Pointer} Pointer tap event
      */
-    _onClick : function(e)
-    {
-      var target = e.getTarget();
-      if (target == this.getChildControl("button")) {
-        this.toggle();
-      } else {
-        this.close();
-      }
+    _onTap : function(e) {
+      this.close();
     },
 
 
@@ -484,8 +483,7 @@ qx.Class.define("qx.ui.form.DateField",
      *
      * @param e {qx.event.type.Focus} The blur event.
      */
-    _onBlur : function(e)
-    {
+    _onBlur : function(e) {
       this.close();
     },
 

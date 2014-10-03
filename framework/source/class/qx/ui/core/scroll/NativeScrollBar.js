@@ -40,7 +40,7 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/widget/scrollbar.html' target='_blank'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/widget/scrollbar.html' target='_blank'>
  * Documentation of this widget in the qooxdoo manual.</a>
  */
 qx.Class.define("qx.ui.core.scroll.NativeScrollBar",
@@ -59,17 +59,13 @@ qx.Class.define("qx.ui.core.scroll.NativeScrollBar",
     this.addState("native");
 
     this.getContentElement().addListener("scroll", this._onScroll, this);
-    this.addListener("mousedown", this._stopPropagation, this);
-    this.addListener("mouseup", this._stopPropagation, this);
-    this.addListener("mousemove", this._stopPropagation, this);
-
-    if ((qx.core.Environment.get("engine.name") == "opera") &&
-      parseFloat(qx.core.Environment.get("engine.version")) < 11.5)
-    {
-      this.addListener("appear", this._onAppear, this);
-    }
+    this.addListener("pointerdown", this._stopPropagation, this);
+    this.addListener("pointerup", this._stopPropagation, this);
+    this.addListener("pointermove", this._stopPropagation, this);
+    this.addListener("appear", this._onAppear, this);
 
     this.getContentElement().add(this._getScrollPaneElement());
+    this.getContentElement().setStyle("box-sizing", "content-box");
 
     // Configure orientation
     if (orientation != null) {
@@ -77,6 +73,19 @@ qx.Class.define("qx.ui.core.scroll.NativeScrollBar",
     } else {
       this.initOrientation();
     }
+
+    // prevent drag & drop on scrolling
+    this.addListener("track", function(e) {
+      e.stopPropagation();
+    }, this);
+  },
+
+
+  events : {
+    /**
+     * Fired as soon as the scroll animation ended.
+     */
+    scrollAnimationEnd: 'qx.event.type.Event'
   },
 
 
@@ -119,7 +128,7 @@ qx.Class.define("qx.ui.core.scroll.NativeScrollBar",
 
 
     /**
-     * Step size for each click on the up/down or left/right buttons.
+     * Step size for each tap on the up/down or left/right buttons.
      */
     singleStep :
     {
@@ -141,6 +150,10 @@ qx.Class.define("qx.ui.core.scroll.NativeScrollBar",
   {
     __isHorizontal : null,
     __scrollPaneElement : null,
+    __requestId : null,
+
+    __scrollAnimationframe : null,
+
 
     /**
      * Get the scroll pane html element.
@@ -174,7 +187,7 @@ qx.Class.define("qx.ui.core.scroll.NativeScrollBar",
     // overridden
     _getContentHint : function()
     {
-      var scrollbarWidth = qx.bom.element.Overflow.getScrollbarWidth();
+      var scrollbarWidth = qx.bom.element.Scroll.getScrollbarWidth();
       return {
         width: this.__isHorizontal ? 100 : scrollbarWidth,
         maxWidth: this.__isHorizontal ? null : scrollbarWidth,
@@ -271,12 +284,12 @@ qx.Class.define("qx.ui.core.scroll.NativeScrollBar",
       // Scrollbars don't work properly in IE if the element with overflow has
       // excatly the size of the scrollbar. Thus we move the element one pixel
       // out of the view and increase the size by one.
-      if ((qx.core.Environment.get("engine.name") == "mshtml"))
+      if (qx.core.Environment.get("engine.name") == "mshtml")
       {
         var bounds = this.getBounds();
         this.getContentElement().setStyles({
-          left: isHorizontal ? "0" : "-1px",
-          top: isHorizontal ? "-1px" : "0",
+          left: (isHorizontal ? bounds.left : (bounds.left -1)) + "px",
+          top: (isHorizontal ? (bounds.top - 1) : bounds.top) + "px",
           width: (isHorizontal ? bounds.width : bounds.width + 1) + "px",
           height: (isHorizontal ? bounds.height + 1 : bounds.height) + "px"
         });
@@ -289,27 +302,69 @@ qx.Class.define("qx.ui.core.scroll.NativeScrollBar",
         height: (isHorizontal ? 1 : innerSize) + "px"
       });
 
-      this.scrollTo(this.getPosition());
+      this.updatePosition(this.getPosition());
     },
 
 
     // interface implementation
-    scrollTo : function(position) {
+    scrollTo : function(position, duration) {
+      // if a user sets a new position, stop any animation
+      this.stopScrollAnimation();
+
+      if (duration) {
+        var from = this.getPosition();
+
+        this.__scrollAnimationframe = new qx.bom.AnimationFrame();
+
+        this.__scrollAnimationframe.on("frame", function(timePassed) {
+          var newPos = parseInt(timePassed/duration * (position - from) + from);
+          this.updatePosition(newPos);
+        }, this);
+
+        this.__scrollAnimationframe.on("end", function() {
+          this.setPosition(Math.max(0, Math.min(this.getMaximum(), position)));
+          this.__scrollAnimationframe = null;
+          this.fireEvent("scrollAnimationEnd");
+        }, this);
+
+        this.__scrollAnimationframe.startSequence(duration);
+      } else {
+        this.updatePosition(position);
+      }
+    },
+
+
+    /**
+     * Helper to set the new position taking care of min and max values.
+     * @param position {Number} The new position.
+     */
+    updatePosition : function(position) {
       this.setPosition(Math.max(0, Math.min(this.getMaximum(), position)));
     },
 
 
     // interface implementation
-    scrollBy : function(offset) {
-      this.scrollTo(this.getPosition() + offset)
+    scrollBy : function(offset, duration) {
+      this.scrollTo(this.getPosition() + offset, duration)
     },
 
 
     // interface implementation
-    scrollBySteps : function(steps)
+    scrollBySteps : function(steps, duration)
     {
       var size = this.getSingleStep();
-      this.scrollBy(steps * size);
+      this.scrollBy(steps * size, duration);
+    },
+
+
+    /**
+     * If a scroll animation is running, it will be stopped.
+     */
+    stopScrollAnimation : function() {
+      if (this.__scrollAnimationframe) {
+        this.__scrollAnimationframe.cancelSequence();
+        this.__scrollAnimationframe = null;
+      }
     },
 
 
@@ -327,13 +382,13 @@ qx.Class.define("qx.ui.core.scroll.NativeScrollBar",
 
 
     /**
-     * Listener for appear.
-     * Scrolls to the correct position to fix a rendering bug in Opera.
+     * Listener for appear which ensured the scroll bar is positioned right
+     * on appear.
      *
      * @param e {qx.event.type.Data} Incoming event object
      */
     _onAppear : function(e) {
-      this.scrollTo(this.getPosition());
+      this._applyPosition(this.getPosition());
     },
 
 

@@ -19,13 +19,14 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/16/actions/document-save.png)
 
 ************************************************************************ */
 
 /**
  * @lint ignoreDeprecated(alert)
  * @tag showcase
+ *
+ * @asset(qx/icon/${qx.icontheme}/16/actions/document-save.png)
  */
 qx.Class.define("demobrowser.demo.ui.Command",
 {
@@ -38,7 +39,7 @@ qx.Class.define("demobrowser.demo.ui.Command",
       this.base(arguments);
 
       // create and configure the command
-      var command = new qx.ui.core.Command("CTRL+S");
+      var command = new qx.ui.command.Command("CTRL+S");
       command.setLabel("Save");
       command.setIcon("icon/16/actions/document-save.png");
       command.setToolTipText("Save the current file.");

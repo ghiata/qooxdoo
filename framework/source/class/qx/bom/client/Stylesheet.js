@@ -31,7 +31,7 @@ qx.Bootstrap.define("qx.bom.client.Stylesheet",
   {
     /**
      * Returns a stylesheet to be used for feature checks
-     * 
+     *
      * @return {Stylesheet} Stylesheet element
      */
     __getStylesheet : function()
@@ -41,15 +41,16 @@ qx.Bootstrap.define("qx.bom.client.Stylesheet",
       }
       return qx.bom.client.Stylesheet.__stylesheet;
     },
-    
+
+
     /**
      * Check for IE's non-standard document.createStyleSheet function.
      * In IE9 (standards mode), the typeof check returns "function" so false is
-     * returned. This is intended since IE9 supports the DOM-standard 
+     * returned. This is intended since IE9 supports the DOM-standard
      * createElement("style") which should be used instead.
      *
      * @internal
-     * @return {Boolean} <code>true</code> if the browser supports 
+     * @return {Boolean} <code>true</code> if the browser supports
      * document.createStyleSheet
      */
     getCreateStyleSheet : function()
@@ -60,7 +61,7 @@ qx.Bootstrap.define("qx.bom.client.Stylesheet",
 
     /**
      * Check for stylesheet.insertRule. Legacy IEs do not support this.
-     * 
+     *
      * @internal
      * @return {Boolean} <code>true</code> if insertRule is supported
      */
@@ -83,9 +84,9 @@ qx.Bootstrap.define("qx.bom.client.Stylesheet",
 
 
     /**
-     * Decides whether to use the legacy IE-only stylesheet.addImport or the 
+     * Decides whether to use the legacy IE-only stylesheet.addImport or the
      * DOM-standard stylesheet.insertRule('@import [...]')
-     * 
+     *
      * @internal
      * @return {Boolean} <code>true</code> if stylesheet.addImport is supported
      */
@@ -96,9 +97,9 @@ qx.Bootstrap.define("qx.bom.client.Stylesheet",
 
 
     /**
-     * Decides whether to use the legacy IE-only stylesheet.removeImport or the 
+     * Decides whether to use the legacy IE-only stylesheet.removeImport or the
      * DOM-standard stylesheet.deleteRule('@import [...]')
-     * 
+     *
      * @internal
      * @return {Boolean} <code>true</code> if stylesheet.removeImport is supported
      */
@@ -106,13 +107,14 @@ qx.Bootstrap.define("qx.bom.client.Stylesheet",
     {
       return (typeof qx.bom.client.Stylesheet.__getStylesheet().removeImport === "object");
     }
-
   },
-  
+
+
+
   defer : function (statics) {
-    qx.core.Environment.add("html.stylesheet.createstylesheet", statics.getCreateStyleSheet),
-    qx.core.Environment.add("html.stylesheet.insertrule", statics.getInsertRule),
-    qx.core.Environment.add("html.stylesheet.deleterule", statics.getDeleteRule),
+    qx.core.Environment.add("html.stylesheet.createstylesheet", statics.getCreateStyleSheet);
+    qx.core.Environment.add("html.stylesheet.insertrule", statics.getInsertRule);
+    qx.core.Environment.add("html.stylesheet.deleterule", statics.getDeleteRule);
     qx.core.Environment.add("html.stylesheet.addimport", statics.getAddImport);
     qx.core.Environment.add("html.stylesheet.removeimport", statics.getRemoveImport);
   }

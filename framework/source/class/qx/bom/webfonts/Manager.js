@@ -38,6 +38,12 @@ qx.Class.define("qx.bom.webfonts.Manager", {
     this.__validators = {};
     this.__queue = [];
     this.__preferredFormats = this.getPreferredFormats();
+    var browser = qx.core.Environment.get("browser.name");
+    var version = parseInt(qx.core.Environment.get("browser.version"), 10);
+    if ((browser == "chrome" && version < 35) ||
+      (browser == "opera") && version < 22) {
+      this.__needsAbsoluteUri = true;
+    }
   },
 
 
@@ -78,6 +84,7 @@ qx.Class.define("qx.bom.webfonts.Manager", {
     __preferredFormats : null,
     __queue : null,
     __queueInterval : null,
+    __needsAbsoluteUri : false,
 
 
     /*
@@ -109,26 +116,30 @@ qx.Class.define("qx.bom.webfonts.Manager", {
         if (split.length > 1) {
           src = src + "#" + split[1];
         }
+        if (this.__needsAbsoluteUri) {
+          // Workaround for bug #8157
+          src = qx.util.Uri.getAbsolute(src);
+        }
         sources.push(src);
       }
 
       // old IEs need a break in between adding @font-face rules
-      if (!(qx.core.Environment.get("browser.name") == "ie" &&
-      qx.bom.client.Browser.getVersion() < 9)) {
+      if (qx.core.Environment.get("engine.name") == "mshtml" && (
+          parseInt(qx.core.Environment.get("engine.version")) < 9 ||
+          qx.core.Environment.get("browser.documentmode") < 9)) {
+        if (!this.__queueInterval) {
+          this.__queueInterval = new qx.event.Timer(100);
+          this.__queueInterval.addListener("interval", this.__flushQueue, this);
+        }
+
+        if (!this.__queueInterval.isEnabled()) {
+          this.__queueInterval.start();
+        }
+
+        this.__queue.push([familyName, sources, callback, context]);
+      } else {
         this.__require(familyName, sources, callback, context);
-        return;
       }
-
-      if (!this.__queueInterval) {
-        this.__queueInterval = new qx.event.Timer(100);
-        this.__queueInterval.addListener("interval", this.__flushQueue, this);
-      }
-
-      if (!this.__queueInterval.isEnabled()) {
-        this.__queueInterval.start();
-      }
-
-      this.__queue.push([familyName, sources, callback, context]);
     },
 
 
@@ -174,7 +185,7 @@ qx.Class.define("qx.bom.webfonts.Manager", {
       var os = qx.core.Environment.get("os.name");
       var osVersion = qx.core.Environment.get("os.version");
 
-      if ((browser == "ie" && browserVersion >= 9) ||
+      if ((browser == "ie" && qx.core.Environment.get("browser.documentmode") >= 9) ||
           (browser == "firefox" && browserVersion >= 3.6) ||
           (browser == "chrome" && browserVersion >= 6)) {
         preferredFormats.push("woff");
@@ -210,11 +221,7 @@ qx.Class.define("qx.bom.webfonts.Manager", {
     {
       this.__createdStyles = [];
       if (this.__styleSheet) {
-        var owner = this.__styleSheet.ownerNode ?
-          this.__styleSheet.ownerNode :
-          this.__styleSheet.owningElement;
-        qx.dom.Element.removeChild(owner,
-          owner.parentNode);
+        qx.bom.Stylesheet.removeSheet(this.__styleSheet);
       }
       this.__styleSheet = null;
     },
@@ -380,8 +387,8 @@ qx.Class.define("qx.bom.webfonts.Manager", {
     __getSourceForFormat : function(format, url)
     {
       switch(format) {
-        case "eot":
-          return "url('" + url + "?#iefix') format('eot')";
+        case "eot": return "url('" + url + "');" +
+          "src: url('" + url + "?#iefix') format('embedded-opentype')";
         case "woff":
           return "url('" + url + "') format('woff')";
         case "ttf":
@@ -404,7 +411,7 @@ qx.Class.define("qx.bom.webfonts.Manager", {
       var completeRule = "@font-face {" + rule + "}\n";
 
       if (qx.core.Environment.get("browser.name") == "ie" &&
-          qx.core.Environment.get("browser.version") < 9) {
+          qx.core.Environment.get("browser.documentmode") < 9) {
         var cssText = this.__fixCssText(this.__styleSheet.cssText);
         cssText += completeRule;
         this.__styleSheet.cssText = cssText;
@@ -456,7 +463,8 @@ qx.Class.define("qx.bom.webfonts.Manager", {
      */
     __fixCssText : function(cssText)
     {
-      return cssText.replace("'eot)", "'eot')");
+      return cssText.replace("'eot)", "'eot')")
+        .replace("('embedded-opentype)", "('embedded-opentype')");
     }
 
   },
@@ -469,6 +477,10 @@ qx.Class.define("qx.bom.webfonts.Manager", {
 
   destruct : function()
   {
+    if (this.__queueInterval) {
+      this.__queueInterval.stop();
+      this.__queueInterval.dispose();
+    }
     delete this.__createdStyles;
     this.removeStyleSheet();
     for (var prop in this.__validators) {

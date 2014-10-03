@@ -19,12 +19,14 @@
 ************************************************************************ */
 
 /* ************************************************************************
-#asset(qx/test/*)
 ************************************************************************ */
 
-/* ************************************************************************
-#require(qx.io.request.Xhr)
-************************************************************************ */
+/**
+ *
+ * @asset(qx/test/*)
+ * @ignore(qx.data.model, qx.test.O, qx.test.M, qx.test.M1, qx.test.M2)
+ * @require(qx.io.request.Xhr)
+ */
 
 qx.Class.define("qx.test.data.store.Json",
 {
@@ -39,6 +41,9 @@ qx.Class.define("qx.test.data.store.Json",
     __propertyNames : null,
 
 
+    /**
+     * @lint ignoreDeprecated(eval)
+     */
     setUp : function()
     {
       this.__store = new qx.data.store.Json();
@@ -53,17 +58,28 @@ qx.Class.define("qx.test.data.store.Json",
 
     setUpFakeRequest : function()
     {
-      var req = new qx.io.request.Xhr(this.url);
+      var req = this.request = new qx.io.request.Xhr(this.url);
       req.send = req.setParser = function() {};
       req.dispose = qx.io.request.Xhr.prototype.dispose;
-      this.request = this.stub(req);
-      this.stub(qx.io.request, "Xhr").returns(this.request);
+      this.stub(qx.io.request, "Xhr").returns(this.stub(req));
     },
 
 
     tearDown : function()
     {
       this.getSandbox().restore();
+
+      if (this.request) {
+
+        // Restore manually (is unreachable from sandbox)
+        if (typeof this.request.dispose.restore == "function") {
+          this.request.dispose.restore();
+        }
+
+        // Dispose
+        this.request.dispose();
+      }
+
       this.__store.dispose();
 
       // Remove the former created classes
@@ -150,6 +166,12 @@ qx.Class.define("qx.test.data.store.Json",
       this.__store.setUrl(alias);
 
       this.wait();
+    },
+
+
+    testDispose: function() {
+      this.__store.setUrl(this.url);
+      this.__store.dispose();
     },
 
 
@@ -403,6 +425,53 @@ qx.Class.define("qx.test.data.store.Json",
       this.wait();
     },
 
+    testOwnMixinWithMultiple: function() {
+      // define a test class
+      qx.Mixin.define("qx.test.M1",
+      {
+        members :
+        {
+          a: function() {
+            return true;
+          }
+        }
+      });
+      qx.Mixin.define("qx.test.M2",
+      {
+        members :
+        {
+          b: function() {
+            return true;
+          }
+        }
+      });
+
+
+      var delegate = {
+        getModelMixins : function(properties) {
+          return [qx.test.M1, qx.test.M2];
+        }
+      };
+      this.__store = new qx.data.store.Json(null, delegate);
+
+      this.__store.addListener("loaded", function() {
+        this.resume(function() {
+          var model = this.__store.getModel();
+          this.assertTrue(model.a(), "Mixin not included.");
+          this.assertTrue(model.b(), "Mixin not included.");
+          this.assertNotNull(model.getO(), "The model is not created how it should!");
+          this.assertTrue(model.getO().a(), "Mixin not included.");
+          this.assertEquals("a", model.getO().getA(), "Wrong content of the object.");
+          this.assertEquals("b", model.getO().getB(), "Wrong content of the object.");
+        }, this);
+      }, this);
+
+      var url = qx.util.ResourceManager.getInstance().toUri("qx/test/object.json");
+      this.__store.setUrl(url);
+
+      this.wait();
+    },
+
 
     testManipulatePrimitive: function() {
       var delegate = {manipulateData : function(data) {
@@ -507,6 +576,29 @@ qx.Class.define("qx.test.data.store.Json",
       this.__store.setUrl("not-found");
 
       this.wait();
+    },
+
+    "test Internal Server Error" : function() {
+      this.useFakeServer();
+
+      var server = this.getServer();
+      server.respondWith("GET", "/foo", [ 500,
+        {"Content-Type": "application/json"}, "SERVER ERROR" ]);
+
+      this.__store.addListener("error", function(e)
+      {
+        this.resume(function(){
+          this.assertTrue(e.getData().getPhase() == "statusError");
+        });
+      }, this);
+
+      qx.event.Timer.once(function()
+      {
+        this.__store.setUrl("/foo");
+        server.respond();
+      }, this, 500)
+
+      this.wait(1000);
     }
   }
 });

@@ -28,27 +28,45 @@ qx.Class.define("playground.view.Header",
     this.base(arguments, new qx.ui.layout.HBox());
     this.setAppearance("app-header");
 
+    // EVIL HACK
+    this.addListener("appear", function() {
+      var el = this.getContentElement();
+      el.setStyle("top", (parseInt(el.getStyle("top")) + 1) + "px");
+    }, this);
+    // /////////
+
     var version = new qxc.ui.versionlabel.VersionLabel(this.tr("qooxdoo"));
+    version.setFont("default");
     var riaButton = new qx.ui.form.RadioButton(this.tr("Desktop"));
     riaButton.set({
       model: "ria",
-      appearance: "modeButton"
+      appearance: "modeButton",
+      focusable: false
     });
     var mobileButton = new qx.ui.form.RadioButton(this.tr("Mobile"));
     mobileButton.set({
       model: "mobile",
-      appearance: "modeButton"
+      appearance: "modeButton",
+      focusable: false
+    });
+    var websiteButton = new qx.ui.form.RadioButton(this.tr("Website"));
+    websiteButton.set({
+      model: "website",
+      appearance: "modeButton",
+      focusable: false
     });
 
-    this.__buttons = [riaButton, mobileButton];
 
-    this.__group = new qx.ui.form.RadioGroup(riaButton, mobileButton);
+    this.__buttons = [riaButton, mobileButton, websiteButton];
+
+    this.__group = new qx.ui.form.RadioGroup(riaButton, mobileButton, websiteButton);
     this.__group.bind("modelSelection[0]", this, "mode");
 
     this.add(new qx.ui.basic.Label(this.tr("Playground")));
     this.add(new qx.ui.core.Spacer(30));
     this.add(riaButton);
     this.add(mobileButton);
+    this.add(websiteButton);
     this.add(new qx.ui.core.Spacer(), { flex : 1 });
     this.add(version);
   },

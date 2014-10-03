@@ -32,16 +32,12 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.event.handler.Input)
-
-************************************************************************ */
-
 /**
  * Cross browser abstractions to work with input elements.
+ *
+ * @require(qx.lang.Array#contains)
  */
-qx.Class.define("qx.bom.Input",
+qx.Bootstrap.define("qx.bom.Input",
 {
   /*
   *****************************************************************************
@@ -51,7 +47,7 @@ qx.Class.define("qx.bom.Input",
 
   statics :
   {
-    /** {Map} Internal data structures with all supported input types */
+    /** @type {Map} Internal data structures with all supported input types */
     __types :
     {
       text : 1,
@@ -106,7 +102,7 @@ qx.Class.define("qx.bom.Input",
         attributes.type = type;
       }
 
-      return qx.bom.Element.create(tag, attributes, win);
+      return qx.dom.Element.create(tag, attributes, win);
     },
 
 
@@ -176,9 +172,7 @@ qx.Class.define("qx.bom.Input",
         element.$$inValueSet = true;
         element.value = value;
         element.$$inValueSet = null;
-      }
-      else
-      {
+      } else {
         element.value = value;
       }
     },
@@ -270,7 +264,16 @@ qx.Class.define("qx.bom.Input",
         element.style.overflowY = styleValue;
       },
 
-      "gecko|webkit" : function(element, wrap)
+      "gecko" : function(element, wrap)
+      {
+        var wrapValue = wrap ? "soft" : "off";
+        var styleValue = wrap ? "" : "auto";
+
+        element.setAttribute("wrap", wrapValue);
+        element.style.overflow = styleValue;
+      },
+
+      "webkit" : function(element, wrap)
       {
         var wrapValue = wrap ? "soft" : "off";
         var styleValue = wrap ? "" : "auto";

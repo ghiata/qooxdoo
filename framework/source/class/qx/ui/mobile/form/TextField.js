@@ -18,8 +18,6 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * The TextField is a single-line text input field.
  */
 qx.Class.define("qx.ui.mobile.form.TextField",
@@ -41,6 +39,8 @@ qx.Class.define("qx.ui.mobile.form.TextField",
   construct : function(value)
   {
     this.base(arguments);
+
+    this.addListener("keypress", this._onKeyPress, this);
   },
 
   /*
@@ -55,18 +55,10 @@ qx.Class.define("qx.ui.mobile.form.TextField",
     defaultCssClass :
     {
       refine : true,
-      init : "textField"
+      init : "text-field"
     }
   },
 
-
-
-
-  /*
-  *****************************************************************************
-     MEMBERS
-  *****************************************************************************
-  */
 
   members :
   {
@@ -74,6 +66,23 @@ qx.Class.define("qx.ui.mobile.form.TextField",
     _getType : function()
     {
       return "text";
+    },
+
+
+    /**
+    * Event handler for <code>keypress</code> event.
+    * @param evt {qx.event.type.KeySequence} the keypress event.
+    */
+    _onKeyPress : function(evt) {
+      // On return
+      if(evt.getKeyCode() == 13) {
+        this.blur();
+      }
     }
+  },
+
+
+  destruct : function() {
+    this.removeListener("keypress", this._onKeyPress, this);
   }
 });

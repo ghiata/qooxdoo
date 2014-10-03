@@ -27,6 +27,15 @@ qx.Class.define("qx.ui.core.LayoutItem",
   type : "abstract",
   extend : qx.core.Object,
 
+  construct : function() {
+    this.base(arguments);
+
+    // dynamic theme switch
+    if (qx.core.Environment.get("qx.dyntheme")) {
+      qx.theme.manager.Meta.getInstance().addListener("changeTheme", this._onChangeTheme, this);
+    }
+  },
+
 
 
   /*
@@ -59,7 +68,7 @@ qx.Class.define("qx.ui.core.LayoutItem",
 
 
     /**
-     * The item's preferred width.
+     * The <code>LayoutItem</code>'s preferred width.
      *
      * The computed width may differ from the given width due to
      * stretching. Also take a look at the related properties
@@ -68,6 +77,7 @@ qx.Class.define("qx.ui.core.LayoutItem",
     width :
     {
       check : "Integer",
+      event : "changeWidth",
       nullable : true,
       apply : "_applyDimension",
       init : null,
@@ -115,6 +125,7 @@ qx.Class.define("qx.ui.core.LayoutItem",
     height :
     {
       check : "Integer",
+      event : "changeHeight",
       nullable : true,
       apply : "_applyDimension",
       init : null,
@@ -322,29 +333,61 @@ qx.Class.define("qx.ui.core.LayoutItem",
   {
     /*
     ---------------------------------------------------------------------------
+      DYNAMIC THEME SWITCH SUPPORT
+    ---------------------------------------------------------------------------
+    */
+
+    /**
+     * Handler for the dynamic theme change.
+     * @signature function()
+     */
+    _onChangeTheme : qx.core.Environment.select("qx.dyntheme",
+    {
+      "true" : function() {
+        // reset all themeable properties
+        var props = qx.util.PropertyUtil.getAllProperties(this.constructor);
+        for (var name in props) {
+          var desc = props[name];
+          // only themeable properties not having a user value
+          if (desc.themeable) {
+            var userValue = qx.util.PropertyUtil.getUserValue(this, name);
+            if (userValue == null) {
+              qx.util.PropertyUtil.resetThemed(this, name);
+            }
+          }
+        }
+      },
+      "false" : null
+    }),
+
+
+
+
+    /*
+    ---------------------------------------------------------------------------
       LAYOUT PROCESS
     ---------------------------------------------------------------------------
     */
 
-    /** {Integer} The computed height */
+    /** @type {Integer} The computed height */
     __computedHeightForWidth : null,
 
-    /** {Map} The computed size of the layout item */
+    /** @type {Map} The computed size of the layout item */
     __computedLayout : null,
 
-    /** {Boolean} Whether the current layout is valid */
+    /** @type {Boolean} Whether the current layout is valid */
     __hasInvalidLayout : null,
 
-    /** {Map} Cached size hint */
+    /** @type {Map} Cached size hint */
     __sizeHint : null,
 
-    /** {Boolean} Whether the margins have changed and must be updated */
+    /** @type {Boolean} Whether the margins have changed and must be updated */
     __updateMargin : null,
 
-    /** {Map} user provided bounds of the widget, which override the layout manager */
+    /** @type {Map} user provided bounds of the widget, which override the layout manager */
     __userBounds : null,
 
-    /** {Map} The item's layout properties */
+    /** @type {Map} The item's layout properties */
     __layoutProperties : null,
 
 
@@ -373,7 +416,7 @@ qx.Class.define("qx.ui.core.LayoutItem",
     /**
      * Renders a separator between two children
      *
-     * @param separator {Decorator} The separator to render
+     * @param separator {String|qx.ui.decoration.IDecorator} The separator to render
      * @param bounds {Map} Contains the left and top coordinate and the width and height
      *    of the separator to render.
      */
@@ -607,7 +650,7 @@ qx.Class.define("qx.ui.core.LayoutItem",
     /**
      * Computes the size hint of the layout item.
      *
-     * @return The map with the preferred width/height and the allowed
+     * @return {Map} The map with the preferred width/height and the allowed
      *   minimum and maximum values.
      */
     _computeSizeHint : function()
@@ -739,7 +782,6 @@ qx.Class.define("qx.ui.core.LayoutItem",
      * @param top {Integer} top position (relative to the parent)
      * @param width {Integer} width of the layout item
      * @param height {Integer} height of the layout item
-     * @return {void}
      */
     setUserBounds : function(left, top, width, height)
     {
@@ -758,7 +800,6 @@ qx.Class.define("qx.ui.core.LayoutItem",
      * Clear the user bounds. After this call the layout item is laid out by
      * the layout manager again.
      *
-     * @return {void}
      */
     resetUserBounds : function()
     {
@@ -777,7 +818,7 @@ qx.Class.define("qx.ui.core.LayoutItem",
     */
 
     /**
-     * {Map} Empty storage pool
+     * @type {Map} Empty storage pool
      *
      * @lint ignoreReferenceField(__emptyProperties)
      */
@@ -788,7 +829,6 @@ qx.Class.define("qx.ui.core.LayoutItem",
      * Stores the given layout properties
      *
      * @param props {Map} Incoming layout property data
-     * @return {void}
      */
     setLayoutProperties : function(props)
     {
@@ -832,7 +872,6 @@ qx.Class.define("qx.ui.core.LayoutItem",
     /**
      * Removes all stored layout properties.
      *
-     * @return {void}
      */
     clearLayoutProperties : function() {
       delete this.__layoutProperties;
@@ -849,7 +888,6 @@ qx.Class.define("qx.ui.core.LayoutItem",
      * modified widget itself.
      *
      * @param props {Map?null} Optional map of known layout properties
-     * @return {void}
      */
     updateLayoutProperties : function(props)
     {
@@ -994,6 +1032,12 @@ qx.Class.define("qx.ui.core.LayoutItem",
 
   destruct : function()
   {
+    // remove dynamic theme listener
+    if (qx.core.Environment.get("qx.dyntheme")) {
+      qx.theme.manager.Meta.getInstance().removeListener(
+        "changeTheme", this._onChangeTheme, this
+      );
+    }
     this.$$parent = this.$$subparent = this.__layoutProperties =
       this.__computedLayout = this.__userBounds = this.__sizeHint = null;
   }

@@ -17,59 +17,47 @@
 #  Authors:
 #    * Sebastian Werner (wpbasti)
 #    * Fabian Jakobs (fjakobs)
+#    *Thomas Herchenroeder (thron7)
 #
 ################################################################################
 
-from ecmascript.frontend import tree, treeutil
+import operator
+from misc.NameMapper import NameMapper
+from ecmascript.frontend import treeutil, lang
+from ecmascript.transform.check import scopes
 
 def search(node, verbose=False):
     return search_loop(node, {}, verbose)
 
-
+##
+# Returns {"code_string" : ["", [constant_node,...]]}, {}[0] being a placeholder for the var_name
 def search_loop(node, stringMap={}, verbose=False):
-    if node.type == "call":
-        oper = node.getChild("operand", False)
-
-        if oper:
-            variable = oper.getChild("variable", False)
-
-            if variable:
-                try:
-                    variableName = (treeutil.assembleVariable(variable))[0]
-                except tree.NodeAccessException:
-                    variableName = None
-
-                # Don't extract from locales
-                if variableName == "qx.locale.Locale.define" or variableName == "qx.Locale.define":
-                    return stringMap
-
     if node.type == "constant" and node.get("constantType") == "string":
-        if verbose:
-            pvalue = node.get("value")
-            if isinstance(pvalue, unicode):
-                pvalue = pvalue.encode("utf-8")
-            print "      - Found: '%s'" % pvalue
-
-        if node.get("detail") == "singlequotes":
-            quote = "'"
-        elif node.get("detail") == "doublequotes":
-            quote = '"'
-
-        value = "%s%s%s" % (quote, node.get("value"), quote)
-
-        if value in stringMap:
-            stringMap[value] += 1
+        code_string = node.toJS(None)
+        if code_string in stringMap:
+            stringMap[code_string][1].append(node)
         else:
-            stringMap[value] = 1
+            stringMap[code_string] = ['',[node]]
+        if verbose:
+            print "      - Found: '%s'" % code_string.encode("utf-8")
 
-    if check(node, verbose):
-        for child in node.children:
-            search_loop(child, stringMap, verbose)
+    #if check(node, verbose):
+    for child in node.children:
+        search_loop(child, stringMap, verbose)
 
     return stringMap
 
 
 
+##
+# This function declines string optimization for the following contexts:
+# - arguments of output built-ins (debug, info, alert, ...)
+# - when the last part of an identifier is all-uppercase ("foo.BAR")
+# - all-uppercase keys in maps ({FOO:'bar'})
+#
+# I don't see a striking reason to *not* string-optimize those too,
+# so the whole thing might be obsolete.
+#
 def check(node, verbose=True):
     # Needs children
     if not node.hasChildren():
@@ -80,16 +68,18 @@ def check(node, verbose=True):
         cu = node
         nx = cu.getChild("operand", False)
 
-        if nx != None:
-            cu = nx
+        if nx.isVar():
 
-        all = cu.getAllChildrenOfType("identifier")
+            if nx != None:
+                cu = nx
 
-        for ch in all:
-            if ch.get("name", False) in ["debug", "info", "warn", "error", "fatal", "Error", "alert"]:
-                if verbose:
-                    print "      - Ignore output statement at line: %s" % ch.get("line")
-                return False
+            all_ = cu.getAllChildrenOfType("identifier")
+
+            for ch in all_:
+                if ch.get("value", '') in ["debug", "info", "warn", "error", "fatal", "Error", "alert"]:
+                    if verbose:
+                        print "      - Ignore output statement at line: %s" % ch.get("line")
+                    return False
 
     # Try to find all constant assignments (ns.UPPER = string)
     elif node.type == "assignment":
@@ -100,7 +90,7 @@ def check(node, verbose=True):
             if var != None:
                 last = var.getLastChild()
 
-                if last.type == "identifier" and last.get("name").isupper():
+                if last.type == "identifier" and last.get("value").isupper():
                     if verbose:
                         print "      - Ignore constant assignment at line: %s" % last.get("line")
                     return False
@@ -115,77 +105,60 @@ def check(node, verbose=True):
     return True
 
 
-
-def sort(stringMap):
-    stringList = []
-
-    for value in stringMap:
-        stringList.append({ "value" : value, "number" : stringMap[value] })
-
-    stringList.sort(lambda x, y: y["number"]-x["number"])
-
-    return stringList
-
-
+def replace(node, stringMap, check_set=set(), verbose=False):
+    mapper = NameMapper(check_set)
+    for cstring,value in stringMap.items():
+        var_name = mapper.mapper(cstring)
+        value[0] = var_name  # memoize var_name in stringMap
+        for node in value[1]:
+            repl_ident = treeutil.compileString(var_name)
+            repl_ident.set("line", node.get("line"))
+            repl_ident.set("column", node.get("column"))
+            node.parent.replaceChild(node, repl_ident)
 
 
-def replace(node, stringList, var="$", verbose=False):
-    if node.type == "constant" and node.get("constantType") == "string":
-        if node.get("detail") == "singlequotes":
-            quote = "'"
-        elif node.get("detail") == "doublequotes":
-            quote = '"'
+def replacement(stringMap):
+    repl = ['var ']
+    a = []
+    for cstring, (repl_name,_) in stringMap.items():
+        a.append('%s=%s' % (repl_name,cstring))
+    repl += [','.join(a)]
+    repl += [';']
+    return u''.join(repl)
 
-        oldvalue = "%s%s%s" % (quote, node.get("value"), quote)
+##
+# Interface function.
+#
+def process(tree, id_):
+    # refresh scopes to get a check-set
+    tree = scopes.create_scopes(tree)
+    check_set = tree.scope.all_var_names()
+    check_set.update(lang.RESERVED.keys())
 
-        pos = 0
-        for item in stringList:
-            if item["value"] == oldvalue:
-                newvalue = "%s[%s]" % (var, pos)
+    # assuming a <file> or <block> node
+    statementsNode = tree.getChild("statements")
 
-                if verbose:
-                    poldvalue = oldvalue
-                    if isinstance(poldvalue, unicode):
-                        poldvalue = poldvalue.encode("utf-8")
-                    print "    - Replace: %s => %s" % (poldvalue, newvalue)
+    # create a map for strings to var names
+    stringMap = search(statementsNode, verbose=False)
+    if len(stringMap) == 0:
+        return tree
 
-                line = node.get("line")
+    # apply the vars
+    #stringList = sort(stringMap)
+    replace(statementsNode, stringMap, check_set)
 
+    # create a 'var' decl for the string vars
+    stringReplacement = replacement(stringMap)
+    repl_tree = treeutil.compileString(stringReplacement, id_ + "||stringopt")
 
-                # GENERATE IDENTIFIER
-                newvariable = tree.Node("variable")
-                newvariable.set("line", line)
+    # ensure a wrapping closure
+    closure, closure_block = treeutil.ensureClosureWrapper(statementsNode.children)
+    statementsNode.removeAllChildren()
+    statementsNode.addChild(closure)
 
-                childidentifier = tree.Node("identifier")
-                childidentifier.set("line", line)
-                childidentifier.set("name", "SSSS_%s" % pos)
+    # add 'var' decl to closure
+    closure_block.addChild(repl_tree, 0)  # 'var ...'; decl to front of statement list
 
-                newvariable.addChild(childidentifier)
-
-
-                # REPLACE NODE
-                node.parent.replaceChild(node, newvariable)
-                break
-
-            pos += 1
-
-    if check(node, verbose):
-        for child in node.children:
-            replace(child, stringList, var, verbose)
+    return tree
 
 
-
-def replacement(stringList):
-    if len(stringList) == 0:
-        return ""
-
-    repl = "var "
-
-    pos = 0
-    for item in stringList:
-        repl += "SSSS_%s=%s," % (pos, item["value"])
-        pos += 1
-
-    repl = repl[:-1] + ";"
-
-    return repl

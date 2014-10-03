@@ -19,7 +19,6 @@
 ************************************************************************ */
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/16/*)
 
 ************************************************************************ */
 
@@ -27,6 +26,8 @@
  * This is the main application class of your custom application "showcase_i18n"
  *
  * @tag showcase
+ *
+ * @asset(qx/icon/${qx.icontheme}/16/*)
  */
 qx.Class.define("demobrowser.demo.showcase.Localization",
 {
@@ -128,15 +129,15 @@ qx.Class.define("demobrowser.demo.showcase.Localization",
       controls.add(chooser,{row:3,column:0,colSpan:2});
 
       // Commands
-      var undo_cmd = new qx.ui.core.Command("Ctrl+Z");
-      var redo_cmd = new qx.ui.core.Command("Ctrl+Y");
-      var cut_cmd = new qx.ui.core.Command("Ctrl+X");
-      var copy_cmd = new qx.ui.core.Command("Ctrl+C");
-      var paste_cmd = new qx.ui.core.Command("Ctrl+V");
-      var delete_cmd = new qx.ui.core.Command("Del");
-      var select_all_cmd = new qx.ui.core.Command("Ctrl+A");
-      var search_cmd = new qx.ui.core.Command("Ctrl+F");
-      var search_again_cmd = new qx.ui.core.Command("F3");
+      var undo_cmd = new qx.ui.command.Command("Ctrl+Z");
+      var redo_cmd = new qx.ui.command.Command("Ctrl+Y");
+      var cut_cmd = new qx.ui.command.Command("Ctrl+X");
+      var copy_cmd = new qx.ui.command.Command("Ctrl+C");
+      var paste_cmd = new qx.ui.command.Command("Ctrl+V");
+      var delete_cmd = new qx.ui.command.Command("Del");
+      var select_all_cmd = new qx.ui.command.Command("Ctrl+A");
+      var search_cmd = new qx.ui.command.Command("Ctrl+F");
+      var search_again_cmd = new qx.ui.command.Command("F3");
 
       var m1 = new qx.ui.menu.Menu;
       m1.add(new qx.ui.menu.Button(this.tr("Undo"), null, undo_cmd));
@@ -160,9 +161,9 @@ qx.Class.define("demobrowser.demo.showcase.Localization",
       mypop.setValue("#23F3C1");
 
       var mybtn = new qx.ui.form.Button(this.tr("Open Color Popup"));
-      mybtn.addListener("mousedown", function(e)
+      mybtn.addListener("pointerdown", function(e)
       {
-        mypop.placeToMouse(e)
+        mypop.placeToPointer(e)
         mypop.show();
       });
       controls.add(mybtn, {row:5,column:0});

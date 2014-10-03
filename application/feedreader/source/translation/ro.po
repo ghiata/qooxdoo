@@ -13,82 +13,65 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: feedreader/Application.js:500
-msgid "FeedReader (qooxdoo powered)"
-msgstr "Cititor de Fluxuri (bazat pe qooxdoo)"
-
-#: feedreader/mobile/FeedPage.js:32 feedreader/mobile/ArticlePage.js:32
-msgid "Back"
-msgstr ""
-
-#: feedreader/model/Model.js:81
-msgid "Static Feeds"
-msgstr "Fluxuri statice"
-
-#: feedreader/model/Model.js:111
-msgid "User Feeds"
-msgstr "Fluxuri utilizator"
-
-#: feedreader/view/AddFeedWindow.js:49
-msgid "Add a feed"
-msgstr "Adaugă un flux"
-
-#: feedreader/view/AddFeedWindow.js:94
-msgid "Feed Information"
-msgstr "Informații despre flux"
-
-#: feedreader/view/AddFeedWindow.js:101
-msgid "Title"
-msgstr "Titlu"
-
-#: feedreader/view/AddFeedWindow.js:105
-msgid "URL"
-msgstr "URL"
-
-#: feedreader/view/AddFeedWindow.js:108
 msgid "Add"
 msgstr "Adaugă"
 
-#: feedreader/view/List.js:50
-msgid "Posts"
-msgstr "Articole"
+msgid "Add a feed"
+msgstr "Adaugă un flux"
 
-#: feedreader/view/PreferenceWindow.js:48 feedreader/view/ToolBar.js:85
-msgid "Preferences"
-msgstr "Preferințe"
-
-#: feedreader/view/PreferenceWindow.js:85
-msgid "Language"
-msgstr "Limbă"
-
-#: feedreader/view/PreferenceWindow.js:141
-msgid "Cancel"
-msgstr "Anulează"
-
-#: feedreader/view/PreferenceWindow.js:147
-msgid "OK"
-msgstr "OK"
-
-#: feedreader/view/ToolBar.js:58
 msgid "Add feed"
 msgstr "Adaugă flux"
 
-#: feedreader/view/ToolBar.js:62
-msgid "Remove feed"
-msgstr "Şterge flux"
+msgid "Back"
+msgstr ""
 
-#: feedreader/view/ToolBar.js:73
-msgid "Reload"
-msgstr "Reîncarcă"
+msgid "Cancel"
+msgstr "Anulează"
 
-#: feedreader/view/ToolBar.js:76
-msgid "Reload the feeds. (%1)"
-msgstr "Reîncarcă fluxurile. (%1)"
+msgid "Feed Information"
+msgstr "Informații despre flux"
 
-#: feedreader/view/ToolBar.js:87
+msgid "FeedReader (qooxdoo powered)"
+msgstr "Cititor de Fluxuri (bazat pe qooxdoo)"
+
+msgid "Help"
+msgstr "Ajutor"
+
+msgid "Language"
+msgstr "Limbă"
+
+msgid "OK"
+msgstr "OK"
+
 msgid "Open preferences window."
 msgstr "Deschide fereastra de preferințe"
 
-#: feedreader/view/ToolBar.js:96
-msgid "Help"
-msgstr "Ajutor"
+msgid "Posts"
+msgstr "Articole"
+
+msgid "Preferences"
+msgstr "Preferințe"
+
+msgid "Reload"
+msgstr "Reîncarcă"
+
+msgid "Reload the feeds. (%1)"
+msgstr "Reîncarcă fluxurile. (%1)"
+
+msgid "Remove feed"
+msgstr "Şterge flux"
+
+msgid "Static Feeds"
+msgstr "Fluxuri statice"
+
+msgid "Theme"
+msgstr ""
+
+msgid "Title"
+msgstr "Titlu"
+
+msgid "URL"
+msgstr "URL"
+
+msgid "User Feeds"
+msgstr "Fluxuri utilizator"

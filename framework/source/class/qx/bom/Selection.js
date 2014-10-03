@@ -22,8 +22,10 @@
 /**
  * Low-level selection API to select elements like input and textarea elements
  * as well as text nodes or elements which their child nodes.
+ *
+ * @ignore(qx.bom.Element, qx.bom.Element.blur)
  */
-qx.Class.define("qx.bom.Selection",
+qx.Bootstrap.define("qx.bom.Selection",
 {
   /*
   *****************************************************************************
@@ -36,17 +38,17 @@ qx.Class.define("qx.bom.Selection",
     /**
      * Returns the native selection object.
      *
-     * @signature documentNode {document} Document node to retrieve the connected selection
-     * @param documentNode {Object} The document node
+     * @signature function(documentNode)
+     * @param documentNode {document} Document node to retrieve the connected selection from
      * @return {Selection} native selection object
      */
-    getSelectionObject : qx.core.Environment.select("engine.name",
+    getSelectionObject : qx.core.Environment.select("html.selection",
     {
-      "mshtml" : function(documentNode) {
+      "selection" : function(documentNode) {
         return documentNode.selection;
       },
 
-      // suitable for gecko, opera and webkit
+      // suitable for gecko, opera, webkit and mshtml >= 9
       "default" : function(documentNode) {
         return qx.dom.Node.getWindow(documentNode).getSelection();
       }
@@ -58,13 +60,13 @@ qx.Class.define("qx.bom.Selection",
      *
      * @signature function(node)
      * @param node {Node} node to retrieve the selection for
-     * @return {String?null) selected text as string
+     * @return {String|null} selected text as string
      */
-    get : qx.core.Environment.select("engine.name",
+    get : qx.core.Environment.select("html.selection",
     {
-      "mshtml" : function(node)
+      "selection" : function(node)
       {
-        // to get the selected text in IE you have to work with the TextRange
+        // to get the selected text in legacy IE you have to work with the TextRange
         // of the selection object. So always pass the document node to the
         // Range class to get this TextRange object.
         var rng = qx.bom.Range.get(qx.dom.Node.getDocument(node));
@@ -87,53 +89,52 @@ qx.Class.define("qx.bom.Selection",
      * Returns the length of the selection
      *
      * @signature function(node)
-     * @param node {node} Form node or document/window to check.
+     * @param node {Node} Form node or document/window to check.
      * @return {Integer|null} length of the selection or null
      */
-    getLength : qx.core.Environment.select("engine.name",
+    getLength : qx.core.Environment.select("html.selection",
     {
-      "mshtml" : function(node)
+      "selection" : function(node)
       {
         var selectedValue = this.get(node);
         // get the selected part and split it by linebreaks
         var split = qx.util.StringSplit.split(selectedValue, /\r\n/);
 
         // return the length substracted by the count of linebreaks
-        // IE counts linebreaks as two chars
+        // legacy IE counts linebreaks as two chars
         // -> harmonize this to one char per linebreak
         return selectedValue.length - (split.length - 1);
       },
 
-      "opera" : function(node)
-      {
-        var selectedValue, selectedLength, split;
-
-        if (this.__isInputOrTextarea(node))
-        {
-          var start = node.selectionStart;
-          var end = node.selectionEnd;
-
-          selectedValue = node.value.substring(start, end);
-          selectedLength = end - start;
-        }
-        else
-        {
-          selectedValue = qx.bom.Selection.get(node);
-          selectedLength = selectedValue.length;
-        }
-
-        // get the selected part and split it by linebreaks
-        split = qx.util.StringSplit.split(selectedValue, /\r\n/);
-
-        // substract the count of linebreaks
-        // Opera counts each linebreak as two chars
-        // -> harmonize this to one char per linebreak
-        return selectedLength - (split.length - 1);
-      },
-
-      // suitable for gecko and webkit
       "default" : function(node)
       {
+        if (qx.core.Environment.get("engine.name") == "opera") {
+          var selectedValue, selectedLength, split;
+
+          if (this.__isInputOrTextarea(node))
+          {
+            var start = node.selectionStart;
+            var end = node.selectionEnd;
+
+            selectedValue = node.value.substring(start, end);
+            selectedLength = end - start;
+          }
+          else
+          {
+            selectedValue = qx.bom.Selection.get(node);
+            selectedLength = selectedValue.length;
+          }
+
+          // get the selected part and split it by linebreaks
+          split = qx.util.StringSplit.split(selectedValue, /\r\n/);
+
+          // substract the count of linebreaks
+          // Opera counts each linebreak as two chars
+          // -> harmonize this to one char per linebreak
+          return selectedLength - (split.length - 1);
+        }
+
+        // suitable for gecko and webkit
         if (this.__isInputOrTextarea(node)) {
           return node.selectionEnd - node.selectionStart;
         } else {
@@ -151,9 +152,9 @@ qx.Class.define("qx.bom.Selection",
      * @return {Integer} start of current selection or "-1" if the current
      *                   selection is not within the given node
      */
-    getStart : qx.core.Environment.select("engine.name",
+    getStart : qx.core.Environment.select("html.selection",
     {
-      "mshtml" : function(node)
+      "selection" : function(node)
       {
         if (this.__isInputOrTextarea(node))
         {
@@ -221,28 +222,29 @@ qx.Class.define("qx.bom.Selection",
         }
       },
 
-      "gecko|webkit" : function(node)
-      {
-        if (this.__isInputOrTextarea(node)) {
-          return node.selectionStart;
-        }
-        else
-        {
-          var documentElement = qx.dom.Node.getDocument(node);
-          var documentSelection = this.getSelectionObject(documentElement);
-
-          // gecko and webkit do differ how the user selected the text
-          // "left-to-right" or "right-to-left"
-          if (documentSelection.anchorOffset < documentSelection.focusOffset) {
-            return documentSelection.anchorOffset;
-          } else {
-            return documentSelection.focusOffset;
-          }
-        }
-      },
-
       "default" : function(node)
       {
+        if (qx.core.Environment.get("engine.name") === "gecko" ||
+            qx.core.Environment.get("engine.name") === "webkit")
+        {
+          if (this.__isInputOrTextarea(node)) {
+            return node.selectionStart;
+          }
+          else
+          {
+            var documentElement = qx.dom.Node.getDocument(node);
+            var documentSelection = this.getSelectionObject(documentElement);
+
+            // gecko and webkit do differ how the user selected the text
+            // "left-to-right" or "right-to-left"
+            if (documentSelection.anchorOffset < documentSelection.focusOffset) {
+              return documentSelection.anchorOffset;
+            } else {
+              return documentSelection.focusOffset;
+            }
+          }
+        }
+
         if (this.__isInputOrTextarea(node)) {
           return node.selectionStart;
         } else {
@@ -259,9 +261,9 @@ qx.Class.define("qx.bom.Selection",
      * @param node {Node} node to check
      * @return {Integer} end of current selection
      */
-    getEnd : qx.core.Environment.select("engine.name",
+    getEnd : qx.core.Environment.select("html.selection",
     {
-      "mshtml" : function(node)
+      "selection" : function(node)
       {
         if (this.__isInputOrTextarea(node))
         {
@@ -330,28 +332,29 @@ qx.Class.define("qx.bom.Selection",
         }
       },
 
-      "gecko|webkit" : function(node)
-      {
-        if (this.__isInputOrTextarea(node)) {
-          return node.selectionEnd;
-        }
-        else
-        {
-          var documentElement = qx.dom.Node.getDocument(node);
-          var documentSelection = this.getSelectionObject(documentElement);
-
-          // gecko and webkit do differ how the user selected the text
-          // "left-to-right" or "right-to-left"
-          if (documentSelection.focusOffset > documentSelection.anchorOffset) {
-            return documentSelection.focusOffset;
-          } else {
-            return documentSelection.anchorOffset;
-          }
-        }
-      },
-
       "default" : function(node)
       {
+        if (qx.core.Environment.get("engine.name") === "gecko" ||
+            qx.core.Environment.get("engine.name") === "webkit")
+        {
+          if (this.__isInputOrTextarea(node)) {
+            return node.selectionEnd;
+          }
+          else
+          {
+            var documentElement = qx.dom.Node.getDocument(node);
+            var documentSelection = this.getSelectionObject(documentElement);
+
+            // gecko and webkit do differ how the user selected the text
+            // "left-to-right" or "right-to-left"
+            if (documentSelection.focusOffset > documentSelection.anchorOffset) {
+              return documentSelection.focusOffset;
+            } else {
+              return documentSelection.anchorOffset;
+            }
+          }
+        }
+
         if (this.__isInputOrTextarea(node)) {
           return node.selectionEnd;
         } else {
@@ -364,7 +367,7 @@ qx.Class.define("qx.bom.Selection",
     /**
      * Utility method to check for an input or textarea element
      *
-     * @param node {node} node to check
+     * @param node {Node} node to check
      * @return {Boolean} Whether the given nodt is an input or textarea element
      */
     __isInputOrTextarea : function(node) {
@@ -387,9 +390,9 @@ qx.Class.define("qx.bom.Selection",
      * @param end {Integer} end of the selection
      * @return {Boolean} whether a selection is drawn
      */
-    set : qx.core.Environment.select("engine.name",
+    set : qx.core.Environment.select("html.selection",
     {
-      "mshtml" : function(node, start, end)
+      "selection" : function(node, start, end)
       {
         var rng;
 
@@ -478,7 +481,7 @@ qx.Class.define("qx.bom.Selection",
         return false;
       },
 
-      // suitable for gecko, opera and webkit
+      // suitable for gecko, opera, webkit and mshtml >=9
       "default" : function(node, start, end)
       {
         // special handling for input and textarea elements
@@ -591,13 +594,11 @@ qx.Class.define("qx.bom.Selection",
      * Clears the selection on the given node.
      *
      * @param node {Node} node to clear the selection for
-     * @return {void}
      */
-    clear : qx.core.Environment.select("engine.name",
+    clear : qx.core.Environment.select("html.selection",
     {
-      "mshtml" : function(node)
+      "selection" : function(node)
       {
-        var sel = qx.bom.Selection.getSelectionObject(qx.dom.Node.getDocument(node));
         var rng = qx.bom.Range.get(node);
         var parent = rng.parentElement();
 
@@ -606,7 +607,11 @@ qx.Class.define("qx.bom.Selection",
         // only collapse if the selection is really on the given node
         // -> compare the two parent elements of the ranges with each other and
         // the given node
+        if (qx.dom.Node.isText(node)) {
+          node = node.parentNode;
+        }
         if (parent == documentRange.parentElement() && parent == node) {
+          var sel = qx.bom.Selection.getSelectionObject(qx.dom.Node.getDocument(node));
           sel.empty();
         }
       },
@@ -619,19 +624,10 @@ qx.Class.define("qx.bom.Selection",
         // if the node is an input or textarea element use the specialized methods
         if (qx.dom.Node.isElement(node) && (nodeName == "input" || nodeName == "textarea"))
         {
-          // TODO: this leads Webkit to also focus the input/textarea element
-          // which is NOT desired.
-          // Additionally there is a bug in webkit with input/textarea elements
-          // concerning the native selection and range object.
-          // -> getting e.g. the startContainer/endContainer of the range returns
-          // the text element (as expected) but webkit does embed this text node
-          // into a lonely DIV element, so there us no chance to check if the
-          // selection is currently at the input/textarea element to only perform
-          // the "setSelectionRange" in the case the given node is REALLY selected.
-          // Webkit bugzilla: https://bugs.webkit.org/show_bug.cgi?id=15903
-          // qooxdoo bugzilla: http://bugzilla.qooxdoo.org/show_bug.cgi?id=1087
           node.setSelectionRange(0, 0);
-          qx.bom.Element.blur(node);
+          if (qx.bom.Element && qx.bom.Element.blur) {
+            qx.bom.Element.blur(node);
+          }
         }
         // if the given node is the body/document node -> collapse the selection
         else if (qx.dom.Node.isDocument(node) || nodeName == "body")

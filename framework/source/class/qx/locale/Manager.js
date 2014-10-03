@@ -19,15 +19,14 @@
 
 ************************************************************************ */
 
-/*
-#require(qx.event.dispatch.Direct)
-#require(qx.locale.LocalizedString)
-#cldr
-*/
-
 /**
  * The qx.locale.Manager provides static translation methods (like tr()) and
  * general locale information.
+ *
+ * @require(qx.event.dispatch.Direct)
+ * @require(qx.locale.LocalizedString)
+ *
+ * @cldr()
  */
 
 qx.Class.define("qx.locale.Manager",
@@ -119,7 +118,7 @@ qx.Class.define("qx.locale.Manager",
 
 
     /**
-     * Translate a message with translation hint
+     * Translate a message with translation hint (from developer addressed to translator).
      *
      * @param hint {String} hint for the translator of the message. Will be included in the .po file.
      * @param messageId {String} message id (may contain format strings)
@@ -135,6 +134,31 @@ qx.Class.define("qx.locale.Manager",
       return qx.locale.Manager.getInstance().translate(messageId, args);
     },
 
+    /**
+     * Translate a plural message with translation hint (from developer addressed to translator).
+     *
+     * Depending on the third argument the plural or the singular form is chosen.
+     *
+     * @param hint {String} hint for the translator of the message. Will be included in the .po file.
+     * @param singularMessageId {String} message id of the singular form (may contain format strings)
+     * @param pluralMessageId {String} message id of the plural form (may contain format strings)
+     * @param count {Integer} singular form if equals 1, otherwise plural
+     * @param varargs {Object} variable number of arguments applied to the format string
+     * @return {String | LocalizedString} The translated message or localized string
+     * @see qx.lang.String.format
+     */
+    trnc : function(hint, singularMessageId, pluralMessageId, count, varargs)
+    {
+      var args = qx.lang.Array.fromArguments(arguments);
+      args.splice(0, 4);
+
+      // see trn()
+      if (count != 1) {
+        return qx.locale.Manager.getInstance().translate(pluralMessageId, args);
+      } else {
+        return qx.locale.Manager.getInstance().translate(singularMessageId, args);
+      }
+    },
 
     /**
      * Mark the message for translation but return the original message.
@@ -290,7 +314,6 @@ qx.Class.define("qx.locale.Manager",
      * @param translationMap {Map} mapping of message identifiers to message strings in the target
      *                             language, e.g. <i>{"greeting_short" : "Hello"}</i>. Plural forms
      *                             are separate keys.
-     * @return {void}
      */
     addTranslation : function(languageCode, translationMap)
     {
@@ -317,7 +340,6 @@ qx.Class.define("qx.locale.Manager",
      * @param localeCode {String} locale code of the translation like <i>de, de_AT, en, en_GB, fr, ...</i>
      * @param localeMap {Map} mapping of locale keys to the target locale values, e.g.
      *                        <i>{"cldr_date_format_short" : "M/d/yy"}</i>.
-     * @return {void}
      */
     addLocale : function(localeCode, localeMap)
     {
@@ -390,6 +412,11 @@ qx.Class.define("qx.locale.Manager",
      */
     __lookupAndExpand : function(catalog, messageId, args, locale)
     {
+      if (qx.core.Environment.get("qx.debug")) {
+        this.assertObject(catalog);
+        this.assertString(messageId);
+        this.assertArray(args);
+      }
       var txt;
 
       if (!catalog) {

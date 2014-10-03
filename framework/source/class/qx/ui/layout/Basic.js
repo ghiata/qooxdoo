@@ -57,7 +57,7 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/layout/basic.html'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/layout/basic.html'>
  * Extended documentation</a> and links to demos of this layout in the qooxdoo manual.
  */
 qx.Class.define("qx.ui.layout.Basic",
@@ -94,7 +94,7 @@ qx.Class.define("qx.ui.layout.Basic",
 
 
     // overridden
-    renderLayout : function(availWidth, availHeight)
+    renderLayout : function(availWidth, availHeight, padding)
     {
       var children = this._getLayoutChildren();
       var child, size, props, left, top;
@@ -106,8 +106,8 @@ qx.Class.define("qx.ui.layout.Basic",
         size = child.getSizeHint();
         props = child.getLayoutProperties();
 
-        left = (props.left || 0) + child.getMarginLeft();
-        top = (props.top || 0) + child.getMarginTop();
+        left = padding.left + (props.left || 0) + child.getMarginLeft();
+        top = padding.top + (props.top || 0) + child.getMarginTop();
 
         child.renderLayout(left, top, size.width, size.height);
       }

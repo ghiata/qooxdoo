@@ -16,6 +16,20 @@
      * Sebastian Werner (wpbasti)
      * Martin Wittemann (martinwittemann)
 
+   ======================================================================
+
+   This class contains code from:
+
+     Copyright:
+       2011 Pocket Widget S.L., Spain, http://www.pocketwidget.com
+
+     License:
+       LGPL: http://www.gnu.org/licenses/lgpl.html
+       EPL: http://www.eclipse.org/org/documents/epl-v10.php
+
+     Authors:
+       * Javier Martinez Villacampa
+
 ************************************************************************ */
 
 /**
@@ -30,8 +44,9 @@
 qx.Bootstrap.define("qx.bom.client.Engine",
 {
   // General: http://en.wikipedia.org/wiki/Browser_timeline
-  // Webkit: http://developer.apple.com/internet/safari/uamatrix.html
+  // Webkit: https://developer.apple.com/internet/safari/uamatrix.html
   // Firefox: http://en.wikipedia.org/wiki/History_of_Mozilla_Firefox
+  // Maple: http://www.scribd.com/doc/46675822/2011-SDK2-0-Maple-Browser-Specification-V1-00
   statics :
   {
     /**
@@ -79,24 +94,31 @@ qx.Bootstrap.define("qx.bom.client.Engine",
             version = version.slice(0, invalidCharacter.index);
           }
         }
-      } else if (qx.bom.client.Engine.__isGecko()) {
+      } else if (qx.bom.client.Engine.__isGecko() || qx.bom.client.Engine.__isMaple()) {
         // Parse "rv" section in user agent string
         if (/rv\:([^\);]+)(\)|;)/.test(agent)) {
           version = RegExp.$1;
         }
       } else if (qx.bom.client.Engine.__isMshtml()) {
+        var isTrident = /Trident\/([^\);]+)(\)|;)/.test(agent);
         if (/MSIE\s+([^\);]+)(\)|;)/.test(agent)) {
           version = RegExp.$1;
 
           // If the IE8 or IE9 is running in the compatibility mode, the MSIE value
           // is set to an older version, but we need the correct version. The only
           // way is to compare the trident version.
-          if (version < 8 && /Trident\/([^\);]+)(\)|;)/.test(agent)) {
+          if (version < 8 && isTrident) {
             if (RegExp.$1 == "4.0") {
               version = "8.0";
             } else if (RegExp.$1 == "5.0") {
               version = "9.0";
             }
+          }
+        } else if (isTrident) {
+          // IE 11 dropped the "MSIE" string
+          var match = /\brv\:(\d+?\.\d+?)\b/.exec(agent);
+          if (match) {
+            version = match[1];
           }
         }
       } else {
@@ -126,7 +148,7 @@ qx.Bootstrap.define("qx.bom.client.Engine",
         name = "opera";
       } else if (qx.bom.client.Engine.__isWebkit()) {
         name = "webkit";
-      } else if (qx.bom.client.Engine.__isGecko()) {
+      } else if (qx.bom.client.Engine.__isGecko() || qx.bom.client.Engine.__isMaple()) {
         name = "gecko";
       } else if (qx.bom.client.Engine.__isMshtml()) {
         name = "mshtml";
@@ -146,8 +168,12 @@ qx.Bootstrap.define("qx.bom.client.Engine",
 
 
     /**
-     * Internal helper for checking for opera.
-     * @return {boolean} true, if its opera.
+     * Internal helper for checking for opera (presto powered).
+     *
+     * Note that with opera >= 15 their engine switched to blink, so
+     * things like "window.opera" don't work anymore or changed (e.g. user agent).
+     *
+     * @return {Boolean} true, if its opera (presto powered).
      */
     __isOpera : function() {
       return window.opera &&
@@ -157,7 +183,7 @@ qx.Bootstrap.define("qx.bom.client.Engine",
 
     /**
      * Internal helper for checking for webkit.
-     * @return {boolean} true, if its webkit.
+     * @return {Boolean} true, if its webkit.
      */
     __isWebkit : function() {
       return window.navigator.userAgent.indexOf("AppleWebKit/") != -1;
@@ -165,21 +191,47 @@ qx.Bootstrap.define("qx.bom.client.Engine",
 
 
     /**
+     * Internal helper for checking for Maple .
+     * Maple is used in Samsung SMART TV 2010-2011 models. It's based on Gecko
+     * engine 1.8.1.11.
+     * @return {Boolean} true, if its maple.
+     */
+    __isMaple : function() {
+      return window.navigator.userAgent.indexOf("Maple") != -1;
+    },
+
+
+    /**
      * Internal helper for checking for gecko.
-     * @return {boolean} true, if its gecko.
+     *
+     * Note:
+     *  "window.controllers" is gone/hidden with Firefox 30+
+     *  "window.navigator.mozApps" is supported since Firefox 11+
+     *  "window.navigator.product" is actually useless cause the HTML5 spec
+     *    states it should be the constant "Gecko".
+     *
+     *  - https://developer.mozilla.org/en-US/docs/Web/API/Window.controllers
+     *  - https://developer.mozilla.org/en-US/docs/Web/API/Navigator.mozApps
+     *  - http://www.w3.org/html/wg/drafts/html/master/webappapis.html#navigatorid
+     *
+     * @return {Boolean} true, if its gecko.
      */
     __isGecko : function() {
-      return window.controllers && window.navigator.product === "Gecko";
+      return window.navigator.mozApps &&
+        window.navigator.product === "Gecko" &&
+        window.navigator.userAgent.indexOf("Maple") == -1 &&
+        window.navigator.userAgent.indexOf("Trident") == -1;
     },
 
 
     /**
      * Internal helper to check for MSHTML.
-     * @return {boolean} true, if its MSHTML.
+     * @return {Boolean} true, if its MSHTML.
      */
     __isMshtml : function() {
       return window.navigator.cpuClass &&
-        /MSIE\s+([^\);]+)(\)|;)/.test(window.navigator.userAgent);
+        (/MSIE\s+([^\);]+)(\)|;)/.test(window.navigator.userAgent) ||
+         /Trident\/\d+?\.\d+?/.test(window.navigator.userAgent));
     }
   },
 

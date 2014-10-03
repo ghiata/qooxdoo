@@ -24,7 +24,7 @@
 # Miscellaneous Helper Functions
 ##
 
-import time, datetime, math
+import time, datetime, math, types, functools
 from warnings import warn
 
 ##
@@ -48,11 +48,11 @@ def convert(index):
         res += convert(index / clength)
     res += ctable[index % clength]
     return res
-        
+
 def toString(data):
     if data == None:
         return ""
-    
+
     sortedList = _getSortedCopy(data)
 
     sortedString = []
@@ -61,7 +61,7 @@ def toString(data):
 
     return "|".join(sortedString)
 
-        
+
 def computeCombinations(variants):
     # convert dict to list
     variantPossibilities = []
@@ -80,9 +80,9 @@ def computeCombinations(variants):
         for item in entry:
             result[pos][item["id"]] = item["value"]
 
-    return result  
+    return result
 
-        
+
 def _findCombinations(a):
     result = [[]]
 
@@ -114,7 +114,7 @@ def _getSortedCopy(entries):
     result.sort(_compare)
 
     return result
-    
+
 
 ##
 # count bits in an int - long seems to work fine too
@@ -151,23 +151,23 @@ def getPlatformInfo():
     import platform
     osPlatform = platform.system()
     osVersion = "Unknown version"
-    
+
     winVer = platform.win32_ver()
     macVer = platform.mac_ver()
     try:
         linVer = platform.linux_distribution()
     except AttributeError:
         linVer = platform.dist()
-    
+
     if winVer[0] != "":
         osVersion = "%s %s %s" % (winVer[0], winVer[1], winVer[2])
-        
+
     if macVer[0] != "":
         osVersion = "%s %s" % (macVer[0], macVer[2])
-    
+
     if linVer[0] != "":
         osVersion = "%s %s" % (linVer[0], linVer[1])
-    
+
     return (osPlatform,osVersion)
 
 
@@ -188,3 +188,69 @@ def numberSequence(c=0):
         c += 1
 
 
+FinSequenceTypes = (types.ListType, types.TupleType)
+
+##
+# JS-like parseInt(), a wrapper of Python's int().
+def parseInt(s=''):
+    v = None
+    if len(s)>1:
+        if s[0]=='0':
+            # 0xfa23cd
+            if s[1] in "xX":
+                v = int(s, 16) # if it starts with '0x' and isn't a hex let it bomb
+            # 0132
+            else:
+                try:
+                    v = int(s, 8)
+                except ValueError:
+                    pass       # re-try as int10
+    # 4711
+    if v is None:
+        v = int(s) # let exceptions propagate
+    return v
+
+##
+# Pipeline - compose functions where the return value of one is the argument
+# to the next, starting with the <seed> data.
+# Ex.:
+# pipeline(
+#   [1,2,3,4]
+#   , even
+#   , reverse
+# )  => [4,2]
+def pipeline(seed, *funcs):
+    return reduce(lambda accu,func: func(accu), funcs, seed)
+
+##
+# Bind - alias for 'partial'
+bind = functools.partial
+
+##
+# Curry2 - curry second to first argument
+#
+# Curry is like the inverse to bind/partial, in that it binds arguments from right
+# to left (where bind/partial binds from left to right). As Python functions can
+# have variable number of arguments, one solution is to use curry functions that
+# deal with a fixed number of arguments.
+# (In contrast to e.g. Fogus,96, providing the final argument doesn't call the
+# original function, but returns a fully bound closure ("thunk").)
+def curry2(fun, arg2):
+    def curry1_f(arg1):
+        return fun(arg1, arg2)
+    return curry1_f
+
+##
+# Curry3 - curry third to first argument
+def curry3(fun, arg3):
+    def curry2_f(arg2):
+        def curry1_f(arg1):
+          return fun(arg1, arg2, arg3)
+        return curry1_f
+    return curry2_f
+
+##
+# Inverse - return a function that inverses the <predicate>
+# ('complement' in FunJS)
+def inverse(pred):
+    return lambda x: not(pred(x))

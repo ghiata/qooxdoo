@@ -21,12 +21,11 @@
 ################################################################################
 
 import os, sys, re, types, string, copy
-import simplejson
 
 from misc.ExtMap import ExtMap
 from generator.config.Lang import Key
-from generator.config.Defaults import Defaults
 from generator.config.Lang import Let
+from misc import json
 
 console = None
 
@@ -83,10 +82,10 @@ class Job(object):
             return self.deepJsonMerge(source, target)
         else:  # scalar value
             return target  # first val overrules
-        
+
 
     def fixNameTags(self):
-        
+
         visitor = self.getDataVisitor()
         for map in visitor:
             for key in map.keys():
@@ -152,7 +151,7 @@ class Job(object):
                 if isinstance(entry, types.StringTypes):
                     if Key.hasMacro(entry):
                         entry = letObj.expandMacros(entry)
-                
+
                 entryJob = self._getJob(entry, config)
                 if not entryJob:
                     raise RuntimeError, "No such job: \"%s\" (trace: %s)" % (entry, entryTrace+[self.name])
@@ -170,9 +169,9 @@ class Job(object):
         self.setFeature(Key.RESOLVED_KEY, True)
 
 
-    ##                                                                              
+    ##
     # resolveRun -- resolve the 'run' key in jobs
-    #                                                                               
+    #
     # @param     self     (IN) self
     # @return    joblist  (OUT) list of replacement jobs
     # @exception RuntimeError  Key.RESOLVED_KEY key missing in a job
@@ -197,7 +196,7 @@ class Job(object):
     def resolveRun(self, cfg=None):
         config = cfg or self._config
         subJobs = []
-        
+
         job     = self
         if not job.hasFeature("run"):
             return [job]
@@ -207,7 +206,7 @@ class Job(object):
             letObj.expandMacrosInLet()              # do self-expansion of macros
 
             for subjob in job.getFeature("run"):
-                
+
                 # make best effort on macro expansion
                 if isinstance(subjob, types.StringTypes):
                     if Key.hasMacro(subjob):
@@ -222,20 +221,20 @@ class Job(object):
                 newjob     = job.clone()
                 newjob.name= newjobname
                 newjob.removeFeature('run')       # remove 'run' key
-                
+
                 # we assume the initial 'run' job has already been resolved, so
                 # we reset it here and set the 'extend' to the subjob
-                if newjob.hasFeature(Key.RESOLVED_KEY): 
+                if newjob.hasFeature(Key.RESOLVED_KEY):
                     newjob.removeFeature(Key.RESOLVED_KEY)
                 else:
                     raise RuntimeError, "Cannot resolve 'run' key before 'extend' key"
                 newjob.setFeature('extend', [subjobObj]) # extend subjob
-                
+
                 # add to config
-                self._config.addJob(newjobname, newjob)  # TODO: why not config.addJob(...) ?!                
+                self._config.addJob(newjobname, newjob)  # TODO: why not config.addJob(...) ?!
                 # add to job list
                 subJobs.append(newjob)
-                
+
             job.setFeature('run', subJobs)   # overwrite with list of Jobs (instead of Strings)
 
         return subJobs
@@ -250,7 +249,7 @@ class Job(object):
             letObj = Let(letMap)
             letMap = letObj.expandMacrosInLet()
             self.setFeature(Key.LET_KEY, letMap)
-            
+
             # separate strings from other values
             letmaps = {}
             letmaps['str'] = {}
@@ -260,7 +259,7 @@ class Job(object):
                     letmaps['str'][k] = letMap[k]
                 else:
                     letmaps['bin'][k] = letMap[k]
-                    
+
             # apply dict to other values
             newdata = self._expandMacrosInValues(self._data, letmaps)
             self._data = newdata
@@ -284,11 +283,13 @@ class Job(object):
         if newlet:
             self.setFeature(Key.LET_KEY, newlet) # set cumulative let value
 
-    
+
     def includeSystemDefaults(self, ):
         # Add system supplied features to Job
         # call this on fully expanded jobs *before* macro expansion is called,
         # so default let macros can take effect
+
+        from generator.config.Defaults import Defaults  # late import, so Defaults is not evaluated when importing Job
 
         # add default let macros
         defaultLet = Defaults.let
@@ -318,6 +319,7 @@ class Job(object):
         possiblyBin = re.match(r'^\${(.*)}$', s)   # look for '${...}' as a bin replacement
         if possiblyBin:
             macro = possiblyBin.group(1)
+
         if macro and (macro in mapbin.keys()):
             replval = mapbin[macro]
             if isinstance(replval, types.DictType):
@@ -326,22 +328,25 @@ class Job(object):
                 sub = replval   # array references are ok for now
         else:
             templ = string.Template(s)
-            #sub = templ.safe_substitute(mapstr)
+            # allow stringyfied value of bin macros to be spliced into result value
+            mapall = mapstr.copy()
+            mapall.update(dict((k,json.dumps(v)) for (k,v) in mapbin.items()))
             try:
-                sub = templ.substitute(mapstr)
+                sub = templ.substitute(mapall)
             except KeyError, e:
                 raise ValueError("Macro left undefined in job (%s): '%s'\n(might be from an included config)" % (self.name, e.args[0]))
+
         return sub
 
 
     ##
     # apply macro expansion on arbitrary values; takes care of recursive data like
-    # lists and dicts; only actually applies macros when a string is encountered on 
+    # lists and dicts; only actually applies macros when a string is encountered on
     # the way (look for calls to _expandString()); returns a *new* data
     # structure that holds the expanded version (so the input data is unchanged)
 
     def _expandMacrosInValues(self, data, maps):
-        
+
         # arrays
         if isinstance(data, types.ListType):
             result = []
@@ -351,7 +356,7 @@ class Job(object):
                     console.debug("expanding: %r ==> %r" % (data[e], enew))
                     #data[e] = enew
                 result.append(enew)
-                    
+
         # dicts
         elif isinstance(data, types.DictType):
             result = {}
@@ -421,7 +426,7 @@ class Job(object):
 
     def setConfig(self, config):
         self._config = config
-    
+
     def copyData(self):
         data = {}
         for key, val in self._data.iteritems():
@@ -438,6 +443,9 @@ class Job(object):
 
     def hasFeature(self, feature):
         return feature in self._data
+
+    def set(self, feature, value):
+        self.setFeature(feature, value)
 
     def setFeature(self, feature, value):
         self._data[feature]=value
@@ -513,16 +521,16 @@ class Job(object):
 
                 # merge arrays rather than shadowing
                 elif isinstance(target[key], types.ListType):
-                    # equality problem: in two arbitrary lists, i have no way of telling 
+                    # equality problem: in two arbitrary lists, i have no way of telling
                     # whether any pair of elements is somehow related (e.g. specifies the
-                    # same library), and i can't do recursive search here, with some 
+                    # same library), and i can't do recursive search here, with some
                     # similarity reasoning, can i. therefore: non-equal elements are just
                     # considered unrelated.
                     if not isinstance(source[key], types.ListType):
                         target[key] = self.listMerge([source[key]],target[key])
                     else:
                         target[key] = self.listMerge(source[key],target[key])
-                
+
                 # merge dicts rather than shadowing
                 elif isinstance(target[key], types.DictType):
                     # assuming schema-conformance of source[key] as well
@@ -538,7 +546,7 @@ class Job(object):
                 if isinstance(source[key], types.ListType):
                     s1 = source[key][:]
                 elif isinstance(source[key], types.DictType):
-                    s1 = source[key].copy()
+                    s1 = copy.deepcopy(source[key])
                 else:
                     s1 = source[key]
                 target[key] = s1
@@ -554,7 +562,7 @@ class Job(object):
     def mapMerge(self, source, target):
         """merge source map into target, but don't overwrite existing
            keys in target (unlike target.update(source))"""
-        t = source.copy()
+        t = copy.deepcopy(source)
         t.update(target)  # target keys take precedence
         return t
 
@@ -568,7 +576,7 @@ class Job(object):
                 if isinstance(e, types.ListType):
                     e1 = e[:]
                 elif isinstance(e, types.DictType):
-                    e1 = e.copy()
+                    e1 = copy.deepcopy(e)
                 else:
                     e1 = e
                 t.append(e1) # make sure we have our own copy of container types

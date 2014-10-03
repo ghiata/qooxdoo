@@ -3,8 +3,7 @@
 
   "jobs" :
   {
-    "common" :
-    {
+    "lets" : {
       "let" :
       {
         "APIVIEWER_ROOT" : ".",
@@ -15,7 +14,12 @@
         "API_EXCLUDE"    : [],
         "BUILD_PATH"     : "${APIVIEWER_ROOT}/build",
         "CACHE"          : "${TMPDIR}/qx${QOOXDOO_VERSION}/cache"
-      },
+      }
+    },
+
+    "libraries" : {
+
+      "extend" : [ "lets" ],
 
       "library" :
       [
@@ -30,7 +34,12 @@
         {
           "manifest" : "${QOOXDOO_PATH}/component/library/versionlabel/Manifest.json"
         }
-      ],
+      ]
+    },
+
+    "common" :
+    {
+      "extend" : [ "lets", "libraries" ],
 
       "environment" :
       {
@@ -61,9 +70,11 @@
         {
           "file" : "./source/script/${APIVIEWER}.js",
           "app-root" : "source"
-        }
+        },
+
+        "code" : { "except" : [ "*" ] }
       },
-      
+
       "compile" : { "type" : "source" }
     },
 
@@ -82,7 +93,7 @@
     {
       "extend" : ["common"],
       "include" : ["${APIVIEWER}.*"],
-      
+
       "environment" :
       {
         "qx.aspects" : false,
@@ -99,11 +110,11 @@
         "code" :
         {
           "format"   : true,
-          "optimize" : ["strings", "basecalls", "variables", "privates", "variants"],
+          "optimize" : ["strings", "basecalls", "variables", "privates", "variants", "whitespace"],
           "except"   : []
         }
       },
-        
+
       "compile" : { "type" : "build" }
     },
 
@@ -148,10 +159,19 @@
     {
       "run" :
       [
+        "build-viewer",
+        "build-data"
+      ]
+    },
+
+
+    "build-viewer" :
+    {
+      "run" :
+      [
         "build-resources",
         "build-script",
-        "build-files",
-        "build-data"
+        "build-files"
       ]
     },
 
@@ -172,9 +192,10 @@
 
     "build-data" :
     {
-      "config-warnings" : 
+      "config-warnings" :
       {
-        "exclude" : "${API_EXCLUDE}"
+        "exclude" : "${API_EXCLUDE}",
+        "environment" : [ "non-literal-keys" ]
       },
       "extend" : ["common"],
 
@@ -183,9 +204,16 @@
 
       "api" :
       {
-        "path" : "${BUILD_PATH}/script"
+        "path" : "${BUILD_PATH}/script",
+        "warnings" : {
+          "output" : [ "data", "console" ]
+        }
+      },
+
+      "lint-check" : {
+        "warn-unknown-jsdoc-keys" : true,
+        "warn-jsdoc-key-syntax"   : true
       }
     }
   }
 }
-

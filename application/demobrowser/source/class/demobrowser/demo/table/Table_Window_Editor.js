@@ -17,10 +17,6 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-#ignore(demobrowser.demo.table.ModalCellEditorFactory)
-************************************************************************ */
-
 /**
  * This table example shows how to use a modal window for a cell editor.
  * Although this is a very simple one, cell editors using modal windows
@@ -29,6 +25,7 @@
  * individually. In this example, the "A number" column is editable.
  *
  * @tag noPlayground
+ * @ignore(demobrowser.demo.table.ModalCellEditorFactory)
  */
 qx.Class.define("demobrowser.demo.table.Table_Window_Editor",
 {
@@ -156,7 +153,7 @@ qx.Class.define("demobrowser.demo.table.ModalCellEditorFactory",
       cellEditor.add(save);
 
       // Let them press Enter from the cell editor text field to finish.
-      var command = new qx.ui.core.Command("Enter");
+      var command = new qx.ui.command.Command("Enter");
       command.addListener("execute", function(e)
       {
         save.execute();

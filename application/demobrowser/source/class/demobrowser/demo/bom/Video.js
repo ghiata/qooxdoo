@@ -19,12 +19,16 @@
 
 /* ************************************************************************
 
-#asset(demobrowser/demo/media/qx.m4v)
-#asset(demobrowser/demo/media/qx.ogv)
-#asset(demobrowser/demo/media/qx.webm)
 
 ************************************************************************ */
 
+/**
+ *
+ * @asset(demobrowser/demo/media/qx.m4v)
+ * @asset(demobrowser/demo/media/qx.ogv)
+ * @asset(demobrowser/demo/media/qx.webm)
+ * @tag noPlayground
+ */
 qx.Class.define("demobrowser.demo.bom.Video",
 {
   extend : qx.application.Standalone,
@@ -108,7 +112,7 @@ qx.Class.define("demobrowser.demo.bom.Video",
         doc.add(loop, {left: 364, top: 270});
         container.getContentElement().getDomElement().appendChild(video.getMediaObject());
         container.setWidth(400);
-        container.setHeight(400);
+        container.setHeight(220);
         video.setWidth(container.getWidth());
         video.setHeight(container.getHeight());
       }, this);

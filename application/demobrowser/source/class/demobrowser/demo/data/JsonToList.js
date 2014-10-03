@@ -19,12 +19,13 @@
 
 /* ************************************************************************
 
-#asset(demobrowser/demo/data/list.json)
-#asset(qx/icon/${qx.icontheme}/16/mimetypes/*)
 
 ************************************************************************ */
 
 /**
+ *
+ * @asset(demobrowser/demo/data/list.json)
+ * @asset(qx/icon/${qx.icontheme}/16/mimetypes/*)
  * @tag databinding
  */
 qx.Class.define("demobrowser.demo.data.JsonToList",
@@ -75,7 +76,7 @@ qx.Class.define("demobrowser.demo.data.JsonToList",
        * ********************************************* */
       var description = new qx.ui.basic.Label();
       description.setRich(true);
-      description.setWidth(260);
+      description.setWidth(450);
       description.setValue(
         "<b>List bound to data in a json file</b><br/>"
         + "Loading the json file <a href='" + url +"' target='_blank'>"

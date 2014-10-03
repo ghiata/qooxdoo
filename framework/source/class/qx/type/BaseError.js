@@ -24,7 +24,7 @@
  * It has a comment and a fail message as members. The toString method returns
  * the comment and the fail message separated by a colon.
  */
-qx.Class.define("qx.type.BaseError",
+qx.Bootstrap.define("qx.type.BaseError",
 {
   extend : Error,
 
@@ -41,7 +41,14 @@ qx.Class.define("qx.type.BaseError",
    */
   construct : function(comment, failMessage)
   {
-    Error.call(this, failMessage);
+    var inst = Error.call(this, failMessage);
+    // map stack trace properties since they're not added by Error's constructor
+    if (inst.stack) {
+      this.stack = inst.stack;
+    }
+    if (inst.stacktrace) {
+      this.stacktrace = inst.stacktrace;
+    }
 
     this.__comment = comment || "";
     // opera 10 crashes if the message is an empty string!!!?!?!
@@ -70,9 +77,10 @@ qx.Class.define("qx.type.BaseError",
 
   members :
   {
+    __sTrace : null,
     __comment : null,
 
-    /** {String} Fail message provided by the assertion */
+    /** @type {String} Fail message provided by the assertion */
     message : null,
 
 

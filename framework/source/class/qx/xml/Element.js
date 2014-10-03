@@ -26,7 +26,7 @@
  *
  * Further information:
  *
- * * <a href="http://developer.mozilla.org/en/docs/Parsing_and_serializing_XML">MDN Parsing and Serializing XML</a>
+ * * <a href="https://developer.mozilla.org/en-US/docs/Parsing_and_serializing_XML">MDN Parsing and Serializing XML</a>
  *
  * Please note that nodes selected using the <code>selectSingleNode()</code> and
  * <code>selectNodes()</code> methods remain in their document context so
@@ -38,8 +38,10 @@ qx.Class.define("qx.xml.Element",
 {
   statics :
   {
+    __xpe : null,
+
     /**
-     * {Boolean} <code>true</code> if the native XMLSerializer should be used,
+     * @type {Boolean} <code>true</code> if the native XMLSerializer should be used,
      * <code>false</code> otherwise.
      */
     XML_SERIALIZER : false,
@@ -186,7 +188,7 @@ qx.Class.define("qx.xml.Element",
 
         return element.selectNodes(query);
       }
-      
+
       throw new Error("No XPath implementation available!");
     },
 
@@ -195,13 +197,13 @@ qx.Class.define("qx.xml.Element",
      * Returns a list of elements with the given tag name belonging to the given namespace
      *
      * (See
-     * <a href="http://developer.mozilla.org/en/DOM/element.getElementsByTagNameNS">MDN
+     * <a href="https://developer.mozilla.org/en-US/docs/DOM/element.getElementsByTagNameNS">MDN
      * Reference</a>).
      *
      * @param element {Element | Document} the element from where the search should start.
      *       Note that only the descendants of this element are included in the search, not the node itself.
      * @param namespaceURI {var} is the namespace URI of elements to look for . For example, if you need to look
-     *       for XHTML elements, use the XHTML namespace URI, <tt>http://www.w3.org/1999/xhtml</tt>.
+     *       for XHTML elements, use the XHTML namespace URI, <tt>http://www.w3.org/1999/xhtml/</tt>.
      * @param tagname {String} the tagname to look for
      * @return {Element[]} a list of found elements in the order they appear in the tree.
      */
@@ -210,7 +212,7 @@ qx.Class.define("qx.xml.Element",
       if (qx.core.Environment.get("xml.getelementsbytagnamens")) {
         return element.getElementsByTagNameNS(namespaceURI, tagname);
       }
-      
+
       if (qx.core.Environment.get("xml.domproperties")) {
         var doc = element.ownerDocument || element;
 
@@ -219,7 +221,7 @@ qx.Class.define("qx.xml.Element",
 
         return qx.xml.Element.selectNodes(element, 'descendant-or-self::ns:' + tagname);
       }
-      
+
       throw new Error("The client does not support this operation!");
     },
 
@@ -253,13 +255,13 @@ qx.Class.define("qx.xml.Element",
       if (qx.core.Environment.get("xml.attributens")) {
         element.setAttributeNS(namespaceUri, name, value);
       }
-      
+
       else if (qx.core.Environment.get("xml.createnode")) {
         var attr = document.createNode(2, name, namespaceUri);
         attr.nodeValue = value;
         element.setAttributeNode(attr);
       }
-      
+
       else {
         throw new Error("The client does not support this operation!");
       }
@@ -279,7 +281,7 @@ qx.Class.define("qx.xml.Element",
         var value = element.getAttributeNS(namespaceUri, name);
         return value === null ? '' : value;
       }
-      
+
       if (qx.core.Environment.get("xml.getqualifieditem")) {
         var attributes = element.attributes;
         var value = null;
@@ -293,7 +295,7 @@ qx.Class.define("qx.xml.Element",
         }
         return value === null ? '' : value;
       }
-      
+
       throw new Error("The client does not support this operation!");
     },
 
@@ -320,13 +322,13 @@ qx.Class.define("qx.xml.Element",
         parent.appendChild(node);
         return node;
       }
-      
+
       if (qx.core.Environment.get("xml.createnode")) {
         var node = document.createNode(1, name, namespaceUri);
         parent.appendChild(node);
         return node;
       }
-      
+
       throw new Error("The client does not support this operation!");
     }
   },
@@ -341,6 +343,7 @@ qx.Class.define("qx.xml.Element",
   {
     statics.XML_SERIALIZER = (window.XMLSerializer &&
      !( qx.core.Environment.get("engine.name") == "mshtml" &&
-     qx.core.Environment.get("engine.version") >= 9));
+     qx.core.Environment.get("engine.version") >= 9 &&
+     qx.core.Environment.get("browser.documentmode") >= 9));
   }
 });

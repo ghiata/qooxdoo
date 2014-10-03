@@ -118,6 +118,7 @@ qx.Class.define("qx.ui.core.FocusHandler",
      * Whether the given widget is the active one
      *
      * @param widget {qx.ui.core.Widget} The widget to check
+     * @return {Boolean} <code>true</code> if the given widget is active
      */
     isActive : function(widget) {
       return this.__activeChild == widget;
@@ -139,6 +140,7 @@ qx.Class.define("qx.ui.core.FocusHandler",
      * Whether the given widget is the focused one.
      *
      * @param widget {qx.ui.core.Widget} The widget to check
+     * @return {Boolean} <code>true</code> if the given widget is focused
      */
     isFocused : function(widget) {
       return this.__focusedChild == widget;
@@ -149,6 +151,7 @@ qx.Class.define("qx.ui.core.FocusHandler",
      * Whether the given widgets acts as a focus root.
      *
      * @param widget {qx.ui.core.Widget} The widget to check
+     * @return {Boolean} <code>true</code> if the given widget is a focus root
      */
     isFocusRoot : function(widget) {
       return !!this.__roots[widget.$$hash];
@@ -168,7 +171,6 @@ qx.Class.define("qx.ui.core.FocusHandler",
      * Internal event handler for activate event.
      *
      * @param e {qx.event.type.Focus} Focus event
-     * @return {void}
      */
     _onActivate : function(e)
     {
@@ -187,7 +189,6 @@ qx.Class.define("qx.ui.core.FocusHandler",
      * Internal event handler for deactivate event.
      *
      * @param e {qx.event.type.Focus} Focus event
-     * @return {void}
      */
     _onDeactivate : function(e)
     {
@@ -202,7 +203,6 @@ qx.Class.define("qx.ui.core.FocusHandler",
      * Internal event handler for focusin event.
      *
      * @param e {qx.event.type.Focus} Focus event
-     * @return {void}
      */
     _onFocusIn : function(e)
     {
@@ -219,7 +219,6 @@ qx.Class.define("qx.ui.core.FocusHandler",
      * Internal event handler for focusout event.
      *
      * @param e {qx.event.type.Focus} Focus event
-     * @return {void}
      */
     _onFocusOut : function(e)
     {
@@ -236,7 +235,6 @@ qx.Class.define("qx.ui.core.FocusHandler",
      * Internal event handler for TAB key.
      *
      * @param e {qx.event.type.KeySequence} Key event
-     * @return {void}
      */
     __onKeyPress : function(e)
     {
@@ -279,6 +277,8 @@ qx.Class.define("qx.ui.core.FocusHandler",
      * Finds the next focus root, starting with the given widget.
      *
      * @param widget {qx.ui.core.Widget} The widget to find a focus root for.
+     * @return {qx.ui.core.Widget|null} The focus root for the given widget or
+     * <code>true</code> if no focus root could be found
      */
     __findFocusRoot : function(widget)
     {
@@ -328,8 +328,8 @@ qx.Class.define("qx.ui.core.FocusHandler",
       }
 
       // Computing location
-      var el1 = widget1.getContainerElement().getDomElement();
-      var el2 = widget2.getContainerElement().getDomElement();
+      var el1 = widget1.getContentElement().getDomElement();
+      var el2 = widget2.getContentElement().getDomElement();
 
       var Location = qx.bom.element.Location;
 
@@ -458,7 +458,6 @@ qx.Class.define("qx.ui.core.FocusHandler",
      * @param parent {qx.ui.core.Widget} Parent widget
      * @param widget {qx.ui.core.Widget} Child widget to start with
      * @param result {Array} Result list
-     * @return {void}
      */
     __collectAllAfter : function(parent, widget, result)
     {
@@ -494,7 +493,6 @@ qx.Class.define("qx.ui.core.FocusHandler",
      * @param parent {qx.ui.core.Widget} Parent widget
      * @param widget {qx.ui.core.Widget} Child widget to start with
      * @param result {Array} Result list
-     * @return {void}
      */
     __collectAllBefore : function(parent, widget, result)
     {

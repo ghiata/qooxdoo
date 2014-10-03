@@ -83,27 +83,40 @@ qx.Class.define("qx.ui.form.core.VirtualDropDownList",
   },
 
 
+  events : {
+    /**
+     * This event is fired as soon as the content of the selection property changes, but
+     * this is not equal to the change of the selection of the widget. If the selection
+     * of the widget changes, the content of the array stored in the selection property
+     * changes. This means you have to listen to the change event of the selection array
+     * to get an event as soon as the user changes the selected item.
+     * <pre class="javascript">obj.getSelection().addListener("change", listener, this);</pre>
+     */
+    "changeSelection" : "qx.event.type.Data"
+  },
+
+
   members :
   {
-    /** {qx.ui.form.core.AbstractVirtualBox} The composite widget. */
+    /** @type {qx.ui.form.core.AbstractVirtualBox} The composite widget. */
     _target : null,
 
 
-    /** {var} The pre-selected model item. */
+    /** @type {var} The pre-selected model item. */
     _preselected : null,
 
 
     /**
-     * {Boolean} Indicator to ignore selection changes from the
+     * @type {Boolean} Indicator to ignore selection changes from the
      * {@link #selection} array.
      */
     __ignoreSelection : false,
 
 
-    /** {Boolean} Indicator to ignore selection changes from the list. */
+    /** @type {Boolean} Indicator to ignore selection changes from the list. */
     __ignoreListSelection : false,
-    
-    
+
+
     __defaultSelection : null,
 
 
@@ -175,7 +188,7 @@ qx.Class.define("qx.ui.form.core.VirtualDropDownList",
           });
 
           control.getSelection().addListener("change", this._onListChangeSelection, this);
-          control.addListener("mouseup", this._handleMouse, this);
+          control.addListener("tap", this._handlePointer, this);
           control.addListener("changeModel", this._onChangeModel, this);
           control.addListener("changeDelegate", this._onChangeDelegate, this);
 
@@ -219,7 +232,7 @@ qx.Class.define("qx.ui.form.core.VirtualDropDownList",
      *
      * @param event {qx.event.type.Mouse} The mouse event.
      */
-    _handleMouse : function(event) {
+    _handlePointer : function(event) {
       this.__selectPreselected();
     },
 
@@ -387,10 +400,8 @@ qx.Class.define("qx.ui.form.core.VirtualDropDownList",
         }
         target.length = nativeArray.length;
 
-        var lastIndex = target.getLength() - 1;
-        // dispose data array returned by splice to avoid memory leak
-        var temp = target.splice(lastIndex, 1, target.getItem(lastIndex));
-        temp.dispose();
+        // necessary for keeping preselected items in sync
+        target.fireDataEvent("change", {});
       }
     },
 
@@ -458,7 +469,7 @@ qx.Class.define("qx.ui.form.core.VirtualDropDownList",
       return toTop > toBottom ? toTop : toBottom;
     }
   },
-  
+
   destruct : function()
   {
     if (this.__defaultSelection) {

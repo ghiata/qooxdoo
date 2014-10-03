@@ -53,7 +53,7 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/widget/label.html' target='_blank'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/widget/label.html' target='_blank'>
  * Documentation of this widget in the qooxdoo manual.</a>
  */
 qx.Class.define("qx.ui.basic.Label",
@@ -145,8 +145,7 @@ qx.Class.define("qx.ui.basic.Label",
      *   <li>The label will always take the same enabled state as the buddy
      *       widget.
      *   </li>
-     *   <li>A click on the label will focus the buddy widget.
-     *   </li>
+     *   <li>A tap on the label will focus the buddy widget.</li>
      * </ul>
      * This is the behavior of the for attribute of HTML:
      * http://www.w3.org/TR/html401/interact/forms.html#adef-for
@@ -225,8 +224,7 @@ qx.Class.define("qx.ui.basic.Label",
   {
     __font : null,
     __invalidContentSize : null,
-    __buddyEnabledBinding : null,
-    __clickListenerId : null,
+    __tapListenerId : null,
     __webfontListenerId : null,
 
 
@@ -324,7 +322,7 @@ qx.Class.define("qx.ui.basic.Label",
     */
 
     /**
-     * {Map} Internal fallback of label size when no font is defined
+     * @type {Map} Internal fallback of label size when no font is defined
      *
      * @lint ignoreReferenceField(__contentSize)
      */
@@ -377,7 +375,7 @@ qx.Class.define("qx.ui.basic.Label",
      * Internal utility to compute the content dimensions.
      *
      * @param width {Integer?null} Optional width constraint
-     * @return {void}
+     * @return {Map} Map with <code>width</code> and <code>height</code> keys
      */
     __computeContentSize : function(width)
     {
@@ -388,11 +386,38 @@ qx.Class.define("qx.ui.basic.Label",
       var content = this.getValue() || "A";
       var rich = this.getRich();
 
+      if (this.__webfontListenerId) {
+        this.__fixEllipsis();
+      }
+
       return rich ?
         Label.getHtmlSize(content, styles, width) :
         Label.getTextSize(content, styles);
     },
 
+
+
+    /**
+    * Firefox > 9 on OS X will draw an ellipsis on top of the label content even
+    * though there is enough space for the text. Re-applying the content forces
+    * a recalculation and fixes the problem. See qx bug #6293
+    */
+    __fixEllipsis : function()
+    {
+      if (!this.getContentElement()) {
+        return;
+      }
+      if (qx.core.Environment.get("os.name") == "osx" &&
+        qx.core.Environment.get("engine.name") == "gecko" &&
+        parseInt(qx.core.Environment.get("engine.version"), 10) < 16 &&
+        parseInt(qx.core.Environment.get("engine.version"), 10) > 9)
+      {
+        var domEl = this.getContentElement().getDomElement();
+        if (domEl) {
+          domEl.innerHTML = domEl.innerHTML;
+        }
+      }
+    },
 
 
 
@@ -407,19 +432,22 @@ qx.Class.define("qx.ui.basic.Label",
     {
       if (old != null)
       {
-        old.removeBinding(this.__buddyEnabledBinding);
-        this.__buddyEnabledBinding = null;
-        this.removeListenerById(this.__clickListenerId);
-        this.__clickListenerId = null;
+        this.removeRelatedBindings(old);
+        this.removeListenerById(this.__tapListenerId);
+        this.__tapListenerId = null;
       }
 
       if (value != null)
       {
-        this.__buddyEnabledBinding = value.bind("enabled", this, "enabled");
-        this.__clickListenerId = this.addListener("click", function() {
+        value.bind("enabled", this, "enabled");
+        this.__tapListenerId = this.addListener("tap", function() {
           // only focus focusable elements [BUG #3555]
           if (value.isFocusable()) {
             value.focus.apply(value);
+          }
+          // furthermore toggle if possible [BUG #6881]
+          if ("toggleValue" in value && typeof value.toggleValue === "function") {
+            value.toggleValue();
           }
         }, this);
       }
@@ -521,18 +549,10 @@ qx.Class.define("qx.ui.basic.Label",
       qx.locale.Manager.getInstance().removeListener("changeLocale", this._onChangeLocale, this);
     }
 
-    // remove the binding
-    if (this.__buddyEnabledBinding != null) {
-      var buddy = this.getBuddy();
-      if (buddy != null && !buddy.isDisposed()) {
-        buddy.removeBinding(this.__buddyEnabledBinding);
-      }
-    }
-
     if (this.__font && this.__webfontListenerId) {
       this.__font.removeListenerById(this.__webfontListenerId);
     }
 
-    this.__font = this.__buddyEnabledBinding = null;
+    this.__font = null;
   }
 });

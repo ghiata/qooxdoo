@@ -18,10 +18,8 @@
 ************************************************************************ */
 
 /*
- * The next is to inform resource copying
- #asset(widgetbrowser/helper.js)
+ * Main Application.
  */
-
 qx.Class.define("widgetbrowser.Application",
 {
   extend : qx.application.Standalone,
@@ -64,14 +62,19 @@ qx.Class.define("widgetbrowser.Application",
       var scroll = this.__scroll = new qx.ui.container.Scroll();
       dockLayoutComposite.add(scroll);
 
-      this.__tabs = new widgetbrowser.view.TabView();
+      this.__tabs = this._createTabView();
       this.__tabs.set({
-        minWidth: 800,
-        minHeight: 800,
+        minWidth: 700,
         padding: 15
       });
       scroll.add(this.__tabs);
 
+    },
+
+    _createTabView: function()
+    {
+      this.__tabs = new widgetbrowser.view.TabView();
+      return this.__tabs;
     },
 
     getScroll: function()
@@ -80,11 +83,16 @@ qx.Class.define("widgetbrowser.Application",
     },
 
     getThemes: function() {
-      return ([
-        {"Modern" : "qx.theme.Modern"},
-        {"Simple" : "qx.theme.Simple"},
-        {"Classic" : "qx.theme.Classic"}
-      ]);
+      var themes = {};
+      var theme;
+      // cannot use qx.Theme.getAll(), as themes are loaded on demand
+      var known_themes = qx.core.Environment.get("widgetbrowser.themes");
+      known_themes = known_themes.split(" ");
+      for (var i=0; i < known_themes.length; i++){
+        theme = known_themes[i];
+        themes[theme.substr(theme.lastIndexOf(".") + 1)] = theme;
+      }
+      return themes;
     }
   }
 });

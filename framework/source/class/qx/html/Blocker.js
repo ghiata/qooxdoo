@@ -39,8 +39,6 @@ qx.Class.define("qx.html.Blocker",
 
     var styles = {
       position: "absolute",
-      width: "100%",
-      height: "100%",
       opacity : opacity || 0,
       backgroundColor : backgroundColor
     };
@@ -62,7 +60,17 @@ qx.Class.define("qx.html.Blocker",
     this.addListener("mouseover", this._stopPropagation, this);
     this.addListener("mouseout", this._stopPropagation, this);
     this.addListener("mousewheel", this._stopPropagation, this);
+    this.addListener("roll", this._stopPropagation, this);
     this.addListener("contextmenu", this._stopPropagation, this);
+    this.addListener("pointerdown", this._stopPropagation, this);
+    this.addListener("pointerup", this._stopPropagation, this);
+    this.addListener("pointermove", this._stopPropagation, this);
+    this.addListener("pointerover", this._stopPropagation, this);
+    this.addListener("pointerout", this._stopPropagation, this);
+    this.addListener("tap", this._stopPropagation, this);
+    this.addListener("dbltap", this._stopPropagation, this);
+    this.addListener("swipe", this._stopPropagation, this);
+    this.addListener("longtap", this._stopPropagation, this);
     this.addListener("appear", this.__refreshCursor, this);
     this.addListener("disappear", this.__refreshCursor, this);
   },

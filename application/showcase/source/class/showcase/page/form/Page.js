@@ -18,14 +18,11 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#use(showcase.page.form.Content)
-
-************************************************************************ */
 /**
  * @lint ignoreReferenceField(__descriptionText, __tryThis,
  *   __features, __manual, __demos, __api)
+ *
+ * @use(showcase.page.form.Content)
  */
 qx.Class.define("showcase.page.form.Page",
 {
@@ -61,7 +58,7 @@ qx.Class.define("showcase.page.form.Page",
       "Selection" : "Open the select box to see the list of selectables.",
       "Text" : "The placeholder disappears once you start to type in a text field.",
       "Buttons" : "Hold the repeat button to see the value increase.",
-      "MenuButton" : "Click the \"MenuButton\" to open the menu."
+      "MenuButton" : "Tap the \"MenuButton\" to open the menu."
     },
 
     __features : {
@@ -70,7 +67,7 @@ qx.Class.define("showcase.page.form.Page",
     },
 
     __manual : {
-      "pages/gui_toolkit/ui_form_handling.html": "Form handling"
+      "pages/desktop/ui_form_handling.html": "Form handling"
     },
 
     __demos : {

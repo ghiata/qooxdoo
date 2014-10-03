@@ -88,6 +88,11 @@ class Key(object):
                 "translate"     : types.DictType,
                 "use"           : types.DictType,
                 "variants"      : types.DictType,
+                "validation-config"  : types.DictType,
+                "validation-manifest"  : types.DictType,
+                "watch-files"   : types.DictType,
+                "web-server"    : types.DictType,
+                "web-server-config" : types.DictType,
                 }
 
 
@@ -116,14 +121,14 @@ class Let(Key):
         keys = letDict.keys()
         for k in keys:
             kval = letDict[k]
-            
-            # construct a temporary mini-dict of translation maps for the calls to 
+
+            # construct a temporary mini-dict of translation maps for the calls to
             # expandMacros() further down
             if isinstance(kval, types.StringTypes):
                 kdicts = {'str': {k:kval}, 'bin': {}}
             else:
                 kdicts = {'str': {}, 'bin': {k:kval}}
-                
+
             # cycle through other keys of this dict
             for k1 in keys:
                 if k != k1: # no expansion with itself!
@@ -133,16 +138,16 @@ class Let(Key):
                         letDict[k1] = enew
 
         return letDict
-        
+
 
     def expandMacros(self, dat, maps=None):
         # TODO: this code duplicates a lot of Job._expandMacrosInValues
         """ apply macro expansion on arbitrary values; takes care of recursive data like
-            lists and dicts; only actually applies macros when a string is encountered on 
+            lists and dicts; only actually applies macros when a string is encountered on
             the way (look for calls to _expandString());
             this is a referential transparent operation, as long as self._data is unaltered"""
         data = copy.deepcopy(dat) # make sure we return a copy of the argument data
-        
+
         maps = maps or self._getLetMaps()
 
         # arrays
@@ -152,7 +157,7 @@ class Let(Key):
                 if enew != data[e]:
                     console.debug("expanding: %s ==> %s" % (str(data[e]), str(enew)))
                     data[e] = enew
-                    
+
         # dicts
         elif isinstance(data, types.DictType):
             for e in data.keys(): # have to use keys() explicitly since i modify data in place
@@ -195,7 +200,7 @@ class Let(Key):
                 letmaps['str'][k] = letMap[k]
             else:
                 letmaps['bin'][k] = letMap[k]
-                    
+
         return letmaps
 
     def _expandString(self, s, mapstr, mapbin):

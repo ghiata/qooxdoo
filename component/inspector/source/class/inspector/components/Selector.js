@@ -19,7 +19,7 @@
 ************************************************************************ */
 /**
  * The <code>Selector</code> is for visualizing the inspected object in the
- * inspected application and also for selecting an object with the mouse.
+ * inspected application and also for selecting an object with the pointer.
  */
 qx.Class.define("inspector.components.Selector",
 {
@@ -50,18 +50,18 @@ qx.Class.define("inspector.components.Selector",
     /** {String} The border color for the highlighter. */
     BORDER_COLOR : "red",
 
-    /** {Integer} The max zIndex highlighter and click layer. */
+    /** {Integer} The max zIndex highlighter and tap layer. */
     Z_INDEX : 1e6,
 
-    /** {String} The background color for the click layer. */
+    /** {String} The background color for the tap layer. */
     BACKGROUND_COLOR : "black",
 
-    /** {Number} The opacity for the click layer. */
+    /** {Number} The opacity for the tap layer. */
     OPACITY : 0.1,
 
     /** {Integer} The duration in msec how long the highlighter is shown. */
     DURATION : 1000,
-    
+
     HIGHLIGHTER_CLASS : "qxInspectorHighlighter"
   },
 
@@ -72,8 +72,8 @@ qx.Class.define("inspector.components.Selector",
     /** {inspector.components.IInspectorModel} The inspector model instance */
     __model : null,
 
-    /** {qx.ui.core.Widget} Reference to the click layer in the inspected application. */
-    __catchClickLayer : null,
+    /** {qx.ui.core.Widget} Reference to the tap layer in the inspected application. */
+    __catchTapLayer : null,
 
     /** {qx.ui.core.Widget} Reference to the highlighter in the inspected application. */
     __highlighter : null,
@@ -85,13 +85,13 @@ qx.Class.define("inspector.components.Selector",
     __applicationWindow : null,
 
     /**
-     * Shows the click layer to start the object selection in the inspected application.
+     * Shows the tap layer to start the object selection in the inspected application.
      */
     start : function()
     {
-      if (this.__catchClickLayer != null) {
-        this.__updateCatchClickLayer();
-        this.__catchClickLayer.show();
+      if (this.__catchTapLayer != null) {
+        this.__updateCatchTapLayer();
+        this.__catchTapLayer.show();
 
         // Flush queue before next user interaction occurs.
         qx.ui.core.queue.Manager.flush();
@@ -99,12 +99,12 @@ qx.Class.define("inspector.components.Selector",
     },
 
     /**
-     * Hides the click layer to stop the object selection in the inspected application.
+     * Hides the tap layer to stop the object selection in the inspected application.
      */
     stop : function()
     {
-      if (this.__catchClickLayer != null) {
-        this.__catchClickLayer.hide();
+      if (this.__catchTapLayer != null) {
+        this.__catchTapLayer.hide();
         this.__onHighlighterInterval();
 
         // Flush queue before next user interaction occurs.
@@ -113,7 +113,7 @@ qx.Class.define("inspector.components.Selector",
     },
 
     /**
-     * Listener for the "changeApplication", creates the click layer and the highlighter
+     * Listener for the "changeApplication", creates the tap layer and the highlighter
      * in the inspected application.
      *
      * @param e {qx.event.type.Event} the fired event.
@@ -126,13 +126,13 @@ qx.Class.define("inspector.components.Selector",
       if (this.__applicationWindow == null) {
         // It's important to remove the old references from the old
         // Iframe object instances
-        applicationRoot.removeListener("resize", this.__updateCatchClickLayer, this);
-        this.__catchClickLayer = null;
+        applicationRoot.removeListener("resize", this.__updateCatchTapLayer, this);
+        this.__catchTapLayer = null;
         this.__highlighter = null;
         return;
       }
 
-      if (this.__applicationWindow.qx.core.Init.getApplication().getRoot().classname 
+      if (this.__applicationWindow.qx.core.Init.getApplication().getRoot().classname
         == "qx.ui.mobile.core.Root")
       {
         this.__isMobileApp = true;
@@ -141,7 +141,7 @@ qx.Class.define("inspector.components.Selector",
         this.__isMobileApp = false;
       }
 
-      this.__catchClickLayer = this.__createCatchClickLayer();
+      this.__catchTapLayer = this.__createCatchTapLayer();
       if (this.__isMobileApp) {
         this.__highlighter = this.__createMobileHighlighter();
       }
@@ -149,7 +149,7 @@ qx.Class.define("inspector.components.Selector",
         this.__highlighter = this.__createHighlighter();
       }
 
-      applicationRoot.addListener("resize", this.__updateCatchClickLayer, this);
+      applicationRoot.addListener("resize", this.__updateCatchTapLayer, this);
     },
 
     /**
@@ -193,10 +193,11 @@ qx.Class.define("inspector.components.Selector",
      * @return {qx.ui.core.Widget} the created highlighter.
      */
     __createHighlighter : function() {
-      var highlightDecorator = new this.__applicationWindow.qx.ui.decoration.Single(
-        this.self(arguments).BORDER,
-        "solid",
-        this.self(arguments).BORDER_COLOR);
+      var highlightDecorator = new this.__applicationWindow.qx.ui.decoration.Decorator().set({
+        width: this.self(arguments).BORDER,
+        style: "solid",
+        color: this.self(arguments).BORDER_COLOR
+      });
       this.__model.addToExcludes(highlightDecorator);
 
       var highlightOverlay = new this.__applicationWindow.qx.ui.core.Widget();
@@ -213,7 +214,7 @@ qx.Class.define("inspector.components.Selector",
 
     /**
      * Adds a CSS class to the inspected application that is used to highlight
-     * objects on mouseover
+     * objects on pointerover
      *
      * @return {Object} the created highlighter.
      */
@@ -222,16 +223,16 @@ qx.Class.define("inspector.components.Selector",
       var win = this.__applicationWindow;
       var elem = win.document.createElement("style");
       elem.type = "text/css";
-      
+
       var cssClass = this.self(arguments).HIGHLIGHTER_CLASS;
       var borderWidth = this.self(arguments).BORDER;
       var borderColor = this.self(arguments).BORDER_COLOR;
       var rule = "." + cssClass + " {" +
-        "outline: " + borderWidth + "px solid " + borderColor + ";" + 
+        "outline: " + borderWidth + "px solid " + borderColor + ";" +
       "}";
       elem.appendChild(document.createTextNode(rule));
       win.document.getElementsByTagName("head")[0].appendChild(elem);
-      
+
       var doc = win.document;
       // return an object that supports the widget-based highlighter's API
       return {
@@ -246,56 +247,64 @@ qx.Class.define("inspector.components.Selector",
     },
 
     /**
-     * Helper method to create and add the click layer to the inspected application,
-     * also adds the click layer to the excludes list from the inspector model.
+     * Helper method to create and add the tap layer to the inspected application,
+     * also adds the tap layer to the excludes list from the inspector model.
      *
-     * @return {qx.ui.core.Widget} the created click layer.
+     * @return {qx.ui.core.Widget} the created tap layer.
      */
-    __createCatchClickLayer : function()
+    __createCatchTapLayer : function()
     {
-      var catchClickLayer;
+      var catchTapLayer;
       if (this.__isMobileApp) {
         var bgCol = this.self(arguments).BACKGROUND_COLOR;
         var zIndex = this.self(arguments).Z_INDEX - 1;
         var opacity = this.self(arguments).OPACITY;
-        catchClickLayer = new this.__applicationWindow.qx.ui.mobile.core.Widget();
-        catchClickLayer.addListenerOnce("appear", function() {
+        catchTapLayer = new this.__applicationWindow.qx.ui.mobile.core.Widget();
+        catchTapLayer.addListenerOnce("appear", function() {
           var el = this.getContainerElement();
           el.style.position = "absolute";
+          el.style.left = "0px";
+          el.style.top = "0px";
           el.style.backgroundColor = bgCol;
           el.style.zIndex = zIndex;
           el.style.opacity = opacity;
         });
       }
       else {
-        catchClickLayer = new this.__applicationWindow.qx.ui.core.Widget();
-        catchClickLayer.setBackgroundColor(this.self(arguments).BACKGROUND_COLOR);
-        catchClickLayer.setOpacity(this.self(arguments).OPACITY);
-        catchClickLayer.setZIndex(this.self(arguments).Z_INDEX - 1);
+        catchTapLayer = new this.__applicationWindow.qx.ui.core.Widget();
+        catchTapLayer.setBackgroundColor(this.self(arguments).BACKGROUND_COLOR);
+        catchTapLayer.setOpacity(this.self(arguments).OPACITY);
+        catchTapLayer.setZIndex(this.self(arguments).Z_INDEX - 1);
       }
-      this.__model.addToExcludes(catchClickLayer);
-      catchClickLayer.testId = "catchClickLayer";
-      catchClickLayer.hide();
+      this.__model.addToExcludes(catchTapLayer);
+      catchTapLayer.testId = "catchTapLayer";
+      catchTapLayer.hide();
 
-      catchClickLayer.addListener("click", this.__onClick, this);
-      catchClickLayer.addListener("mousemove", this.__onMouseMove, this);
+      catchTapLayer.addListener("tap", this.__onTap, this);
+      catchTapLayer.addListener("pointermove", this.__onPointerMove, this);
 
-      this.__addToApplicationRoot(catchClickLayer);
+      this.__addToApplicationRoot(catchTapLayer);
 
-      return catchClickLayer;
+      return catchTapLayer;
     },
 
     /**
      * Helper method to add the passes widget to the inspected application in full size.
      *
-     * @param widget {qx.ui.core.Widget} to add in full size.
+     * @param widget {qx.ui.core.Widget | qx.ui.mobile.core.Widget} to add in full size.
      */
     __addToApplicationRoot : function(widget)
     {
       var applicationRoot = this.__model.getApplication().getRoot();
       var win = this.__applicationWindow;
 
-      if (win.qx.ui.root && win.qx.Class.isSubClassOf(widget.constructor, win.qx.ui.root.Application)) {
+      var root;
+      if (win.qx.ui.root && win.qx.ui.root.Page) {
+        root = win.qx.ui.root.Page;
+      } else if (win.qx.ui.root && win.qx.ui.root.Application) {
+        root = win.qx.ui.root.Application;
+      }
+      if (root && win.qx.Class.isSubClassOf(widget.constructor, root)) {
         applicationRoot.add(widget, {edge: 0});
       }
       else
@@ -305,42 +314,55 @@ qx.Class.define("inspector.components.Selector",
           widget.setWidth(qx.bom.Document.getWidth(win));
         }
         else {
-          var el = widget.getContainerElement();
+          var el;
+          if (this.__isMobileApp) {
+            el = widget.getContainerElement();
+          } else {
+            el = widget.getContentElement();
+          }
+
           el.style.width = qx.bom.Document.getHeight(win) + "px";
           el.style.height = qx.bom.Document.getWidth(win) + "px";
         }
-        applicationRoot.add(widget, {left: 0, top: 0});
+
+        if (this.__isMobileApp) {
+          if(widget instanceof win.qx.ui.mobile.core.Widget) {
+            applicationRoot.add(widget);
+          }
+        } else {
+          applicationRoot.add(widget, {left: 0, top: 0});
+        }
       }
     },
 
     /**
-     * Listener for the "click", tries to fined the clicked object in all application roots
+     * Listener for the "tap", tries to fined the taped object in all application roots
      * and sets the found object as inspected.
      *
-     * @param e {qx.event.type.Mouse} the fired event.
+     * @param e {qx.event.type.Pointer} the fired event.
      */
-    __onClick : function(e) {
-      this.__catchClickLayer.hide();
+    __onTap : function(e) {
+      this.__catchTapLayer.hide();
 
       var xPosition = e.getDocumentLeft();
       var yPosition = e.getDocumentTop();
 
-      var clickedElement = this.__searchWidgetInAllRoots(xPosition, yPosition);
+      var tapedElement = this.__searchWidgetInAllRoots(xPosition, yPosition);
 
       // Hide highlighter and flush queue before next user interaction occurs.
       this.__highlighter.hide();
       qx.ui.core.queue.Manager.flush();
 
-      this.__model.setInspected(clickedElement);
+      this.__model.setInspected(tapedElement);
     },
 
     /**
-     * Listener for the "mousemove", tries to fined the object below the mouse pointer
+     * Listener for the "pointermove", tries to fined the object below the pointer pointer
      * and highlights the found object.
      *
-     * @param e {qx.event.type.Mouse} the fired event.
+     * @param e {qx.event.type.Pointer} the fired event.
      */
-    __onMouseMove : function(e) {
+    __onPointerMove : function(e) {
       var xPosition = e.getDocumentLeft();
       var yPosition = e.getDocumentTop();
 
@@ -402,7 +424,7 @@ qx.Class.define("inspector.components.Selector",
 
         var domElement = null;
         if (this.__isWidget(childWidget)) {
-          domElement = childWidget.getContainerElement().getDomElement();
+          domElement = childWidget.getContentElement().getDomElement();
         } else if (this.__isMobileWidget(childWidget)) {
           domElement = childWidget.getContainerElement();
         } else if (this.__isQxHtmlElement(childWidget)) {
@@ -414,7 +436,7 @@ qx.Class.define("inspector.components.Selector",
         var coordinates = this.__getCoordinates(domElement);
 
         if (coordinates != null) {
-          // if the element is under the mouse position
+          // if the element is under the pointer position
           if (coordinates.right >= x && coordinates.left <= x &&
               coordinates.bottom >= y && coordinates.top <= y) {
             returnWidget = this.__searchWidget(childWidget, x, y);
@@ -451,16 +473,18 @@ qx.Class.define("inspector.components.Selector",
     __highlight: function(object) {
       if (this.__isMobileApp) {
         this.__highlighter.hide();
-        object.addCssClass(this.self(arguments).HIGHLIGHTER_CLASS);
+        if(typeof object.addCssClass == "function") {
+          object.addCssClass(this.self(arguments).HIGHLIGHTER_CLASS);
+        }
         return;
       }
-      
+
       // Flush queue before compute size
       qx.ui.core.queue.Manager.flush();
 
       var element = null;
       if (this.__isWidget(object) && !this.__isRootElement(object)) {
-        element = object.getContainerElement().getDomElement();
+        element = object.getContentElement().getDomElement();
       } else if (this.__isMobileWidget(object)) {
         element = object.getContainerElement();
       } else if (this.__isQxHtmlElement(object)) {
@@ -497,7 +521,7 @@ qx.Class.define("inspector.components.Selector",
      * Helper method to check if the passed object is a root element.
      *
      * @param object {qx.core.Object} object to check.
-     * @return <code>true</code> if root element, <code>false</code> otherwise.
+     * @return {Boolean} <code>true</code> if root element, <code>false</code> otherwise.
      */
     __isRootElement : function (object)
     {
@@ -514,7 +538,7 @@ qx.Class.define("inspector.components.Selector",
      * Helper method to check if the passed object is a widget.
      *
      * @param object {qx.core.Object} object to check.
-     * @return <code>true</code> if widget, <code>false</code> otherwise.
+     * @return {Boolean} <code>true</code> if widget, <code>false</code> otherwise.
      */
     __isWidget : function (object)
     {
@@ -531,7 +555,7 @@ qx.Class.define("inspector.components.Selector",
      * Helper method to check if the passed object is a mobile widget.
      *
      * @param object {qx.core.Object} object to check.
-     * @return <code>true</code> if widget, <code>false</code> otherwise.
+     * @return {Boolean} <code>true</code> if widget, <code>false</code> otherwise.
      */
     __isMobileWidget : function(object)
     {
@@ -548,7 +572,7 @@ qx.Class.define("inspector.components.Selector",
      * Helper method to check if the passed object is a <code>qx.html.Element</code>.
      *
      * @param object {qx.core.Object} object to check.
-     * @return <code>true</code> if <code>qx.html.Element</code>, <code>false</code> otherwise.
+     * @return {Boolean} <code>true</code> if <code>qx.html.Element</code>, <code>false</code> otherwise.
      */
     __isQxHtmlElement : function (object)
     {
@@ -562,15 +586,15 @@ qx.Class.define("inspector.components.Selector",
     },
 
     /**
-     * Helper methide to update the "CatchClickLayer" size.
+     * Helper methide to update the "catchTapLayer" size.
      *
      * @param e {qx.event.type.Data} the resize event.
      */
-    __updateCatchClickLayer : function(e)
+    __updateCatchTapLayer : function(e)
     {
       var win = this.__applicationWindow;
 
-      if (win != null && this.__catchClickLayer != null
+      if (win != null && this.__catchTapLayer != null
           && this.__highlighter != null)
       {
         this.__highlighter.hide();
@@ -580,13 +604,13 @@ qx.Class.define("inspector.components.Selector",
         qx.ui.core.queue.Manager.flush();
         qx.event.Timer.once(function()
         {
-          if (this.__catchClickLayer.setHeight) {
-            this.__catchClickLayer.setHeight(qx.bom.Document.getHeight(win));
-            this.__catchClickLayer.setWidth(qx.bom.Document.getWidth(win));
+          if (this.__catchTapLayer.setHeight) {
+            this.__catchTapLayer.setHeight(qx.bom.Document.getHeight(win));
+            this.__catchTapLayer.setWidth(qx.bom.Document.getWidth(win));
           }
-          else if (this.__catchClickLayer._getContentElement) {
-            this.__catchClickLayer._getContentElement().style.height = qx.bom.Document.getHeight(win) + "px";
-            this.__catchClickLayer._getContentElement().style.width = qx.bom.Document.getWidth(win) + "px";
+          else if (this.__catchTapLayer._getContentElement) {
+            this.__catchTapLayer._getContentElement().style.height = qx.bom.Document.getHeight(win) + "px";
+            this.__catchTapLayer._getContentElement().style.width = qx.bom.Document.getWidth(win) + "px";
           }
 
           // Flush queue before next user interaction occurs.
@@ -599,6 +623,6 @@ qx.Class.define("inspector.components.Selector",
   destruct : function()
   {
     this.__model = this.__applicationWindow = null;
-    this._disposeObjects("__catchClickLayer", "__highlighter", "__timerHighlighter");
+    this._disposeObjects("__catchTapLayer", "__highlighter", "__timerHighlighter");
   }
 });

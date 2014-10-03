@@ -20,15 +20,12 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.event.handler.UserAction)
-
-************************************************************************ */
-
 /**
  * This class provides an unified mouse event handler for Internet Explorer,
  * Firefox, Opera and Safari
+ *
+ * @require(qx.event.handler.UserAction)
+ * @ignore(qx.event.handler.DragDrop)
  */
 qx.Class.define("qx.event.handler.Mouse",
 {
@@ -75,10 +72,10 @@ qx.Class.define("qx.event.handler.Mouse",
 
   statics :
   {
-    /** {Integer} Priority of this handler */
+    /** @type {Integer} Priority of this handler */
     PRIORITY : qx.event.Registration.PRIORITY_NORMAL,
 
-    /** {Map} Supported event types */
+    /** @type {Map} Supported event types */
     SUPPORTED_TYPES :
     {
       mousemove : 1,
@@ -92,10 +89,10 @@ qx.Class.define("qx.event.handler.Mouse",
       mousewheel : 1
     },
 
-    /** {Integer} Which target check to use */
+    /** @type {Integer} Which target check to use */
     TARGET_CHECK : qx.event.IEventHandler.TARGET_DOMNODE + qx.event.IEventHandler.TARGET_DOCUMENT + qx.event.IEventHandler.TARGET_WINDOW,
 
-    /** {Integer} Whether the method "canHandleEvent" must be called */
+    /** @type {Integer} Whether the method "canHandleEvent" must be called */
     IGNORE_CAN_HANDLE : true
   },
 
@@ -119,7 +116,7 @@ qx.Class.define("qx.event.handler.Mouse",
     __manager : null,
     __window : null,
     __root : null,
-
+    __preventNextClick: null,
 
 
 
@@ -140,15 +137,15 @@ qx.Class.define("qx.event.handler.Mouse",
     // listener once.
     registerEvent : qx.core.Environment.get("os.name") === "ios" ?
       function(target, type, capture) {
-        target["on" + type] = qx.lang.Function.returnNull;
-      } : qx.lang.Function.returnNull,
+        target["on" + type] = (function() {return null;});
+      } : (function() {return null;}),
 
 
     // interface implementation
     unregisterEvent : qx.core.Environment.get("os.name") === "ios" ?
       function(target, type, capture) {
         target["on" + type] = undefined;
-      } : qx.lang.Function.returnNull,
+      } : (function() {return null;}),
 
 
 
@@ -192,30 +189,12 @@ qx.Class.define("qx.event.handler.Mouse",
 
 
     /**
-     * Internal target for checking the target and mouse type for mouse
-     * scrolling on a feature detection base.
-     *
-     * @return {Map} A map containing two keys, target and type.
+     * Helper to prevent the next click.
+     * @internal
      */
-    __getMouseWheelTarget: function(){
-      // Fix for bug #3234
-      var targets = [this.__window, this.__root, this.__root.body];
-      var target = this.__window;
-      var type = "DOMMouseScroll";
-
-      for (var i = 0; i < targets.length; i++) {
-        if (qx.bom.Event.supportsEvent(targets[i], "mousewheel")) {
-          type = "mousewheel";
-          target = targets[i];
-          break;
-        }
-      };
-
-      return {type: type, target: target};
+    preventNextClick : function() {
+      this.__preventNextClick = true;
     },
-
-
-
 
 
 
@@ -229,7 +208,6 @@ qx.Class.define("qx.event.handler.Mouse",
      * Initializes the native mouse button event listeners.
      *
      * @signature function()
-     * @return {void}
      */
     _initButtonObserver : function()
     {
@@ -249,7 +227,6 @@ qx.Class.define("qx.event.handler.Mouse",
      * Initializes the native mouse move event listeners.
      *
      * @signature function()
-     * @return {void}
      */
     _initMoveObserver : function()
     {
@@ -267,12 +244,11 @@ qx.Class.define("qx.event.handler.Mouse",
      * Initializes the native mouse wheel event listeners.
      *
      * @signature function()
-     * @return {void}
      */
     _initWheelObserver : function()
     {
       this.__onWheelEventWrapper = qx.lang.Function.listener(this._onWheelEvent, this);
-      var data = this.__getMouseWheelTarget();
+      var data = qx.bom.client.Event.getMouseWheel(this.__window);
       qx.bom.Event.addNativeListener(
         data.target, data.type, this.__onWheelEventWrapper
       );
@@ -293,7 +269,6 @@ qx.Class.define("qx.event.handler.Mouse",
      * Disconnects the native mouse button event listeners.
      *
      * @signature function()
-     * @return {void}
      */
     _stopButtonObserver : function()
     {
@@ -311,7 +286,6 @@ qx.Class.define("qx.event.handler.Mouse",
      * Disconnects the native mouse move event listeners.
      *
      * @signature function()
-     * @return {void}
      */
     _stopMoveObserver : function()
     {
@@ -327,11 +301,10 @@ qx.Class.define("qx.event.handler.Mouse",
      * Disconnects the native mouse wheel event listeners.
      *
      * @signature function()
-     * @return {void}
      */
     _stopWheelObserver : function()
     {
-      var data = this.__getMouseWheelTarget();
+      var data = qx.bom.client.Event.getMouseWheel(this.__window);
       qx.bom.Event.removeNativeListener(
         data.target, data.type, this.__onWheelEventWrapper
       );
@@ -372,6 +345,11 @@ qx.Class.define("qx.event.handler.Mouse",
       var type = domEvent.type;
       var target = qx.bom.Event.getTarget(domEvent);
 
+      if (type == "click" && this.__preventNextClick) {
+        delete this.__preventNextClick;
+        return;
+      }
+
       // Safari (and maybe gecko) takes text nodes as targets for events
       // See: http://www.quirksmode.org/js/events_properties.html
       if (
@@ -383,8 +361,11 @@ qx.Class.define("qx.event.handler.Mouse",
         }
       }
 
-      if (this.__rightClickFixPre) {
-        this.__rightClickFixPre(domEvent, type, target);
+      // prevent click events on drop during Drag&Drop [BUG #6846]
+      var isDrag = qx.event.handler.DragDrop &&
+        this.__manager.getHandler(qx.event.handler.DragDrop).isSessionActive();
+      if (isDrag && type == "click") {
+        return;
       }
 
       if (this.__doubleClickFixPre) {
@@ -397,7 +378,7 @@ qx.Class.define("qx.event.handler.Mouse",
         this.__rightClickFixPost(domEvent, type, target);
       }
 
-      if (this.__differentTargetClickFixPost) {
+      if (this.__differentTargetClickFixPost && !isDrag) {
         this.__differentTargetClickFixPost(domEvent, type, target);
       }
 
@@ -427,36 +408,6 @@ qx.Class.define("qx.event.handler.Mouse",
     ---------------------------------------------------------------------------
     */
 
-    /**
-     * Normalizes the click sequence of right click events in Webkit and Opera.
-     * The normalized sequence is:
-     *
-     *  1. mousedown  <- not fired by Webkit
-     *  2. mouseup  <- not fired by Webkit
-     *  3. contextmenu <- not fired by Opera
-     *
-     * @param domEvent {Event} original DOM event
-     * @param type {String} event type
-     * @param target {Element} event target of the DOM event.
-     *
-     * @signature function(domEvent, type, target)
-     */
-    __rightClickFixPre : qx.core.Environment.select("engine.name",
-    {
-      "webkit" : function(domEvent, type, target)
-      {
-        // The webkit bug has been fixed in Safari 4
-        if (parseFloat(qx.core.Environment.get("engine.version")) < 530)
-        {
-          if (type == "contextmenu") {
-            this.__fireEvent(domEvent, "mouseup", target);
-          }
-        }
-      },
-
-      "default" : null
-    }),
-
 
     /**
      * Normalizes the click sequence of right click events in Webkit and Opera.
@@ -465,9 +416,6 @@ qx.Class.define("qx.event.handler.Mouse",
      *  1. mousedown  <- not fired by Webkit
      *  2. mouseup  <- not fired by Webkit
      *  3. contextmenu <- not fired by Opera
-     *
-     * TODO: Just curious. Where is the webkit version? is the
-     * documentation up-to-date?
      *
      * @param domEvent {Event} original DOM event
      * @param type {String} event type
@@ -559,7 +507,9 @@ qx.Class.define("qx.event.handler.Mouse",
             if (target !== this.__lastMouseDownTarget)
             {
               var commonParent = qx.dom.Hierarchy.getCommonParent(target, this.__lastMouseDownTarget);
-              this.__fireEvent(domEvent, "click", commonParent);
+              if (commonParent) {
+                this.__fireEvent(domEvent, "click", commonParent);
+              }
             }
         }
       }

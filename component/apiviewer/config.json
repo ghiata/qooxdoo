@@ -6,7 +6,7 @@
     {
       "path" : "${ROOT}/api.json",
       "as"   : "apicnf"
-    }, 
+    },
 
     {
       "path" : "${ROOT}/image.json"
@@ -14,13 +14,13 @@
 
     {
       "path"   : "${QOOXDOO_PATH}/tool/data/config/application.json",
-      
+
       // select everything except 'source' and 'build' which are defined locally
-      "block" : 
-      [ 
+      "block" :
+      [
         "common",
-        "source", 
-        "source-script", 
+        "source",
+        "source-script",
         "build",
         "build-script",
         "build-files",
@@ -28,10 +28,32 @@
       ]
     }
   ],
-  
+
+  "export" :
+    [
+      "api",
+      "api-data",
+      "build",
+      "clean",
+      "distclean",
+      "fix",
+      "info",
+      "inspector",
+      "lint",
+      "migration",
+      "pretty",
+      "profiling",
+      "source",
+      "source-all",
+      "source-hybrid",
+      "translation",
+      "validate-config",
+      "validate-manifest"
+    ],
+
   "default-job" : "source",
 
-  "let" : 
+  "let" :
   {
     "APPLICATION"  : "apiviewer",
     "QOOXDOO_PATH" : "../..",
@@ -40,8 +62,20 @@
     "TEST_INCLUDE" : "${APPLICATION}.*"
   },
 
+  "config-warnings" :
+  {
+    "job-shadowing" : [
+      "translation",
+      "libraries"
+    ]
+  },
+
   "jobs" :
   {
+    "libraries" : {
+      "extend" : [ "apicnf::libraries" ]  
+    },
+
     "source" :
     {
       "extend" : [ "apicnf::source" ],
@@ -52,14 +86,26 @@
       }
     },
 
-    "build" : 
+    "build" :
     {
       "extend" : [ "apicnf::build" ],
 
       "let" :
       {
         "API_INCLUDE"  : ["${APPLICATION}.*"]
+      },
+
+      "api" :
+      {
+        "warnings" : {
+          "=output": [ "data" ]
+        }
       }
+    }
+
+    ,"translation" :
+    {
+      "translate" : { "poentry-with-occurrences" : false  }
     }
   }
 }

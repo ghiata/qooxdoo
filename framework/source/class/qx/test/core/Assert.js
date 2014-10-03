@@ -128,6 +128,32 @@ qx.Class.define("qx.test.core.Assert",
         qx.core.Assert.assertElement(window);
       }, qx.core.AssertionError, null, "4");
 
+    },
+
+    testAssertArgumentsCount : function() {
+      this.assertException(function() {
+        var f = function(a, b) {
+          qx.core.Assert.assertArgumentsCount(arguments, 2, 2);
+        }
+        f("1", "2", "3", "4", "5");
+      }, qx.core.AssertionError, /but found '5' arguments\./g);
+    },
+
+
+    testAssertEventFired : function()
+    {
+      //  assertEventFired : function(obj, event, invokeFunc, listenerFunc, msg)
+      var obj = new qx.core.Object();
+
+      this.assertEventFired(obj, "xyz", function() {
+        this.fireEvent("xyz");
+      });
+
+      this.assertException(function() {
+        qx.core.Assert.assertEventFired(obj, "xyz", function() {
+          this.fireEvent("xyz1");
+        });
+      }, qx.core.AssertionError);
     }
   }
 });

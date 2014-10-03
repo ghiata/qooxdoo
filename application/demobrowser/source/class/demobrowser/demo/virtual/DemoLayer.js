@@ -20,9 +20,12 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/16/places/*)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/icon/${qx.icontheme}/16/places/*)
+ */
 
 qx.Class.define("demobrowser.demo.virtual.DemoLayer",
 {
@@ -75,7 +78,7 @@ qx.Class.define("demobrowser.demo.virtual.DemoLayer",
         widget = this._pool.atom.pop();
         if (!widget) {
           widget = new qx.ui.basic.Atom();
-          widget.addListener("mouseover", function()
+          widget.addListener("pointerover", function()
           {
             var icon = this.__getIcon();
             widget.setIcon(icon);

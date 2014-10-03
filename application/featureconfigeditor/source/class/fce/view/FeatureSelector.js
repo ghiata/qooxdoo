@@ -18,17 +18,18 @@
 ************************************************************************ */
 
 /* ************************************************************************
-#asset(qx/icon/Tango/16/actions/edit-find.png)
-#asset(qx/icon/Tango/16/actions/window-new.png)
-#asset(qx/icon/Tango/16/actions/go-next.png)
-#asset(qx/icon/Tango/16/actions/go-previous.png)
-#asset(qx/icon/Tango/16/actions/view-restore.png)
 ************************************************************************ */
 
 /**
  * Visualizes one or more feature sets. Individual features can be added to a
  * list where their values can be edited. The selected features are displayed in
  * JSON-serialized form so they can be copied into an application config file.
+ *
+ * @asset(qx/icon/Tango/16/actions/edit-find.png)
+ * @asset(qx/icon/Tango/16/actions/window-new.png)
+ * @asset(qx/icon/Tango/16/actions/go-next.png)
+ * @asset(qx/icon/Tango/16/actions/go-previous.png)
+ * @asset(qx/icon/Tango/16/actions/view-restore.png)
  */
 qx.Class.define("fce.view.FeatureSelector", {
 
@@ -108,6 +109,7 @@ qx.Class.define("fce.view.FeatureSelector", {
     __setsMenu : null,
     __setsMenuEntries : null,
     __stash : null,
+    __modifiedData : null,
 
 
     _createChildControlImpl : function(id, hash)
@@ -115,10 +117,12 @@ qx.Class.define("fce.view.FeatureSelector", {
       var control;
       switch(id) {
         case "table":
+          fce.view.Table.DEFAULT_COLUMNS_PRE = ["name", "detected"];
+          fce.view.Table.DEFAULT_COLUMNS_POST = ["distinctValues"];
           control = new fce.view.Table();
           control.setMinWidth(330);
           this.bind("filter", control, "filter");
-          control.addListener("cellDblclick", this.__onTableDoubleClick, this);
+          control.addListener("cellDbltap", this.__onTableDoubleTap, this);
           qx.data.SingleValueBinding.bind(control, "sourceProperty", this.getChildControl("list"), "modelValueProperty");
           break;
         case "list":
@@ -257,12 +261,24 @@ qx.Class.define("fce.view.FeatureSelector", {
       if (!this.__importWindow) {
         this.__importWindow = new fce.view.ImportWindow();
         this.__importWindow.center();
-        this.__importWindow.addListener("changeFeatureMap", function (ev) {
-          var data = ev.getData();
-          this.addFeatureSet(data);
-        }, this);
+        this.__importWindow.addListener("changeFeatureMap", this.__importFeatureSet, this);
       }
       return this.__importWindow;
+    },
+
+
+    /**
+     * Adds imported feature set data
+     *
+     * @param ev {qx.event.type.Data} Event that holds the imported data
+     */
+    __importFeatureSet : function (ev) {
+      var data = ev.getData();
+      this._saveModifiedData();
+      this.__filterTextField.setValue("");
+      this.getChildControl("list").removeAll();
+      this.addFeatureSet(data);
+      this._restoreModifiedData();
     },
 
 
@@ -295,16 +311,27 @@ qx.Class.define("fce.view.FeatureSelector", {
         var item = {
           name : keyName,
           distinctValues : 1
-        }
+        };
 
         var distinctValues = [];
 
-        for (var setId in dataMap) {
+        for (setId in dataMap) {
           var setData = dataMap[setId];
           if (setData[keyName] !== undefined) {
             item[setId] = setData[keyName];
-            if (!qx.lang.Array.contains(distinctValues, setData[keyName])) {
+
+            if (distinctValues.length == 0) {
               distinctValues.push(setData[keyName]);
+            }
+            else {
+              var temp = distinctValues.concat();
+              for (var x=0, y=temp.length; x<y; x++) {
+                if (!fce.Util.valuesEqual(setData[keyName], temp[x])) {
+                  if (!qx.lang.Array.contains(temp, setData[keyName])) {
+                    distinctValues.push(setData[keyName]);
+                  }
+                }
+              }
             }
           }
         }
@@ -312,6 +339,67 @@ qx.Class.define("fce.view.FeatureSelector", {
         data.push(item);
       }
       return data;
+    },
+
+
+    /**
+     * Saves user-modified data so it can be re-applied after the model has changed
+     */
+    _saveModifiedData : function()
+    {
+      this.__modifiedData = [];
+      var list = this.getChildControl("list");
+      var listItems = list.getChildren();
+      for (var i=0,l=listItems.length; i<l; i++) {
+        var listItem = listItems[i];
+        var modelItem = listItem.getModelItem();
+        var key = modelItem.getName();
+        var valueProp = listItem.getValueProperty();
+        var value = modelItem.get(valueProp);
+        var entry = {
+          key : key,
+          value : value,
+          valueProp : valueProp
+        };
+        this.__modifiedData.push(entry);
+      }
+    },
+
+
+    /**
+     * Restores user modifications to a (new) model
+     */
+    _restoreModifiedData : function()
+    {
+      for (var i=0,l=this.__modifiedData.length; i<l; i++) {
+        var entry = this.__modifiedData[i];
+        var modelItem = this.__getModelItemByPropertyValue("name", entry.key);
+        if (modelItem) {
+          modelItem.set(entry.valueProp, entry.value);
+          this.getChildControl("list").addItemsUnique(new qx.data.Array([modelItem]));
+        }
+      }
+    },
+
+
+    /**
+     * Finds the first item in the model where the given property has the given
+     * value
+     *
+     * @param property {String} Name of the property
+     * @param value {var} Value to search for
+     * @return {Object|null} Matching model item
+     */
+    __getModelItemByPropertyValue : function(property, value)
+    {
+      var model = this.getModel();
+      for (var i=0,l=model.length; i<l; i++) {
+        var item = model.getItem(i);
+        if (item.get(property) === value) {
+          return item;
+        }
+      }
+      return null;
     },
 
 
@@ -338,9 +426,10 @@ qx.Class.define("fce.view.FeatureSelector", {
     {
       if (value) {
         var data = this._getData(value);
+        this.__serializeNonPrimitiveValues(data);
         var model = qx.data.marshal.Json.createModel(data, true);
         this.setModel(model);
-        //this._getSetsMenu(qx.lang.Object.getKeys(value));
+        //this._getSetsMenu(Object.keys(value));
       }
     },
 
@@ -357,6 +446,26 @@ qx.Class.define("fce.view.FeatureSelector", {
 
 
     /**
+     * Serialize non-primitive values so they can be displayed and edited
+     *
+     * @param data {Array} Environment data
+     */
+    __serializeNonPrimitiveValues : function(data)
+    {
+      fce.Util.fixUnserializable(data);
+      for (var i=0,l=data.length; i<l; i++) {
+        var entry = data[i];
+        for (var key in entry) {
+          var type = typeof entry[key];
+          if (!(type == "boolean" || type == "number" || type == "string")) {
+            entry[key] = qx.lang.Json.stringify(entry[key]);
+          }
+        }
+      }
+    },
+
+
+    /**
      * Displays the selected data
      */
     __onSelectionChange : function()
@@ -364,17 +473,17 @@ qx.Class.define("fce.view.FeatureSelector", {
       var valueProperty = this.getChildControl("list").getModelValueProperty();
       var data = this.__itemsToMap(this.getChildControl("list").getSelectedItems(),
         valueProperty);
-      var json = this._getJson(data);
+      var json = fce.Util.getFormattedJson(data);
       this.getChildControl("jsonField").setValue(json);
     },
 
 
     /**
-     * Adds a double-clicked table row's item to the list
+     * Adds a double-taped table row's item to the list
      *
      * @param ev {qx.ui.table.pane.CellEvent} cell event
      */
-    __onTableDoubleClick : function(ev)
+    __onTableDoubleTap : function(ev)
     {
       var table = this.getChildControl("table");
       var tableModel = table.getTableModel();
@@ -399,22 +508,18 @@ qx.Class.define("fce.view.FeatureSelector", {
       var data = {};
       for (var i=0,l=items.length; i<l; i++) {
         var item = items.getItem(i);
+
+        if (!qx.Class.hasProperty(item.constructor, valueProperty)) {
+          for (var prop in qx.util.PropertyUtil.getAllProperties(item.constructor)) {
+            if (prop !== "name" && prop !== "distinctValues") {
+              valueProperty = prop;
+              break;
+            }
+          }
+        }
         data[item.getName()] = item.get(valueProperty);
       }
       return data;
-    },
-
-
-    /**
-     * Stringifies a map and does a little pretty-printing.
-     *
-     * @param data {Map} Map to be serialized
-     * @return {String} Formatted JSON representation of the data
-     */
-    _getJson : function(data)
-    {
-      var json = qx.lang.Json.stringify(data);
-      return json.replace(/{/, "{\n  ").replace(/}/, "\n}").replace(/,/g, ",\n  ");
     },
 
 

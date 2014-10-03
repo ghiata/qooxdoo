@@ -81,11 +81,7 @@ qx.Class.define("qx.bom.Flash",
      * The dimension of the movie should define through CSS styles {@link qx.bom.element.Style}
      *
      * It is possible to add these parameters as supported by Flash movies:
-     * http://kb.adobe.com/selfservice/viewContent.do?externalId=tn_12701
-     *
-     * @TODO: don't use the seperate argument "variables" to set flashvars, this belongs
-     *        to the "params" argument.
-     * @TODO: remove deprication warning after next major version was build
+     * http://helpx.adobe.com/flash/kb/flash-object-embed-tag-attributes.html
      *
      * @param element {Element} Parent DOM element node to add flash movie
      * @param attributes {Map} attributes for the object tag like id or mayscript
@@ -157,7 +153,7 @@ qx.Class.define("qx.bom.Flash",
      *
      * Note: Removing the flash object like this:
      * <pre>
-     *  var div = qx.bom.Element.create("div");
+     *  var div = qx.dom.Element.create("div");
      *  document.body.appendChild(div);
      *
      *  var flashObject = qx.bom.Flash.create(div, { movie : "Flash.swf", id : "id" });
@@ -167,14 +163,13 @@ qx.Class.define("qx.bom.Flash",
      *
      * @param element {Element} Either the DOM element that contains
      *              the flash object or the flash object itself.
-     * @param win? {Window} Window that the element, which is to be destroyed,
+     * @param win {Window?} Window that the element, which is to be destroyed,
                     belongs to.
-     * @return {void}
      * @signature function(element, win)
      */
-    destroy : qx.core.Environment.select("engine.name",
-    {
-      "mshtml" : function(element, win)
+    destroy : function(element, win) {
+      if (qx.core.Environment.get("engine.name") == "mshtml" &&
+        qx.core.Environment.get("browser.documentmode") < 11)
       {
         element = this.__getFlashObject(element);
 
@@ -191,9 +186,7 @@ qx.Class.define("qx.bom.Flash",
             qx.bom.Flash.__destroyObjectInIE(element);
           });
         }
-      },
-
-      "default" : function(element, win) {
+      } else {
         element = this.__getFlashObject(element);
 
         if (element.parentNode) {
@@ -202,13 +195,14 @@ qx.Class.define("qx.bom.Flash",
 
         delete this._flashObjects[element.id];
       }
-    }),
+    },
+
 
     /**
      * Return the flash object element from DOM node.
      *
      * @param element {Element} The element to look.
-     * @return {void}
+     * @return {Element} Flash object element
      */
     __getFlashObject : function(element)
     {
@@ -282,9 +276,9 @@ qx.Class.define("qx.bom.Flash",
      * @param win {Window} Window to create the element for.
      * @signature function(element, attributes, params, win)
      */
-    __createSwf : qx.core.Environment.select("engine.name",
-    {
-      "mshtml" : function(element, attributes, params, win)
+    __createSwf : function(element, attributes, params, win) {
+      if (qx.core.Environment.get("engine.name") == "mshtml" &&
+        qx.core.Environment.get("browser.documentmode") < 11)
       {
         // Move data from params to attributes
         params.movie = attributes.data;
@@ -295,51 +289,55 @@ qx.Class.define("qx.bom.Flash",
 
         // Prepare parameters
         var paramsStr = "";
-        for (name in params) {
+        for (var name in params) {
           paramsStr += '<param name="' + name + '" value="' + params[name] + '" />';
         }
 
         // Create element, but set attribute "id" first and not later.
         if (attributes.id)
         {
-          element.innerHTML = '<object id="' + attributes.id + '" classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000">' + paramsStr + '</object>';
+          element.innerHTML = '<object id="' + attributes.id +
+            '" classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" $$widget="' + attributes.$$widget + '">' +
+            paramsStr + '</object>';
           delete attributes.id;
         } else {
-          element.innerHTML = '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000">' + paramsStr + '</object>';
+          element.innerHTML = '<object classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" $$widget="' +
+            attributes.$$widget + '">' + paramsStr + '</object>';
         }
 
         // Apply attributes
         for (var name in attributes) {
-          element.firstChild.setAttribute(name, attributes[name]);
+          // IE doesn't like dollar signs in attribute names.
+          // Setting the attribute using innerHTML above works fine, though...
+          if (name != "$$widget") {
+            element.firstChild.setAttribute(name, attributes[name]);
+          }
         }
 
         return element.firstChild;
-      },
-
-      "default" : function(element, attributes, params, win)
-      {
-        // Cleanup
-        delete attributes.classid;
-        delete params.movie;
-
-        var swf = qx.bom.Element.create("object", attributes, win);
-        swf.setAttribute("type", "application/x-shockwave-flash");
-
-        // Add parameters
-        var param;
-        for (var name in params)
-        {
-          param = qx.bom.Element.create("param", {}, win);
-          param.setAttribute("name", name);
-          param.setAttribute("value", params[name]);
-          swf.appendChild(param);
-        }
-
-        element.appendChild(swf);
-
-        return swf;
       }
-    })
+
+      // Cleanup
+      delete attributes.classid;
+      delete params.movie;
+
+      var swf = qx.dom.Element.create("object", attributes, win);
+      swf.setAttribute("type", "application/x-shockwave-flash");
+
+      // Add parameters
+      var param;
+      for (var name in params)
+      {
+        param = qx.dom.Element.create("param", {}, win);
+        param.setAttribute("name", name);
+        param.setAttribute("value", params[name]);
+        swf.appendChild(param);
+      }
+
+      element.appendChild(swf);
+
+      return swf;
+    }
   },
 
   /*
@@ -350,7 +348,7 @@ qx.Class.define("qx.bom.Flash",
 
   defer : function(statics)
   {
-    if ((qx.core.Environment.get("engine.name") == "mshtml")) {
+    if (qx.core.Environment.get("engine.name") == "mshtml") {
       qx.bom.Event.addNativeListener(window, "beforeunload", statics.__fixOutOfMemoryError);
     }
   }

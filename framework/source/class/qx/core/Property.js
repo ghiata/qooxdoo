@@ -19,18 +19,12 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#ignore(qx.Interface)
-
-************************************************************************ */
-
 /**
  * Internal class for handling of dynamic properties. Should only be used
  * through the methods provided by {@link qx.Class}.
  *
  * For a complete documentation of properties take a look at
- * http://manual.qooxdoo.org/1.4/pages/core.html#properties.
+ * http://manual.qooxdoo.org/${qxversion}/pages/core.html#properties.
  *
  *
  * *Normal properties*
@@ -108,7 +102,7 @@
  *     If a string is given, the string should hold a reference to a member
  *     method.<br>
  *     <code>"<i>methodname</i>"</code> for example
- *     <code>"this.__validateProperty"</code><br>
+ *     <code>"__validateProperty"</code><br>
  *     There are some default validators in the {@link qx.util.Validate} class.
  *     See this documentation for usage examples.
  *   </td></tr>
@@ -144,13 +138,14 @@
  * </table>
  *
  * @internal
+ * @ignore(qx.Interface)
  */
 qx.Bootstrap.define("qx.core.Property",
 {
   statics :
   {
     /**
-     * This is a method which does nothing than gethering dependencies for the 
+     * This is a method which does nothing than gathering dependencies for the
      * module system. Calling this method is useless because it does nothing.
      */
     __gatherDependency : function() {
@@ -302,7 +297,7 @@ qx.Bootstrap.define("qx.core.Property",
     /**
      * Generate optimized refresh method and  attach it to the class' prototype
      *
-     * @param clazz {Clazz} clazz to which the refresher should be added
+     * @param clazz {Class} clazz to which the refresher should be added
      */
     __executeOptimizedRefresh : function(clazz)
     {
@@ -321,7 +316,7 @@ qx.Bootstrap.define("qx.core.Property",
     /**
      * Get the names of all inheritable properties of the given class
      *
-     * @param clazz {Clazz} class to get the inheritable properties of
+     * @param clazz {Class} class to get the inheritable properties of
      * @return {String[]} List of property names
      */
     __getInheritablesOfClass : function(clazz)
@@ -356,6 +351,7 @@ qx.Bootstrap.define("qx.core.Property",
      * Assemble the refresher code and return the generated function
      *
      * @param inheritables {String[]} list of inheritable properties
+     * @return {Function} refresher function
      */
     __createRefresher : function(inheritables)
     {
@@ -385,7 +381,7 @@ qx.Bootstrap.define("qx.core.Property",
     /**
      * Attach $$refreshInheritables method stub to the given class
      *
-     * @param clazz {Clazz} clazz to which the refresher should be added
+     * @param clazz {Class} clazz to which the refresher should be added
      */
     attachRefreshInheritables : function(clazz)
     {
@@ -403,7 +399,6 @@ qx.Bootstrap.define("qx.core.Property",
      * @param clazz {Class} Class to attach properties to
      * @param name {String} Name of property
      * @param config {Map} Configuration map of property
-     * @return {void}
      */
     attachMethods : function(clazz, name, config)
     {
@@ -420,7 +415,6 @@ qx.Bootstrap.define("qx.core.Property",
      * @param clazz {Class} Class to attach properties to
      * @param config {Map} Property configuration
      * @param name {String} Name of the property
-     * @return {void}
      */
     __attachGroupMethods : function(clazz, config, name)
     {
@@ -430,7 +424,7 @@ qx.Bootstrap.define("qx.core.Property",
 
       if (qx.core.Environment.get("qx.debug"))
       {
-        if (qx.core.Environment.get("qx.propertyDebugLevel") > 1) {
+        if (qx.core.Environment.get("qx.debug.property.level") > 1) {
           qx.Bootstrap.debug("Generating property group: " + name);
         }
       }
@@ -515,7 +509,6 @@ qx.Bootstrap.define("qx.core.Property",
      * @param clazz {Class} Class to attach properties to
      * @param config {Map} Property configuration
      * @param name {String} Name of the property
-     * @return {void}
      */
     __attachPropertyMethods : function(clazz, config, name)
     {
@@ -524,7 +517,7 @@ qx.Bootstrap.define("qx.core.Property",
 
       if (qx.core.Environment.get("qx.debug"))
       {
-        if (qx.core.Environment.get("qx.propertyDebugLevel") > 1) {
+        if (qx.core.Environment.get("qx.debug.property.level") > 1) {
           qx.Bootstrap.debug("Generating property wrappers: " + name);
         }
       }
@@ -565,6 +558,9 @@ qx.Bootstrap.define("qx.core.Property",
         members[method.init[name]] = function(value) {
           return qx.core.Property.executeOptimizedSetter(this, clazz, name, "init", arguments);
         }
+        if (qx.core.Environment.get("qx.debug")) {
+          members[method.init[name]].$$propertyMethod = true;
+        }
       }
 
       if (config.inheritable)
@@ -572,6 +568,9 @@ qx.Bootstrap.define("qx.core.Property",
         method.refresh[name] = "refresh" + upname;
         members[method.refresh[name]] = function(value) {
           return qx.core.Property.executeOptimizedSetter(this, clazz, name, "refresh", arguments);
+        }
+        if (qx.core.Environment.get("qx.debug")) {
+          members[method.refresh[name]].$$propertyMethod = true;
         }
       }
 
@@ -596,12 +595,30 @@ qx.Bootstrap.define("qx.core.Property",
         members[method.resetThemed[name]] = function() {
           return qx.core.Property.executeOptimizedSetter(this, clazz, name, "resetThemed");
         }
+        if (qx.core.Environment.get("qx.debug")) {
+          members[method.setThemed[name]].$$propertyMethod = true;
+          members[method.resetThemed[name]].$$propertyMethod = true;
+        }
       }
 
       if (config.check === "Boolean")
       {
         members["toggle" + upname] = new Function("return this." + method.set[name] + "(!this." + method.get[name] + "())");
         members["is" + upname] = new Function("return this." + method.get[name] + "()");
+
+        if (qx.core.Environment.get("qx.debug")) {
+          members["toggle" + upname].$$propertyMethod = true;
+          members["is" + upname].$$propertyMethod = true;
+        }
+      }
+
+      // attach a flag to makr generated property methods
+      if (qx.core.Environment.get("qx.debug")) {
+        members[method.get[name]].$$propertyMethod = true;
+        members[method.set[name]].$$propertyMethod = true;
+        members[method.reset[name]].$$propertyMethod = true;
+        members[method.setRuntime[name]].$$propertyMethod = true;
+        members[method.resetRuntime[name]].$$propertyMethod = true;
       }
     },
 
@@ -618,25 +635,7 @@ qx.Bootstrap.define("qx.core.Property",
     },
 
 
-    /**
-     * Special function for IE6 and FF2 which returns if the reference for
-     * the given property check should be removed on dispose.
-     * As IE6 and FF2 seem to have bad garbage collection behaviors, we should
-     * additionally remove all references between qooxdoo objects and
-     * interfaces.
-     *
-     * @param check {var} The check of the property definition.
-     * @return {Boolean} If the dereference key should be set.
-     */
-    __shouldBeDereferencedOld : function(check)
-    {
-      return this.__dereference[check] ||
-      qx.Bootstrap.classIsDefined(check) ||
-      (qx.Interface && qx.Interface.isDefined(check));
-    },
-
-
-    /** {Map} Internal data field for error messages used by {@link #error} */
+    /** @type {Map} Internal data field for error messages used by {@link #error} */
     __errors :
     {
       0 : 'Could not change or apply init value after constructing phase!',
@@ -686,7 +685,7 @@ qx.Bootstrap.define("qx.core.Property",
       // Output generate code
       if (qx.core.Environment.get("qx.debug"))
       {
-        if (qx.core.Environment.get("qx.propertyDebugLevel") > 1) {
+        if (qx.core.Environment.get("qx.debug.property.level") > 1) {
           qx.Bootstrap.debug("Code[" + this.$$method[variant][name] + "]: " + code.join(""));
         }
 
@@ -853,7 +852,7 @@ qx.Bootstrap.define("qx.core.Property",
 
       if (hasCallback)
       {
-        this.__emitCallCallback(code, config, name);
+        this.__emitCallCallback(code, config, name, variant);
 
         // Refresh children
         // Requires the parent/children interface
@@ -1496,12 +1495,13 @@ qx.Bootstrap.define("qx.core.Property",
      * @param code {String[]} String array to append the code to
      * @param config {Object} The property configuration map
      * @param name {String} name of the property
+     * @param variant {String} variant of the method e.g. setThemed
      */
-    __emitCallCallback : function(code, config, name)
+    __emitCallCallback : function(code, config, name, variant)
     {
       // Execute user configured setter
       if (config.apply) {
-        code.push('this.', config.apply, '(computed, old, "', name, '");');
+        code.push('this.', config.apply, '(computed, old, "', name, '", "', variant, '");');
       }
 
       // Fire event
@@ -1526,25 +1526,6 @@ qx.Bootstrap.define("qx.core.Property",
       code.push('var a=this._getChildren();if(a)for(var i=0,l=a.length;i<l;i++){');
       code.push('if(a[i].', this.$$method.refresh[name], ')a[i].', this.$$method.refresh[name], '(backup);');
       code.push('}');
-    }
-  },
-
-
-
-  /*
-  *****************************************************************************
-     DEFER
-  *****************************************************************************
-  */
-
-  defer : function(statics)
-  {
-    var ie6 = navigator.userAgent.indexOf("MSIE 6.0") != -1;
-    var ff2 = navigator.userAgent.indexOf("rv:1.8.1") != -1;
-
-    // keep the old dereference behavior for IE6 and FF2
-    if (ie6 || ff2) {
-      statics.__shouldBeDereferenced = statics.__shouldBeDereferencedOld;
     }
   }
 });

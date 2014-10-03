@@ -8,8 +8,8 @@
     },
     {
       "path" : "${QOOXDOO_PATH}/tool/data/config/application.json",
-      "block"   : 
-      [ 
+      "block"   :
+      [
         "libraries",
         "common",
         "build",
@@ -19,9 +19,31 @@
       ]
     }
   ],
-  
+
+  "export" :
+    [
+      "api",
+      "api-data",
+      "build",
+      "clean",
+      "distclean",
+      "fix",
+      "info",
+      "inspector",
+      "lint",
+      "migration",
+      "pretty",
+      "profiling",
+      "source",
+      "source-all",
+      "source-hybrid",
+      "translation",
+      "validate-config",
+      "validate-manifest"
+    ],
+
   "default-job" : "source",
-  
+
   "let" :
   {
     "APPLICATION"  : "inspector",
@@ -32,12 +54,20 @@
     "LOCALES"      : [ "en" ],
     "ROOT"         : "."
   },
-  
-  "config-warnings" : 
+
+  "config-warnings" :
   {
-    "job-shadowing" : ["source", "common", "inspector::common"]
+    "job-shadowing" : [
+      "common",
+      "inspector::common",
+      "source",
+      "source-hybrid",
+      "translation"
+    ],
+
+    "environment" : [ "non-literal-keys" ]
   },
-  
+
   "jobs" :
   {
     "common" :
@@ -48,12 +78,9 @@
       }
     },
 
-    "source" :
+    "translation" :
     {
-      "environment" :
-      {
-        "inspector.selenium.extensions" : false
-      }
+      "translate" : { "poentry-with-occurrences" : false  }
     }
   }
 }

@@ -28,6 +28,7 @@ qx.Theme.define("qx.theme.classic.Color",
   {
     "background" : "#EBE9ED",
     "background-light" : "#F3F0F5",
+    "light-background" : "#EBE9ED", // compatibility
     "background-focused" : "#F3F8FD",
     "background-focused-inner" : "#DBEAF9",
     "background-disabled" : "#F4F4F4",
@@ -52,6 +53,9 @@ qx.Theme.define("qx.theme.classic.Color",
     "border-focused-dark" : "#3E6CA8",
 
     "border-separator" : "#808080",
+
+    // shadows
+    "shadow" : qx.core.Environment.get("css.rgba") ? "rgba(0, 0, 0, 0.4)" : "#666666",
 
     "invalid" : "#990000",
     "border-focused-invalid" : "#FF9999",

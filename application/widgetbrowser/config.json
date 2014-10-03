@@ -4,15 +4,31 @@
   "include" :
   [
     {
-      "path" : "${QOOXDOO_PATH}/tool/data/config/application.json",
-      "block" :
-      [
-        // need to define them locally, as the base.json versions fix qx.theme, QXTHEME, etc.
-        "source",
-        "build"
-      ]
+      "path" : "${QOOXDOO_PATH}/tool/data/config/application.json"
     }
   ],
+
+  "export" :
+    [
+      "api",
+      "api-data",
+      "build",
+      "clean",
+      "distclean",
+      "fix",
+      "info",
+      "inspector",
+      "lint",
+      "migration",
+      "pretty",
+      "profiling",
+      "source",
+      "source-all",
+      "source-hybrid",
+      "translation",
+      "validate-config",
+      "validate-manifest"
+    ],
 
   "default-job" : "source",
 
@@ -20,140 +36,30 @@
   {
     "APPLICATION"  : "widgetbrowser",
     "QOOXDOO_PATH" : "../..",
+    "QXTHEME"      : "qx.theme.Indigo",
+    "QXICONTHEME"  : ["Oxygen", "Tango"],
     "LOCALES"      : [ "en" ],
     "CACHE"        : "${TMPDIR}/qx${QOOXDOO_VERSION}/cache",
     "ROOT"         : ".",
     "SELENIUM_SERVER" : "localhost",
     "SELENIUM_PORT" : 4444,
     "SELENIUM_BROWSER" : "*googlechrome",
-    "AUT_HOST" : null,
-    "AUT_PATH" : null,
-    "SIMULATOR_REPORTSERVER" : null
+    "AUT_HOST" : "",
+    "AUT_PATH" : ""
   },
 
-  "config-warnings" : 
+  "config-warnings" :
   {
-    "job-shadowing" : ["source", "build-resources", "common", "simulation-run"]
+    "job-shadowing" : ["common", "translation", "libraries"],
+
+    "environment" : [ "non-literal-keys" ]
   },
 
   "jobs" :
   {
-    "source" :
+    "libraries" :
     {
-      "=run" : ["source-script-classic", "source-script-modern",  "source-script-simple"]
-    },
-
-    "source-script-classic" :
-    {
-      "let"     : 
-      { 
-        "QXTHEME" : "qx.theme.Classic",
-        "QXICONTHEME" : ["Oxygen"]
-      },
-      "extend"  : ["source-script"],
-      "compile-options" : {
-        "paths" :
-        {
-          "file"  : "source/script/${APPLICATION}.classic.js"
-        }
-      }
-    },
-
-    "source-script-modern" :
-    {
-      "let"     : {"QXTHEME" : "qx.theme.Modern"},
-      "extend"  : ["source-script"],
-      "compile-options" : {
-        "paths" :
-        {
-          "file"  : "source/script/${APPLICATION}.modern.js"
-        }
-      }
-    },
-
-    "source-script-simple" :
-    {
-      "let"     : {"QXTHEME" : "qx.theme.Simple"},
-      "extend"  : ["source-script"],
-      "compile-options" : {
-        "paths" :
-        {
-          "file"  : "source/script/${APPLICATION}.simple.js"
-        }
-      }
-    },
-
-    "build" :
-    {
-      "=run" : [
-        "build-resources",
-        "build-script-classic",
-        "build-script-modern",
-        "build-script-simple",
-        "build-files"
-      ]
-
-    },
-
-    "build-resources":
-    {
-      "let" : {"QXICONTHEME" : ["Oxygen", "Tango"]},
-      "include" :
-      [
-        "qx.theme.Classic",
-        "qx.theme.Simple",
-        "qx.theme.Modern"
-      ],
-
-      "copy-resources" :
-      {
-        "target" : "build"
-      }
-    },
-
-    "build-script-classic" :
-    {
-      "let"     : 
-      { 
-        "QXTHEME" : "qx.theme.Classic",
-        "QXICONTHEME" : ["Oxygen"]
-      },
-      "extend"  : ["build-script"],
-      "compile-options" : {
-        "paths" :
-        {
-          "file": "./build/script/${APPLICATION}.classic.js"
-        }
-      }
-    },
-
-    "build-script-modern" :
-    {
-      "let"     : {"QXTHEME" : "qx.theme.Modern"},
-      "extend"  : ["build-script"],
-      "compile-options" : {
-        "paths" :
-        {
-          "file": "./build/script/${APPLICATION}.modern.js"
-        }
-      }
-    },
-
-    "build-script-simple" :
-    {
-      "let"     : {"QXTHEME" : "qx.theme.Simple"},
-      "extend"  : ["build-script"],
-      "compile-options" : {
-        "paths" :
-        {
-          "file": "./build/script/${APPLICATION}.simple.js"
-        }
-      }
-    },
-
-    "common" :
-    {
-      "library" : 
+      "library" :
       [
         {
           "manifest" : "${QOOXDOO_PATH}/component/library/formdemo/Manifest.json"
@@ -161,18 +67,30 @@
         {
           "manifest" : "${QOOXDOO_PATH}/component/library/versionlabel/Manifest.json"
         }
-      ],
+      ]
+    },
+
+    "common" :
+    {
       "environment"  :
       {
-        "qx.nativeScrollBars" : true
+        "qx.nativeScrollBars" : true,
+        "widgetbrowser.themes": "qx.theme.Indigo qx.theme.Modern qx.theme.Simple qx.theme.Classic"
       },
+      "include" :[
+        "${APPLICATION}.Application",
+        "qx.theme.Indigo",
+        "qx.theme.Modern",
+        "qx.theme.Simple",
+        "qx.theme.Classic"
+      ],
       "packages" :
       {
         "parts" :
         {
           "boot" :
           {
-            "include" : [ "${QXTHEME}", "widgetbrowser.Application" ]
+            "include" : [ "${APPLICATION}.Application", "${QXTHEME}" ]
           },
 
           "tree" :
@@ -233,25 +151,32 @@
           "misc" :
           {
             "include" : [ "widgetbrowser.pages.Misc" ]
+            },
+
+
+          // Themes (non-default)
+          "modern" :
+          {
+            "include" : [ "qx.theme.Modern" ]
+          },
+
+          "simple" :
+          {
+            "include" : [ "qx.theme.Simple" ]
+          },
+
+          "classic" :
+          {
+            "include" : [ "qx.theme.Classic" ]
           }
 
         }
       }
-    },
-    
-    "simulation-run" :
+    }
+
+    ,"translation" :
     {
-      "environment" :
-      {
-        "simulator.selServer"   : "${SELENIUM_SERVER}",
-        "simulator.selPort"     : "${SELENIUM_PORT}",
-        "simulator.testBrowser" : "${SELENIUM_BROWSER}",
-        "simulator.autHost"     : "${AUT_HOST}",
-        "simulator.autPath"     : "${AUT_PATH}",
-        "simulator.reportServer": "${SIMULATOR_REPORTSERVER}",
-        "simulator.applicationLog" : true,
-        "simulator.globalErrorLogging" : true
-      }
+      "translate" : { "poentry-with-occurrences" : false  }
     }
   }
 }

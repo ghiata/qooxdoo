@@ -62,11 +62,11 @@ qx.Class.define("qx.event.handler.Appear",
 
   statics :
   {
-    /** {Integer} Priority of this handler */
+    /** @type {Integer} Priority of this handler */
     PRIORITY : qx.event.Registration.PRIORITY_NORMAL,
 
 
-    /** {Map} Supported event types */
+    /** @type {Map} Supported event types */
     SUPPORTED_TYPES :
     {
       appear : true,
@@ -74,15 +74,15 @@ qx.Class.define("qx.event.handler.Appear",
     },
 
 
-    /** {Integer} Which target check to use */
+    /** @type {Integer} Which target check to use */
     TARGET_CHECK : qx.event.IEventHandler.TARGET_DOMNODE,
 
 
-    /** {Integer} Whether the method "canHandleEvent" must be called */
+    /** @type {Integer} Whether the method "canHandleEvent" must be called */
     IGNORE_CAN_HANDLE : true,
 
 
-    /** {Map} Stores all appear manager instances */
+    /** @type {Map} Stores all appear manager instances */
     __instances : {},
 
 
@@ -90,7 +90,6 @@ qx.Class.define("qx.event.handler.Appear",
      * Refreshes all appear handlers. Useful after massive DOM manipulations e.g.
      * through qx.html.Element.
      *
-     * @return {void}
      */
      refresh : function()
      {
@@ -167,18 +166,24 @@ qx.Class.define("qx.event.handler.Appear",
      * This method should be called by all DOM tree modifying routines
      * to check the registered nodes for changes.
      *
-     * @return {void}
      */
     refresh : function()
     {
       var targets = this.__targets;
       var elem;
 
+      var legacyIe = qx.core.Environment.get("engine.name") == "mshtml" &&
+        qx.core.Environment.get("browser.documentmode") < 9;
+
       for (var hash in targets)
       {
         elem = targets[hash];
 
         var displayed = elem.offsetWidth > 0;
+        if (!displayed && legacyIe) {
+          // force recalculation in IE 8. See bug #7872
+          displayed = elem.offsetWidth > 0;
+        }
         if ((!!elem.$$displayed) !== displayed)
         {
           elem.$$displayed = displayed;

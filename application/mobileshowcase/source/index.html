@@ -4,16 +4,27 @@
   <meta charset="UTF-8" />
   <title>Mobile Showcase</title>
 
-  <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0;" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimum-scale=1.0, maximum-scale=1.0" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta names="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="format-detection" content="telephone=no">
-
-  <link rel="stylesheet" type="text/css" media="screen" href="../../../framework/source/resource/qx/mobile/css/common/main.css">
-  <link rel="stylesheet" type="text/css" media="screen" href="../../../framework/source/resource/qx/mobile/css/android/android.css">
-  <link rel="stylesheet" type="text/css" media="screen" href="resource/mobileshowcase/css/styles.css">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="msapplication-tap-highlight" content="no"/>
 
   <script type="text/javascript" src="script/mobileshowcase.js"></script>
+  <script type="text/javascript">
+  if (location.hostname === "demo.qooxdoo.org") {
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-415440-1']);
+    _gaq.push(['_setDomainName', 'qooxdoo.org']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  }
+  </script>
 </head>
 <body>
 </body>

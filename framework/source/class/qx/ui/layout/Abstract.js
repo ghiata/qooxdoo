@@ -39,15 +39,15 @@ qx.Class.define("qx.ui.layout.Abstract",
 
   members :
   {
-    /** {Map} The cached size hint */
+    /** @type {Map} The cached size hint */
     __sizeHint : null,
 
-    /** {Boolean} Whether the children cache is valid. This field is protected
+    /** @type {Boolean} Whether the children cache is valid. This field is protected
      *    because sub classes must be able to access it quickly.
      */
     _invalidChildrenCache : null,
 
-    /** {qx.ui.core.Widget} The connected widget */
+    /** @type {qx.ui.core.Widget} The connected widget */
     __widget : null,
 
 
@@ -62,7 +62,6 @@ qx.Class.define("qx.ui.layout.Abstract",
      * Invalidate all layout relevant caches. Automatically deletes the size hint.
      *
      * @abstract
-     * @return {void}
      */
     invalidateLayoutCache : function() {
       this.__sizeHint = null;
@@ -75,9 +74,10 @@ qx.Class.define("qx.ui.layout.Abstract",
      * @abstract
      * @param availWidth {Integer} Final width available for the content (in pixel)
      * @param availHeight {Integer} Final height available for the content (in pixel)
-     * @return {void}
+     * @param padding {Map} Map containing the padding values. Keys:
+     * <code>top</code>, <code>bottom</code>, <code>left</code>, <code>right</code>
      */
-    renderLayout : function(availWidth, availHeight) {
+    renderLayout : function(availWidth, availHeight, padding) {
       this.warn("Missing renderLayout() implementation!");
     },
 
@@ -142,7 +142,6 @@ qx.Class.define("qx.ui.layout.Abstract",
      * whenever the layout data of a child is changed. The method should be used
      * to clear any children relevant cached data.
      *
-     * @return {void}
      */
     invalidateChildrenCache : function() {
       this._invalidChildrenCache = true;
@@ -186,7 +185,7 @@ qx.Class.define("qx.ui.layout.Abstract",
     /**
      * Renders a separator between two children
      *
-     * @param separator {Separator} The separator to render
+     * @param separator {String|qx.ui.decoration.IDecorator} The separator to render
      * @param bounds {Map} Contains the left and top coordinate and the width and height
      *    of the separator to render.
      */

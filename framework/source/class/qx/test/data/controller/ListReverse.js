@@ -1,7 +1,7 @@
 
-/* ************************************************************************
-#ignore(qx.test.ListItem)
-************************************************************************ */
+/**
+ * @ignore(qx.test.ListItem)
+ */
 
 qx.Class.define("qx.test.data.controller.ListReverse",
 {
@@ -268,7 +268,7 @@ qx.Class.define("qx.test.data.controller.ListReverse",
         items[i].getChildren().setItem(1, null);
         items[i].setChildren(null);
       };
-      
+
       childItems.dispose();
     }
   }

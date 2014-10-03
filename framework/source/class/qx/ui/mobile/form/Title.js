@@ -18,8 +18,6 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * Shows a title text for {@link Form} or {@link Group}.
  */
 qx.Class.define("qx.ui.mobile.form.Title",
@@ -33,6 +31,13 @@ qx.Class.define("qx.ui.mobile.form.Title",
     {
       refine : true,
       init : false
+    },
+
+    // overridden
+    defaultCssClass :
+    {
+      refine : true,
+      init : "form-title"
     }
   },
 

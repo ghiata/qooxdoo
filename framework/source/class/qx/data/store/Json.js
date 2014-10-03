@@ -30,10 +30,6 @@
  * for parsing the loaded javascript objects into qooxdoo objects, the
  * {@link qx.data.marshal.Json} class will be used.
  *
- * Up to qooxdoo 1.4 {@link qx.io.remote.Request} was used as the transport. For
- * backwards-compatibility, qooxdoo 1.5 can be configured to use the old
- * transport with {@link #setDeprecatedTransport}.
- *
  * Please note that if you
  *
  * * upgrade from qooxdoo 1.4 or lower
@@ -65,9 +61,6 @@ qx.Class.define("qx.data.store.Json",
     // store the marshaler and the delegate
     this._marshaler = new qx.data.marshal.Json(delegate);
     this._delegate = delegate;
-
-    // use new transport by default
-    this.__deprecatedTransport = false;
 
     if (url != null) {
       this.setUrl(url);
@@ -136,7 +129,6 @@ qx.Class.define("qx.data.store.Json",
     _delegate : null,
 
     __request : null,
-    __deprecatedTransport : null,
 
     // apply function
     _applyUrl: function(value, old) {
@@ -178,6 +170,12 @@ qx.Class.define("qx.data.store.Json",
      * @param url {String} The url for the request.
      */
     _createRequest: function(url) {
+      // dispose old request
+      if (this.__request) {
+        this.__request.dispose();
+        this.__request = null;
+      }
+
       var req = new qx.io.request.Xhr(url);
       this._setRequest(req);
 
@@ -256,6 +254,10 @@ qx.Class.define("qx.data.store.Json",
      */
     _onSuccess : function(ev)
     {
+      if (this.isDisposed()) {
+        return;
+      }
+
        var req = ev.getTarget(),
            data = req.getResponse();
 
@@ -280,6 +282,12 @@ qx.Class.define("qx.data.store.Json",
 
        // fire complete event
        this.fireDataEvent("loaded", this.getModel());
+
+       // get rid of the request object
+       if (this.__request) {
+         this.__request.dispose();
+         this.__request = null;
+       }
     },
 
 
@@ -302,7 +310,10 @@ qx.Class.define("qx.data.store.Json",
 
   destruct : function()
   {
-    this._disposeObjects("__request");
+    if (this.__request != null) {
+      this._disposeObjects("__request");
+    }
+
     // The marshaler internally uses the singleton pattern
     // (constructor.$$instance.
     this._disposeSingletonObjects("_marshaler");

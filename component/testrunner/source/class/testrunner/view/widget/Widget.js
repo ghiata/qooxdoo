@@ -14,29 +14,28 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-#asset(qx/icon/Tango/22/actions/media-playback-start.png)
-#asset(qx/icon/Tango/22/actions/media-playback-stop.png)
-#asset(qx/icon/Tango/22/actions/view-refresh.png)
-#asset(qx/icon/Tango/16/categories/system.png)
-#asset(qx/icon/Tango/22/categories/system.png)
-#asset(qx/icon/Tango/22/actions/system-run.png)
-#asset(qx/icon/Tango/22/status/dialog-information.png)
-#asset(qx/icon/Tango/22/status/dialog-warning.png)
-#asset(qx/icon/Tango/22/status/dialog-error.png)
-#asset(qx/icon/Tango/16/actions/document-properties.png)
-#asset(qx/icon/Tango/22/actions/media-seek-forward.png)
-
-#asset(testrunner/view/widget/css/testrunner.css)
-#asset(testrunner/view/widget/image/*)
-************************************************************************ */
 /**
  * Widget-based Testrunner view
+ *
+ * @asset(qx/icon/Tango/22/actions/media-playback-start.png)
+ * @asset(qx/icon/Tango/22/actions/media-playback-stop.png)
+ * @asset(qx/icon/Tango/22/actions/view-refresh.png)
+ * @asset(qx/icon/Tango/16/categories/system.png)
+ * @asset(qx/icon/Tango/22/categories/system.png)
+ * @asset(qx/icon/Tango/22/actions/system-run.png)
+ * @asset(qx/icon/Tango/22/status/dialog-information.png)
+ * @asset(qx/icon/Tango/22/status/dialog-warning.png)
+ * @asset(qx/icon/Tango/22/status/dialog-error.png)
+ * @asset(qx/icon/Tango/16/actions/document-properties.png)
+ * @asset(qx/icon/Tango/22/actions/media-seek-forward.png)
+ * @asset(qx/icon/Tango/22/actions/document-open-recent.png)
+ * @asset(testrunner/view/widget/css/testrunner.css)
+ * @asset(testrunner/view/widget/image/*)
  */
 qx.Class.define("testrunner.view.widget.Widget", {
 
   extend : testrunner.view.Abstract,
-  
+
   include : [testrunner.view.MAutoRun],
 
   construct : function()
@@ -46,6 +45,7 @@ qx.Class.define("testrunner.view.widget.Widget", {
     this.__app = qx.core.Init.getApplication();
 
     var mainContainer = new qx.ui.container.Composite();
+    mainContainer.setBackgroundColor("light-background");
     var layout = new qx.ui.layout.VBox();
 
     mainContainer.setLayout(layout);
@@ -60,14 +60,12 @@ qx.Class.define("testrunner.view.widget.Widget", {
     // Main Pane
     // split
     var mainsplit = new qx.ui.splitpane.Pane("horizontal");
+    mainsplit.setAppearance("app-splitpane");
     mainContainer.add(mainsplit, {flex : 1});
 
-    this.__labelDeco = null;
-    try {
-      this.__labelDeco = new qx.ui.decoration.Background().set({
-        backgroundColor : "background-medium"
-      });
-    } catch(ex) {}
+    this.__labelDeco = new qx.ui.decoration.Decorator().set({
+      backgroundColor: "white"
+    });
 
     var leftPane = this.__createTestList();
     mainsplit.add(leftPane, 0);
@@ -130,7 +128,16 @@ qx.Class.define("testrunner.view.widget.Widget", {
     showStackTrace :
     {
       check : "Boolean",
-      event : "changeShowStackTrace"
+      event : "changeShowStackTrace",
+      init : true
+    },
+
+    /** Delete any existing results from the list before running tests? */
+    clearResultsOnRun :
+    {
+      check : "Boolean",
+      event : "changeClearResultsOnRun",
+      init : true
     },
 
     /** Running count of failed tests */
@@ -191,13 +198,13 @@ qx.Class.define("testrunner.view.widget.Widget", {
     __progressBar : null,
     __testResultView : null,
     __testCountField : null,
-    __selectedTestField : null,
     __statusField : null,
     __autoReloadActive : false,
     __loadingContainer : null,
     __stack : null,
     __logView : null,
     __testResults : null,
+    __nativeProfilingToggle : null,
 
     /**
      * Returns the iframe element the AUT should be loaded in.
@@ -231,6 +238,7 @@ qx.Class.define("testrunner.view.widget.Widget", {
 
       var title = new qx.ui.basic.Label("Test Runner");
       var version = new qxc.ui.versionlabel.VersionLabel();
+      version.setFont("default");
 
       header.add(title);
       header.add(new qx.ui.core.Spacer, {flex : 1});
@@ -309,8 +317,6 @@ qx.Class.define("testrunner.view.widget.Widget", {
         }
       }});
 
-      var part2 = new qx.ui.toolbar.Part();
-      toolbar.add(part2);
 
       var autUriField = new qx.ui.form.TextField();
       this.__autUriField = autUriField;
@@ -329,9 +335,7 @@ qx.Class.define("testrunner.view.widget.Widget", {
         marginLeft : 3
       });
 
-      part2.add(autUriField);
-
-      toolbar.addSpacer();
+      toolbar.add(autUriField, {flex: 1});
 
       var part3 = new qx.ui.toolbar.Part();
       toolbar.add(part3);
@@ -345,10 +349,30 @@ qx.Class.define("testrunner.view.widget.Widget", {
         converter : function(data)
         {
           qx.bom.Cookie.set("testrunner.autoReload", data.toString(), 365);
-          return data
+          return data;
         }
       });
       part3.add(autoReloadToggle);
+
+      var nativeProfilingToggle = this.__nativeProfilingToggle = new qx.ui.toolbar.CheckBox(
+        this.__app.tr("Native Profiling"),
+        "icon/22/actions/document-open-recent.png"
+      );
+      nativeProfilingToggle.setToolTipText("Additionally use the browser's native"
+        + " profiling feature (console.profile) for performance tests");
+      var nativeProfilingValue = qx.bom.Cookie.get("testrunner.nativeProfiling");
+      if (nativeProfilingValue !== null) {
+        nativeProfilingToggle.setValue(eval(nativeProfilingValue));
+      }
+      nativeProfilingToggle.bind("value", this, "nativeProfiling", {
+        converter : function(data)
+        {
+          qx.bom.Cookie.set("testrunner.nativeProfiling", data.toString(), 365);
+          return data;
+        }
+      });
+      part3.add(nativeProfilingToggle);
+      nativeProfilingToggle.exclude();
 
       // enable overflow handling
       toolbar.setOverflowHandling(true);
@@ -362,7 +386,7 @@ qx.Class.define("testrunner.view.widget.Widget", {
       // set priorities for overflow handling
       toolbar.setRemovePriority(part1, 2);
       toolbar.setRemovePriority(part3, 3);
-      toolbar.setRemovePriority(part2, 1);
+      toolbar.setRemovePriority(autUriField, 1);
 
       // add the overflow menu
       this.__overflowMenu = new qx.ui.menu.Menu();
@@ -464,11 +488,11 @@ qx.Class.define("testrunner.view.widget.Widget", {
                 cachedItem.addListener('changeValue',qx.lang.Function.bind(listeners[j].handler,listeners[j].context));
               }
             }
-            listeners = qx.event.Registration.getManager(partButtons[i]).getListeners(partButtons[i],'click');
+            listeners = qx.event.Registration.getManager(partButtons[i]).getListeners(partButtons[i],'tap');
             if(listeners && listeners.length>0)
             {
               for(var j=0,k=listeners.length;j<k;j++) {
-                cachedItem.addListener('click',qx.lang.Function.bind(listeners[j].handler,listeners[j].context));
+                cachedItem.addListener('tap',qx.lang.Function.bind(listeners[j].handler,listeners[j].context));
               }
             }
             this.__overflowMenu.addAt(cachedItem, 0);
@@ -508,7 +532,7 @@ qx.Class.define("testrunner.view.widget.Widget", {
       var caption = new qx.ui.basic.Label(this.__app.tr("Tests")).set({
         font : "bold",
         decorator : this.__labelDeco,
-        padding : [8, 3, 7, 3],
+        padding : [8, 3, 7, 10],
         allowGrowX : true,
         allowGrowY : true
       });
@@ -523,7 +547,8 @@ qx.Class.define("testrunner.view.widget.Widget", {
         delegate : {
           bindItem : this.__bindTreeItem
         },
-        decorator : "separator-vertical"
+        decorator : "separator-vertical",
+        padding: 0
       });
 
       var selection = new qx.data.Array();
@@ -629,36 +654,56 @@ qx.Class.define("testrunner.view.widget.Widget", {
       p1.setUserData("pane", "center");
 
       var inner = new qx.ui.container.Composite(new qx.ui.layout.Dock());
+      inner.setBackgroundColor("white");
       p1.add(inner);
       var caption1 = new qx.ui.basic.Label(this.__app.tr("Test Results")).set({
         font : "bold",
         decorator : this.__labelDeco,
-        padding : [8, 3, 7, 3],
+        padding : [8, 3, 7, 10],
         allowGrowX : true,
         allowGrowY : true
       });
       inner.add(caption1, {edge: "west"});
 
-      // Stack trace toggle
-      var stacktoggle = new qx.ui.form.ToggleButton(this.__app.tr("Show Stack Trace"), "icon/16/actions/document-properties.png");
-      inner.add(stacktoggle, {edge: "east"});
-      stacktoggle.set({
-        toolTipText : this.__app.tr("Show stack trace information for exceptions"),
-        value : true,
-        margin: [3, 5]
-      });
-      //stacktoggle.setShow("both");
-      stacktoggle.bind("value", this, "showStackTrace");
+      var toolbar = new qx.ui.toolbar.ToolBar();
+      toolbar.setBackgroundColor("white");
+      toolbar.setPadding([0,0]);
+      inner.add(toolbar, {edge: "east"});
 
+      toolbar.add(this._getResultsMenuButton());
 
       p1.add(this.__createProgressBar());
 
-      qx.bom.Stylesheet.includeFile("testrunner/view/widget/css/testrunner.css");
+      var uri = qx.util.ResourceManager.getInstance().toUri("testrunner/view/widget/css/testrunner.css");
+      qx.bom.Stylesheet.includeFile(uri);
       this.__testResultView = new testrunner.view.widget.TestResultView();
       p1.add(this.__testResultView, {flex : 1});
       this.bind("showStackTrace", this.__testResultView, "showStackTrace");
 
       return p1;
+    },
+
+    _getResultsMenuButton : function()
+    {
+      var resultsMenuButton = new qx.ui.toolbar.MenuButton("Options", "icon/16/actions/document-properties.png");
+      resultsMenuButton.set({
+        margin: [3, 5]
+      });
+      var resultsMenu = new qx.ui.menu.Menu();
+
+      // Stack trace toggle
+      var stacktoggle = new qx.ui.menu.CheckBox(this.__app.tr("Show Stack Trace"));
+      stacktoggle.setValue(true);
+      stacktoggle.bind("value", this, "showStackTrace");
+      resultsMenu.add(stacktoggle);
+
+      var cleartoggle = new qx.ui.menu.CheckBox(this.__app.tr("Clear results on run"));
+      cleartoggle.setValue(true);
+      cleartoggle.bind("value", this, "clearResultsOnRun");
+      resultsMenu.add(cleartoggle);
+
+      resultsMenuButton.setMenu(resultsMenu);
+      return resultsMenuButton;
     },
 
     /**
@@ -696,7 +741,7 @@ qx.Class.define("testrunner.view.widget.Widget", {
       var caption3 = new qx.ui.basic.Label(this.__app.tr("Application under test")).set({
         font : "bold",
         decorator : this.__labelDeco,
-        padding : [8, 3, 7, 3],
+        padding : [8, 3, 7, 10],
         allowGrowX : true,
         allowGrowY : true
       });
@@ -704,7 +749,7 @@ qx.Class.define("testrunner.view.widget.Widget", {
       pp3.add(caption3);
 
       var iframe = new qx.ui.embed.Iframe();
-      iframe.setSource(null);
+      iframe.resetSource();
       this.__iframe = iframe;
       pp3.add(iframe, {flex: 1});
 
@@ -721,7 +766,6 @@ qx.Class.define("testrunner.view.widget.Widget", {
     /**
      * Returns a container with the AUT log element
      *
-     * @lint ignoreUndefined(qxc)
      * @return {log.LogView} The log container
      */
     __createLogContainer : function()
@@ -745,20 +789,16 @@ qx.Class.define("testrunner.view.widget.Widget", {
       bar.setMargin(5);
       container.add(bar);
 
-      var labelBox = new qx.ui.container.Composite(new qx.ui.layout.HBox(10));
+      var labelBox = new qx.ui.container.Composite(new qx.ui.layout.HBox(3));
       labelBox.setPadding(2);
       labelBox.setMarginTop(2);
       labelBox.setMarginLeft(5);
       container.add(labelBox);
 
-      labelBox.add(new qx.ui.basic.Label(this.__app.tr("Queued: ")).set({
-        alignY : "middle"
-      }));
-      var queuecnt = new qx.ui.form.TextField("0").set({
+      labelBox.add(new qx.ui.basic.Label(this.__app.tr("Queued: ")));
+      var queuecnt = new qx.ui.basic.Label("0").set({
         width : 40,
-        font : "small",
-        readOnly : true,
-        textAlign : "right"
+        font: "bold"
       });
       labelBox.add(queuecnt);
 
@@ -773,14 +813,11 @@ qx.Class.define("testrunner.view.widget.Widget", {
         }
       });
 
-      labelBox.add(new qx.ui.basic.Label(this.__app.tr("Failed: ")).set({
-        alignY : "middle"
-      }));
-      var failcnt = new qx.ui.form.TextField("0").set({
+      labelBox.add(new qx.ui.basic.Label(this.__app.tr("Failed: ")));
+      var failcnt = new qx.ui.basic.Label("0").set({
         width : 40,
-        font : "small",
-        readOnly : true,
-        textAlign : "right"
+        font : "bold",
+        textColor: "#9D1111"
       });
       labelBox.add(failcnt);
 
@@ -790,14 +827,11 @@ qx.Class.define("testrunner.view.widget.Widget", {
         }
       });
 
-      labelBox.add(new qx.ui.basic.Label(this.__app.tr("Succeeded: ")).set({
-        alignY : "middle"
-      }));
-      var succcnt = new qx.ui.form.TextField("0").set({
+      labelBox.add(new qx.ui.basic.Label(this.__app.tr("Succeeded: ")));
+      var succcnt = new qx.ui.basic.Label("0").set({
         width : 40,
-        font : "small",
-        readOnly : true,
-        textAlign : "right"
+        font : "bold",
+        textColor: "#51A634"
       });
       labelBox.add(succcnt);
 
@@ -807,14 +841,12 @@ qx.Class.define("testrunner.view.widget.Widget", {
         }
       });
 
-      labelBox.add(new qx.ui.basic.Label(this.__app.tr("Skipped: ")).set({
-        alignY : "middle"
-      }));
-      var skipcnt = new qx.ui.form.TextField("0").set({
+      labelBox.add(new qx.ui.basic.Label(this.__app.tr("Skipped: ")));
+      var skipcnt = new qx.ui.basic.Label("0").set({
         width : 40,
-        font : "small",
-        readOnly : true,
-        textAlign : "right"
+        font : "bold",
+        marginRight: 5,
+        textColor: "#888"
       });
       labelBox.add(skipcnt);
 
@@ -834,37 +866,23 @@ qx.Class.define("testrunner.view.widget.Widget", {
      */
     __createStatusBar : function()
     {
-      var layout = new qx.ui.layout.HBox(10);
+      var layout = new qx.ui.layout.HBox(3);
       var statuspane = new qx.ui.container.Composite(layout);
       statuspane.set({
-        margin : 4
+        margin : [0, 10, 10, 10]
       });
 
-      // Test Info
-      statuspane.add(new qx.ui.basic.Label(this.__app.tr("Selected Test: ")).set({
-        alignY : "middle"
-      }));
-
-      var l1 = this.__selectedTestField = new qx.ui.form.TextField("").set({
-        width : 300,
-        font : "small",
-        readOnly : true
-      });
-      statuspane.add(l1);
-
-      statuspane.add(new qx.ui.basic.Label(this.__app.tr("Number of Tests: ")).set({
-        alignY : "middle"
-      }));
-
-      var l2 = new qx.ui.form.TextField("").set({
-        width : 40,
-        font : "small",
-        readOnly : true,
+      var l2 = new qx.ui.basic.Label("0").set({
+        font : "bold",
         textAlign : "right"
       });
       this.__testCountField = l2;
 
       statuspane.add(l2);
+
+      statuspane.add(new qx.ui.basic.Label(this.__app.tr("tests selected")).set({
+        alignY : "middle"
+      }));
 
       this.getSelectedTests().addListener("change", function(ev) {
         var selectedName = "";
@@ -874,28 +892,37 @@ qx.Class.define("testrunner.view.widget.Widget", {
           count = testrunner.runner.ModelUtil.getItemsByProperty(selectedTests.getItem(0), "type", "test").length;
           selectedName = this.getSelectedTests().getItem(0).getFullName();
         }
-        this.__selectedTestField.setValue(selectedName);
         this.__testCountField.setValue(count.toString());
       }, this);
 
+      statuspane.add(new qx.ui.core.Spacer, {flex : 1});
+
       // System Info
       statuspane.add(new qx.ui.basic.Label(this.__app.tr("System Status: ")).set({
-        alignY : "middle"
+        textAlign : "right"
       }));
       var l3 = new qx.ui.basic.Label("").set({
-        alignY : "middle"
+        textAlign : "right"
       });
       statuspane.add(l3);
-      l3.set({ width : 150 });
       this.__statusField = l3;
 
       return statuspane;
     },
 
+    /**
+     *
+     * @param value {String} New suite state value
+     * @param old {String} Old suite state value
+     * @lint ignoreDeprecated(alert)
+     */
     _applyTestSuiteState : function(value, old)
     {
       switch(value)
       {
+        case "init":
+          this.setStatus("Waiting for tests");
+          break;
         case "loading" :
           this.__stack.setSelection([this.__loadingContainer]);
           this.setStatus("Loading tests...");
@@ -905,12 +932,13 @@ qx.Class.define("testrunner.view.widget.Widget", {
         case "ready" :
           this.__stack.setSelection([this.__testTree]);
           this.setStatus("Test suite ready");
+          this.reset();
           this.__progressBar.setValue(0);
           this._setActiveButton(this.__runButton);
           this._applyTestCount(this.getTestCount());
           this.__testTree.setEnabled(true);
           // Don't apply the cookie selection if the previous state was
-          // "aborted" (user clicked stop, then run)
+          // "aborted" (user taped stop, then run)
           if (old === "loading") {
             this.__setSelectionFromCookie();
           }
@@ -919,10 +947,9 @@ qx.Class.define("testrunner.view.widget.Widget", {
             this.__testTree.getSelection().push(this.getTestModel());
           }
 
-          if ((this.getAutoReload() && this.__autoReloadActive) 
-          || this.getAutoRun()) 
+          if ((this.getAutoReload() && this.__autoReloadActive)
+          || this.getAutoRun())
           {
-            this.reset();
             this.fireEvent("runTests");
           }
           break;
@@ -949,25 +976,48 @@ qx.Class.define("testrunner.view.widget.Widget", {
           this.__testTree.setEnabled(true);
           break;
         case "error" :
-          this.setStatus("Invalid test file selected!");
+          this.setStatus("Error loading test suite!");
+          this.__stack.setSelection([this.__testTree]);
+          alert(this._getAutLoadErrorMessage());
       };
     },
 
     _applyAutUri : function(value, old)
     {
-      this.__iframe.setSource(value);
+      if (value == null) {
+        this.__iframe.resetSource();
+      } else {
+        this.__iframe.setSource(value);
+      }
     },
 
     _applyTestModel : function(value, old)
     {
-      if (value && value !== old) {
-        var model = qx.data.marshal.Json.createModel(value);
-        this.__testTree.setModel(model);
-        this.__testTree.openNode(model.getChildren().getItem(0));
-        this.__testResultView.clear();
+      if (!value || value === old) {
+        return;
       }
 
+      var model = qx.data.marshal.Json.createModel(value);
+      this.__testTree.setModel(model);
+      this.__testTree.openNode(model.getChildren().getItem(0));
+      this.__testResultView.clear();
+
+      if (qx.Class.hasMixin(this.constructor, testrunner.view.MPerformance) &&
+        window.console && window.console.profile)
+      {
+        var autWindow = window;
+        if (qx.core.Environment.get("testrunner.testOrigin") == "iframe") {
+          autWindow = qx.bom.Iframe.getWindow(this.getIframe());
+        }
+        var mixin = autWindow.qx.dev.unit.MMeasure;
+        if (testrunner.runner.ModelUtil.hasTestClassWithMixin(model, mixin, autWindow)) {
+          this.__nativeProfilingToggle.show();
+        } else {
+          this.__nativeProfilingToggle.exclude();
+        }
+      }
     },
+
 
     _applyTestCount : function(value, old)
     {},
@@ -1024,6 +1074,30 @@ qx.Class.define("testrunner.view.widget.Widget", {
         this.__runButton.setVisibility("excluded");
       }
     },
+
+
+    /**
+     * Returns the error message to be displayed if the AUT couldn't be loaded
+     * @return {String} error message
+     */
+    _getAutLoadErrorMessage : function()
+    {
+      var autDebug;
+      try {
+        autDebug = this.__iframe.getWindow().qx.core.Environment.get("qx.debug");
+      }
+      catch(ex) {
+        autDebug = false;
+      }
+      var autSrc = autDebug ? "/html/tests-source.html" : "/html/tests.html";
+
+      return "The test suite couldn't be loaded. Make sure the AUT URI is correct, " +
+        'e.g. "' + autSrc + '".' +
+        "\n\nAlso check the testclass parameter: This should be \"" +
+        qx.core.Init.getApplication().runner._testNameSpace +
+        "\" according to the current configuration.";
+    },
+
 
     /**
      * Run the selected tests
@@ -1096,6 +1170,9 @@ qx.Class.define("testrunner.view.widget.Widget", {
       this.resetFailedTestCount();
       this.resetSuccessfulTestCount();
       this.resetSkippedTestCount();
+      if (this.getClearResultsOnRun()) {
+        this.__testResultView.clear();
+      }
     },
 
     /**
@@ -1103,13 +1180,13 @@ qx.Class.define("testrunner.view.widget.Widget", {
      */
     _makeCommands : function()
     {
-      var runTests = new qx.ui.core.Command("Ctrl+R");
+      var runTests = new qx.ui.command.Command("Ctrl+R");
       runTests.addListener("execute", this.__runTests, this);
 
-      var stopTests = new qx.ui.core.Command("Ctrl+S");
+      var stopTests = new qx.ui.command.Command("Ctrl+S");
       stopTests.addListener("execute", this.__stopTests, this);
 
-      var reloadAut = new qx.ui.core.Command("Ctrl+Shift+R");
+      var reloadAut = new qx.ui.command.Command("Ctrl+Shift+R");
       reloadAut.addListener("execute", this.__reloadAut, this);
     },
 
@@ -1144,7 +1221,6 @@ qx.Class.define("testrunner.view.widget.Widget", {
     "__progressBar",
     "__testResultView",
     "__testCountField",
-    "__selectedTestField",
     "__statusField",
     "__autUriField",
     "__loadingContainer",

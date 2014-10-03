@@ -16,15 +16,11 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.util.format.NumberFormat)
-
-************************************************************************ */
-
 /**
  * The conditional cell renderer allows special per cell formatting based on
  * conditions on the cell's value.
+ *
+ * @require(qx.util.format.NumberFormat)
  */
 qx.Class.define("qx.ui.table.cellrenderer.Conditional",
 {
@@ -40,17 +36,17 @@ qx.Class.define("qx.ui.table.cellrenderer.Conditional",
   */
 
   /**
-   * @param align {String}
-   *   The default alignment to format the cell with if the condition matches.
+   * @param align {String|null}
+   *   The default text alignment to format the cell with by default.
    *
-   * @param color {String}
-   *   The default color to format the cell with if the condition matches.
+   * @param color {String|null}
+   *   The default font color to format the cell with by default.
    *
-   * @param style {String}
-   *   The default style to format the cell with if the condition matches.
+   * @param style {String|null}
+   *   The default font style to format the cell with by default.
    *
-   * @param weight {String}
-   *   The default weight to format the cell with if the condition matches.
+   * @param weight {String|null}
+   *   The default font weight to format the cell with by default.
    */
   construct : function(align, color, style, weight)
   {
@@ -121,11 +117,11 @@ qx.Class.define("qx.ui.table.cellrenderer.Conditional",
      * @param condition {String} The type of condition. Accepted strings are "==", "!=", ">", "<", ">=",
      *     and "<=".
      * @param value1 {Integer} The value to compare against.
-     * @param align {String} The alignment to format the cell with if the condition matches.
-     * @param color {String} The color to format the cell with if the condition matches.
-     * @param style {String} The style to format the cell with if the condition matches.
-     * @param weight {String} The weight to format the cell with if the condition matches.
-     * @param target {String} The text value of the column to compare against. If this is null,
+     * @param align {String|null} The text alignment to format the cell with if the condition matches.
+     * @param color {String|null} The font color to format the cell with if the condition matches.
+     * @param style {String|null} The font style to format the cell with if the condition matches.
+     * @param weight {String|null} The font weight to format the cell with if the condition matches.
+     * @param target {String|null} The text value of the column to compare against. If this is null,
      *     comparisons will be against the contents of this cell.
      * @throws {Error} If the condition can not be recognized or value is null.
      */
@@ -161,13 +157,12 @@ qx.Class.define("qx.ui.table.cellrenderer.Conditional",
      * @param condition {String} The type of condition. Accepted strings are "between" and "!between".
      * @param value1 {Integer} The first value to compare against.
      * @param value2 {Integer} The second value to compare against.
-     * @param align {String} The alignment to format the cell with if the condition matches.
-     * @param color {String} The color to format the cell with if the condition matches.
-     * @param style {String} The style to format the cell with if the condition matches.
-     * @param weight {String} The weight to format the cell with if the condition matches.
-     * @param target {String} The text value of the column to compare against. If this is null,
+     * @param align {String|null} The text alignment to format the cell with if the condition matches.
+     * @param color {String|null} The font color to format the cell with if the condition matches.
+     * @param style {String|null} The font style to format the cell with if the condition matches.
+     * @param weight {String|null} The font weight to format the cell with if the condition matches.
+     * @param target {String|null} The text value of the column to compare against. If this is null,
      *     comparisons will be against the contents of this cell.
-     * @return {void}
      * @throws {Error} If the condition can not be recognized or value is null.
      */
     addBetweenCondition : function(condition, value1, value2, align, color, style, weight, target)
@@ -198,11 +193,11 @@ qx.Class.define("qx.ui.table.cellrenderer.Conditional",
      *
      *
      * @param regex {String} The regular expression to match against.
-     * @param align {String} The alignment to format the cell with if the condition matches.
-     * @param color {String} The color to format the cell with if the condition matches.
-     * @param style {String} The style to format the cell with if the condition matches.
-     * @param weight {String} The weight to format the cell with if the condition matches.
-     * @param target {String} The text value of the column to compare against. If this is null,
+     * @param align {String|null} The text alignment to format the cell with if the condition matches.
+     * @param color {String|null} The font color to format the cell with if the condition matches.
+     * @param style {String|null} The font style to format the cell with if the condition matches.
+     * @param weight {String|null} The font weight to format the cell with if the condition matches.
+     * @param target {String|null} The text value of the column to compare against. If this is null,
      *     comparisons will be against the contents of this cell.
      * @throws {Error} If the regex is null.
      */
@@ -233,11 +228,6 @@ qx.Class.define("qx.ui.table.cellrenderer.Conditional",
      */
     _getCellStyle : function(cellInfo)
     {
-      if (!this.conditions.length)
-      {
-        return cellInfo.style || "";
-      }
-
       var tableModel = cellInfo.table.getTableModel();
       var i;
       var cond_test;
@@ -326,7 +316,7 @@ qx.Class.define("qx.ui.table.cellrenderer.Conditional",
               break;
 
             case "!between":
-              if (compareValue < this.conditions[i][5] && compareValue > this.conditions[i][6]) {
+              if (compareValue < this.conditions[i][5] || compareValue > this.conditions[i][6]) {
                 cond_test = true;
               }
 

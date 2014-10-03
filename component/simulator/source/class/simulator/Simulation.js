@@ -21,6 +21,10 @@
  * Automated GUI test of a qooxdoo application using QxSelenium. Provides access
  * to the AUT's log messages and any exceptions caught by qooxdoo's global error
  * handling. Also supports event testing.
+ *
+ * @ignore(environment)
+ *
+ * @deprecated{4.0}
  */
 
 qx.Class.define("simulator.Simulation", {
@@ -169,8 +173,6 @@ qx.Class.define("simulator.Simulation", {
      * Repeatedly tries to find a visible widget using the given locator until
      * the timeout is reached.
      *
-     * @throws an Error if no visible widget is found before the timeout is
-     * reached
      * @param locator {String} (Qx)Selenium locator string
      * @param timeout {Integer?} Timeout in milliseconds. Default: 5000
      */
@@ -291,23 +293,40 @@ qx.Class.define("simulator.Simulation", {
 
       simulator.QxSelenium.getInstance().getEval('selenium.browserbot.getCurrentWindow().qx.Simulation.' + funcName + ' = ' + func);
     },
-    
+
     /**
      * Adds a user-defined function to the "qx.Simulation" namespace of the
      * application under test. This function can then be called using
      * <code>selenium.getEval("selenium.browserbot.getCurrentWindow().qx.Simulation[functionName]();")</code>
      *
+     * In contrast to {@link _addOwnFunction}, the AUT window's Function object is
+     * used to instantiate a "local" function. This is necessary e.g. in FF6+,
+     * where function obejcts from other windows don't have the same properties
+     * and methods, meaning e.g. they can't be used as qx event listener callbacks.
+     *
+     * @internal
      * @param name {String} name of the function to be added
-     * @param body {String} JS statements to be used as the function body
-     * @param args {String[]?} Optional list of arguments for the function 
+     * @param func {Function} The function to be added
+     * @param args {String[]?} Optional list of arguments for the function
      */
-    addOwnFunctionFromString : function(name, body, args)
+    addFunctionToAut : function(name, func, args)
     {
+      if (qx.core.Environment.get("qx.debug")) {
+        qx.core.Assert.assertString(name, "simulator.Simulation.addFunctionToAut: First argument must be a String!");
+        qx.core.Assert.assertFunction(func, "simulator.Simulation.addFunctionToAut: Second argument must be a function!");
+      }
+
+      // replace newlines and double quotes
+      func = func.toString().replace(/\n/g, "").replace(/\r/g, "").replace(/"/g, '\\"');
+      var match = /\((.*?)\)\s*?\{(.*)\}/.exec(func);
+
+      if (!match || !match[2]) {
+        throw new Error("simulator.Simulation.addFunctionToAut: Couldn't parse function " + func);
+      }
+
       var argStr = args ? '"' + args.join('", "') + '", ' : "";
-      body = body.replace(/"/g, '\\"');
-      // Use the AUT window's Function object to create a new function. This is
-      // necessary for FF6, otherwise qx.Bootstrap.isFunction will return false
-      // for the function, meaning it can't be used as qx event listener callback.
+      var body = match[2];
+
       var code = '(function() {var autWin = selenium.browserbot.getCurrentWindow(); autWin.qx.Simulation.'
       + name + ' = new autWin.Function(' + argStr + ' "' + body +'")})()';
       simulator.QxSelenium.getInstance().getEval(code);
@@ -318,7 +337,7 @@ qx.Class.define("simulator.Simulation", {
      * Logs the Simulation's start date, URL of the AUT and the operating system
      * platform.
      *
-     * @lint ignoreUndefined(environment)
+     * @ignore(environment)
      */
     logEnvironment : function()
     {
@@ -349,7 +368,7 @@ qx.Class.define("simulator.Simulation", {
     {
       if (this.__options.disposerDebug) {
         var getDisposerDebugLevel = simulator.Simulation.AUTWINDOW
-          + ".qx.core.Environment.get('qx.disposerDebugLevel')";
+          + ".qx.core.Environment.get('qx.debug.dispose.level')";
         var disposerDebugLevel = simulator.QxSelenium.getInstance().getEval(getDisposerDebugLevel);
 
         if (parseInt(disposerDebugLevel, 10) > 0 ) {

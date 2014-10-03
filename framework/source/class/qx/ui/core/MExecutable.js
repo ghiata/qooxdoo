@@ -49,11 +49,13 @@ qx.Mixin.define("qx.ui.core.MExecutable",
   {
     /**
      * A command called if the {@link #execute} method is called, e.g. on a
-     * button click.
+     * button tap.
      */
     command :
     {
-      check : "qx.ui.core.Command",
+      check : function(value) {
+        return value instanceof qx.ui.core.Command || value instanceof qx.ui.command.Command;
+      },
       apply : "_applyCommand",
       event : "changeCommand",
       nullable : true
@@ -76,7 +78,7 @@ qx.Mixin.define("qx.ui.core.MExecutable",
 
 
     /**
-     * {Map} Set of properties, which will by synced from the command to the
+     * @type {Map} Set of properties, which will by synced from the command to the
      *    including widget
      *
      * @lint ignoreReferenceField(_bindableProperties)
@@ -163,6 +165,14 @@ qx.Mixin.define("qx.ui.core.MExecutable",
           var cmdPropertyValue = value.get(property);
           if (cmdPropertyValue == null) {
             selfPropertyValue = this.get(property);
+            // check also for themed values [BUG #5906]
+            if (selfPropertyValue == null) {
+              // update the appearance to make sure every themed property is up to date
+              this.syncAppearance();
+              selfPropertyValue = qx.util.PropertyUtil.getThemeValue(
+                this, property
+              );
+            }
           } else {
             // Reset the self property value [BUG #4534]
             selfPropertyValue = null;

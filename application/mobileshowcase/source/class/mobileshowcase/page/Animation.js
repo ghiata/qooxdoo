@@ -22,14 +22,38 @@
  */
 qx.Class.define("mobileshowcase.page.Animation",
 {
-  extend : qx.ui.mobile.page.NavigationPage,
+  extend : mobileshowcase.page.Abstract,
 
   construct : function()
   {
     this.base(arguments);
-    this.setTitle("Animation");
-    this.setShowBackButton(true);
-    this.setBackButtonText("Back");
+    this.setTitle("Page Transitions");
+  },
+
+
+  statics: {
+    ANIMATION_DATA: [{
+      title: "Slide",
+      animation: "slide"
+    }, {
+      title: "Pop",
+      animation: "pop"
+    }, {
+      title: "Fade",
+      animation: "fade"
+    }, {
+      title: "Slide up",
+      animation: "slideup"
+    }, {
+      title: "Flip",
+      animation: "flip"
+    }, {
+      title: "Swap",
+      animation: "swap"
+    }, {
+      title: "Cube",
+      animation: "cube"
+    }]
   },
 
 
@@ -48,30 +72,18 @@ qx.Class.define("mobileshowcase.page.Animation",
         }
       });
 
-      var data = [
-          {title: "Slide", animation: "slide"},
-          {title: "Pop", animation: "pop"},
-          {title: "Fade", animation: "fade"},
-          {title: "Dissolve", animation: "dissolve"},
-          {title: "Slide up", animation: "slideup"},
-          {title: "Flip", animation: "flip"},
-          {title: "Swap", animation: "swap"},
-          {title: "Cube", animation: "cube"}
-      ];
+      list.addCssClass("animation-list-1");
 
-      list.setModel(new qx.data.Array(data));
+      list.setModel(new qx.data.Array(mobileshowcase.page.Animation.ANIMATION_DATA));
       list.addListener("changeSelection", function(evt) {
-        var animation = data[evt.getData()].animation;
-        qx.ui.mobile.navigation.Manager.getInstance().executeGet("/animation/" + animation);
+        // In Tablet Mode, animation should be shown for this showcase part.
+        // On animation landing >> setShowAnimation(false) is called.
+        this.getLayoutParent().getLayout().setShowAnimation(true);
+
+        var animation = mobileshowcase.page.Animation.ANIMATION_DATA[evt.getData()].animation;
+        qx.core.Init.getApplication().getRouting().executeGet("/animation/" + animation);
       }, this);
       this.getContent().add(list);
-    },
-
-
-    // overridden
-    _back : function()
-    {
-     qx.ui.mobile.navigation.Manager.getInstance().executeGet("/", {reverse:true});
     }
   }
 });

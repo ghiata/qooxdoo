@@ -19,11 +19,12 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/16/emotes/*)
 
 ************************************************************************ */
 
 /**
+ *
+ * @asset(qx/icon/${qx.icontheme}/16/emotes/*)
  * @tag noPlayground
  * @tag databinding
  * @tag delegate
@@ -72,6 +73,7 @@ qx.Class.define("demobrowser.demo.data.ExtendedList",
           return new qx.ui.form.CheckBox();
         },
         bindItem : function(controller, item, id) {
+          controller.bindProperty("", "model", null, item, id);
           controller.bindProperty("name", "label", null, item, id);
           controller.bindProperty("online", "value", null, item, id);
           controller.bindPropertyReverse("online", "value", null, item, id);
@@ -127,7 +129,7 @@ qx.Class.define("demobrowser.demo.data.ExtendedList",
          + "This list display a set of persons in a list as checkbox. Every "
          + "person does have a name as label and an online status as checkbox."
        );
-       this.getRoot().add(syncListDescription, {left: 20, top: 10});
+       this.getRoot().add(syncListDescription, {left: 10, top: 10});
     }
   }
 });

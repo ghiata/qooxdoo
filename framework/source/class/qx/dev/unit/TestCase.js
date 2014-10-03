@@ -82,6 +82,12 @@ qx.Class.define("qx.dev.unit.TestCase",
      * function. Used for asynchronous tests, e.g. in a listener's callback
      * function.
      *
+     * *Important*
+     *
+     * The used *deferredFunction* is the last function which is executed before
+     * the whole test case is disposed. But you are able to use a new
+     * <code>wait()</code> / <code>resume()</code> pair in the call sequence of the deferred function.
+     *
      * @param deferredFunction {Function?} Function to run
      * @param self {Object?} reference to the ‘this’ variable inside the
      * callback. By default the test instance is used.
@@ -90,10 +96,56 @@ qx.Class.define("qx.dev.unit.TestCase",
     {
       this.getTestResult().run(
         this.getTestFunc(),
-        deferredFunction || qx.lang.Function.empty,
+        deferredFunction || (function() {}),
         self || this,
         true
       );
+    },
+
+
+    /**
+     * Cancel a timeout started with <code>wait()</code> and return a function,
+     * which calls {@link #resume}. This function is useful
+     * to wrap an event handler or callback function within the resume call sequence.
+     * It provides the deferred function with all parameters from original caller.
+     <pre>
+      obj.addListener("appear", this.resumeHandler(function(e){
+        // do some nice
+      }));
+
+      this.wait();
+     </pre>
+     * @param deferredFunction {Function} Function to run as event handler or callback
+     * @param self {Object?} reference to the ‘this’ variable inside the
+     * callback. By default the test instance is used.
+     * @return {Function} Wrapper function which runs resume with deferred function
+     */
+    resumeHandler : function(deferredFunction, self)
+    {
+      if(qx.core.Environment.get("qx.debug")) {
+        this.assertFunction(deferredFunction, "First parameter of resumeHandler() must be a function!");
+      }
+
+      var func = deferredFunction;
+      var that = this;
+
+      return function(){
+        // bind arguments to deferŕedFunction
+        var args = qx.lang.Array.fromArguments(arguments);
+
+        that.resume(func.bind.apply(func, [self || this].concat(args)), self);
+      }
+    },
+
+
+    /**
+     * Skip this test. Any code after a call to this method will not be executed.
+     *
+     * @param message {String|null} Optional message (reason why the test was skipped)
+     */
+    skip : function(message)
+    {
+      throw new qx.dev.unit.RequirementError(null, message || "Called skip()");
     }
   }
 });

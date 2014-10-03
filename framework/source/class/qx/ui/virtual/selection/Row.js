@@ -55,7 +55,7 @@ qx.Class.define("qx.ui.virtual.selection.Row",
     */
 
     // overridden
-    _getSelectableFromMouseEvent : function(event)
+    _getSelectableFromPointerEvent : function(event)
     {
       var cell = this._pane.getCellAtPosition(
         event.getDocumentLeft(),
@@ -181,7 +181,9 @@ qx.Class.define("qx.ui.virtual.selection.Row",
 
     // overridden
     _scrollItemIntoView : function(item) {
-      this._pane.scrollRowIntoView(item);
+      if (this._autoScrollIntoView) {
+        this._pane.scrollRowIntoView(item);
+      }
     },
 
 

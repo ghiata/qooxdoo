@@ -116,6 +116,18 @@ qx.Interface.define("qx.ui.tree.core.IVirtualTree",
 
 
     /**
+     * Opens the passed node without scrolling selected item into view.
+     *
+     * @param node {qx.core.Object} Node to open.
+     */
+    openNodeWithoutScrolling : function(node)
+    {
+      this.assertArgumentsCount(arguments, 1, 1);
+      this.assertInterface(node, qx.core.Object);
+    },
+
+
+    /**
      * Closes the passed node.
      *
      * @param node {qx.core.Object} Node to close.
@@ -126,10 +138,23 @@ qx.Interface.define("qx.ui.tree.core.IVirtualTree",
       this.assertInterface(node, qx.core.Object);
     },
 
+
+    /**
+     * Closes the passed node without scrolling selected item into view.
+     *
+     * @param node {qx.core.Object} Node to close.
+     */
+    closeNodeWithoutScrolling : function(node)
+    {
+      this.assertArgumentsCount(arguments, 1, 1);
+      this.assertInterface(node, qx.core.Object);
+    },
+
+
     /**
      * Returns the current selection.
      *
-     * @return {qx.data.Arra} The current selected elements.
+     * @return {qx.data.Array} The current selected elements.
      */
     getSelection : function() {}
   }

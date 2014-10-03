@@ -19,14 +19,16 @@
 
 /* ************************************************************************
 
-#asset(qx/static/blank.html)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/static/blank.html)
+ */
 
 qx.Class.define("qx.test.html.Iframe",
 {
   extend : qx.dev.unit.TestCase,
-
   include : qx.dev.unit.MMock,
 
   members :
@@ -36,6 +38,8 @@ qx.Class.define("qx.test.html.Iframe",
     __frame: null,
     __origin: null,
     __destSource: null,
+
+    __alredyRun : false,
 
     setUp : function()
     {
@@ -54,7 +58,7 @@ qx.Class.define("qx.test.html.Iframe",
       if (window.location.protocol === "file:") {
         this.__destSource = "blank.html";
       } else {
-        this.__destSource = qx.util.ResourceManager.getInstance().toUri("qx/static/blank.html");
+        this.__destSource = qx.util.ResourceManager.getInstance().toUri(qx.core.Environment.get("qx.blankpage"));
       }
     },
 
@@ -150,19 +154,23 @@ qx.Class.define("qx.test.html.Iframe",
     "test: set null source if frame is cross-origin": function() {
       var frame = this.__frame;
 
+      if (this.__alredyRun) {
+        this.skip("This test can only run once. Reload to run again.");
+      }
+
       // On cross origin
-      frame.setSource("http://qooxdoo.org");
       frame.addListener("load", function() {
         this.resume(function() {
           var elem = frame.getDomElement();
           this.spy(qx.bom.Iframe, "setSource");
           frame.setSource(null);
 
-          qx.html.Element.flush();
-          this.assertCalledWith(qx.bom.Iframe.setSource, elem, undefined);
+          this.assertCalledWith(qx.bom.Iframe.setSource, elem, null);
         });
       }, this);
+      frame.setSource("http://example.com");
 
+      this.__alredyRun = true;
       this.wait();
     },
 
@@ -174,6 +182,7 @@ qx.Class.define("qx.test.html.Iframe",
 
       this.getSandbox().restore();
       this.__frame.dispose();
+      this.__frame = null;
     }
   }
 });

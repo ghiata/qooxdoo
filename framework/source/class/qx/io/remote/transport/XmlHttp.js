@@ -170,7 +170,6 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
     /**
      * Implementation for sending the request
      *
-     * @return {void}
      */
     send : function()
     {
@@ -337,7 +336,7 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
       try {
         if (qx.core.Environment.get("qx.debug"))
         {
-          if (qx.core.Environment.get("qx.ioRemoteDebugData"))
+          if (qx.core.Environment.get("qx.debug.io.remote.data"))
           {
             this.debug("Request: " + this.getData());
           }
@@ -348,7 +347,8 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
         if (
           vLocalRequest && vAsynchronous &&
           qx.core.Environment.get("engine.name") == "mshtml" &&
-          qx.core.Environment.get("engine.version") == 9
+          (qx.core.Environment.get("engine.version") == 9 &&
+           qx.core.Environment.get("browser.documentmode") == 9)
         ) {
           qx.event.Timer.once(function() {
             vRequest.send(this.getData());
@@ -364,7 +364,7 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
         }
         else
         {
-          this.error("Failed to send data: " + ex, "send");
+          this.error("Failed to send data to URL '" + vUrl + "': " + ex, "send");
           this.failed();
         }
 
@@ -386,7 +386,6 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
      * This method should be used only if the requests URI was local
      * access. I.e. it started with "file://".
      *
-     * @return {void}
      */
     failedLocally : function()
     {
@@ -427,7 +426,7 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
         case "timeout":
           if (qx.core.Environment.get("qx.debug"))
           {
-            if (qx.core.Environment.get("qx.ioRemoteDebug")) {
+            if (qx.core.Environment.get("qx.debug.io.remote")) {
               this.warn("Ignore Ready State Change");
             }
           }
@@ -509,7 +508,6 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
      *
      * @param vLabel {String} Request header name
      * @param vValue {var} Request header value
-     * @return {void}
      */
     setRequestHeader : function(vLabel, vValue) {
       this.getRequestHeaders()[vLabel] = vValue;
@@ -536,7 +534,7 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
      * states that HTTP 1.1 header names are case-insensitive, so your
      * application should be case-agnostic when dealing with response headers.
      *
-     * [1]{@link http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2}
+     * [1]<a href="http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2">RFC 2616: HTTP Message Headers</a>
      *
      * @param vLabel {String} Response header name
      * @return {String|null} Response header value
@@ -764,7 +762,7 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
       {
         if (qx.core.Environment.get("qx.debug"))
         {
-          if (qx.core.Environment.get("qx.ioRemoteDebug")) {
+          if (qx.core.Environment.get("qx.debug.io.remote")) {
             this.warn("Transfer not complete or failed, ignoring content!");
           }
         }
@@ -774,7 +772,7 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
 
       if (qx.core.Environment.get("qx.debug"))
       {
-        if (qx.core.Environment.get("qx.ioRemoteDebug")) {
+        if (qx.core.Environment.get("qx.debug.io.remote")) {
           this.debug("Returning content for responseType: " + this.getResponseType());
         }
       }
@@ -785,7 +783,7 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
       {
           if (qx.core.Environment.get("qx.debug"))
           {
-            if (qx.core.Environment.get("qx.ioRemoteDebugData"))
+            if (qx.core.Environment.get("qx.debug.io.remote.data"))
             {
               this.debug("Failed: " + vText);
             }
@@ -800,7 +798,7 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
         case "text/html":
           if (qx.core.Environment.get("qx.debug"))
           {
-            if (qx.core.Environment.get("qx.ioRemoteDebugData"))
+            if (qx.core.Environment.get("qx.debug.io.remote.data"))
             {
               this.debug("Response: " + vText);
             }
@@ -811,7 +809,7 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
         case "application/json":
           if (qx.core.Environment.get("qx.debug"))
           {
-            if (qx.core.Environment.get("qx.ioRemoteDebugData"))
+            if (qx.core.Environment.get("qx.debug.io.remote.data"))
             {
               this.debug("Response: " + vText);
             }
@@ -843,7 +841,7 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
         case "text/javascript":
           if (qx.core.Environment.get("qx.debug"))
           {
-            if (qx.core.Environment.get("qx.ioRemoteDebugData"))
+            if (qx.core.Environment.get("qx.debug.io.remote.data"))
             {
               this.debug("Response: " + vText);
             }
@@ -869,7 +867,7 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
 
           if (qx.core.Environment.get("qx.debug"))
           {
-            if (qx.core.Environment.get("qx.ioRemoteDebugData"))
+            if (qx.core.Environment.get("qx.debug.io.remote.data"))
             {
               this.debug("Response: " + vText);
             }
@@ -898,13 +896,12 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
      *
      * @param value {var} Current value
      * @param old {var} Previous value
-     * @return {void}
      */
     _applyState : function(value, old)
     {
       if (qx.core.Environment.get("qx.debug"))
       {
-        if (qx.core.Environment.get("qx.ioRemoteDebug")) {
+        if (qx.core.Environment.get("qx.debug.io.remote")) {
           this.debug("State: " + value);
         }
       }
@@ -982,7 +979,7 @@ qx.Class.define("qx.io.remote.transport.XmlHttp",
       // Note that for IE the proper way to do this is to set it to a
       // dummy function, not null (Google on "onreadystatechange dummy IE unhook")
       // http://groups.google.com/group/Google-Web-Toolkit-Contributors/browse_thread/thread/7e7ee67c191a6324
-      vRequest.onreadystatechange = qx.lang.Function.empty;
+      vRequest.onreadystatechange = (function() {});
       // Aborting
       switch(vRequest.readyState)
       {

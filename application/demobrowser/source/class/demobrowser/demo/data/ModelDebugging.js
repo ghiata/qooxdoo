@@ -17,13 +17,10 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-#ignore(demobrowser.demo.data.store.Twitter)
-************************************************************************ */
-
 /**
  * @tag databinding
  * @tag debugging
+ * @ignore(demobrowser.demo.data.store.Identica)
  */
 qx.Class.define("demobrowser.demo.data.ModelDebugging",
 {
@@ -36,7 +33,7 @@ qx.Class.define("demobrowser.demo.data.ModelDebugging",
       this.base(arguments);
 
       // fetch some data from Twitter
-      var store = new demobrowser.demo.data.store.Twitter("wittemann");
+      var store = new demobrowser.demo.data.store.Identica("linuxfoundation");
 
       // create an html embed to view the model
       var embed = new qx.ui.embed.Html();
@@ -45,7 +42,7 @@ qx.Class.define("demobrowser.demo.data.ModelDebugging",
       embed.setWidth(500);
       embed.setHeight(200);
       embed.setOverflow("auto", "auto");
-      this.getRoot().add(embed, {left: 10, top: 80});
+      this.getRoot().add(embed, {left: 10, top: 110});
 
       // after the data has been loaded
       store.addListener("loaded", function() {
@@ -91,13 +88,13 @@ qx.Class.define("demobrowser.demo.data.ModelDebugging",
  * in a file of its own. You may neglect any warnings when generating this demo.
  */
 
-qx.Class.define("demobrowser.demo.data.store.Twitter",
+qx.Class.define("demobrowser.demo.data.store.Identica",
  {
    extend : qx.data.store.Jsonp,
 
    construct : function(user)
    {
-     var url = "http://twitter.com/statuses/user_timeline/" + user + ".json";
+     var url = "http://identi.ca/api/statuses/user_timeline/" + user + ".json";
      this.base(arguments, url);
    }
  });

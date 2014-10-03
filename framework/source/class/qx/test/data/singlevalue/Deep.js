@@ -18,10 +18,13 @@
 ************************************************************************ */
 /**
  * Test-Class for testing the single value binding
+ *
+ * @ignore(qx.test.MultiBinding)
  */
 qx.Class.define("qx.test.data.singlevalue.Deep",
 {
   extend : qx.dev.unit.TestCase,
+  include : [qx.dev.unit.MMock],
 
   construct : function() {
     this.base(arguments);
@@ -113,6 +116,48 @@ qx.Class.define("qx.test.data.singlevalue.Deep",
       this.__label.dispose();
     },
 
+
+    testConverterChainBroken : function() {
+      var m = qx.data.marshal.Json.createModel({a: {a: 1}, b: 2});
+      var called = 0;
+      m.bind("a.a", m, "b", {converter : function(data) {
+        called++;
+        return 3;
+      }});
+      // check the init values
+      this.assertEquals(1, called);
+      this.assertEquals(3, m.getB());
+
+      // set the binding leaf to null
+      m.getA().setA(null);
+      this.assertEquals(2, called);
+      this.assertEquals(3, m.getB());
+
+      // set the binding root to null
+      m.setA(null);
+      this.assertEquals(3, called);
+      this.assertEquals(3, m.getB());
+
+      m.dispose();
+    },
+
+
+    testConverterChainBrokenInitialNull : function() {
+      var m = qx.data.marshal.Json.createModel({a: null});
+      var t = qx.data.marshal.Json.createModel({a: null});
+
+      var spy = this.spy(function() {
+        return 123;
+      });
+      m.bind("a.b", t, "a", {converter : spy});
+
+      this.assertCalledOnce(spy);
+      this.assertCalledWith(spy, undefined, undefined, m, t);
+      this.assertEquals(123, t.getA());
+
+      m.dispose();
+      t.dispose();
+    },
 
 
     testDepthOf2: function() {
@@ -372,7 +417,7 @@ qx.Class.define("qx.test.data.singlevalue.Deep",
 
       qx.data.SingleValueBinding.bind(
         this.__a, "name", this.__b1, "lab.value",
-        {converter : function(data) {return data + "..."}}
+        {converter : function(data) {return data + "...";}}
       );
 
       this.__b1.setLab(newLabel);

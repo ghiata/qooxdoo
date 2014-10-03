@@ -25,18 +25,44 @@ qx.Class.define("qxc.ui.versionlabel.VersionLabel",
 {
   extend : qx.ui.basic.Label,
 
-  construct : function(value)
+  construct : function(value, version)
   {
-    var labeltext;
-    if (!value) {
-      labeltext = "qooxdoo";
-    } else {
-      labeltext = value;
+    if (value == undefined)
+    {
+      // if no parameter value given: use the environment variable
+      value = qx.core.Environment.get("versionLabel.name");
     }
 
-    var versstring = qx.core.Environment.get("qx.revision") ? qx.core.Environment.get("qx.revision") :
-      qx.core.Environment.get("qx.version");
-    labeltext += " " + versstring;
-    this.base(arguments, labeltext);
+    if (version == undefined)
+    {
+      // if no parameter value given: use the environment variable
+      version = qx.core.Environment.get("versionLabel.version");
+
+      if (version == null)
+      {
+        // revision or version number as fallback
+        version = qx.core.Environment.get("qx.revision");
+        if (version == "") {
+          version = qx.core.Environment.get("qx.version");
+        }
+      }
+    }
+
+    this.base(arguments, value + " " + version);
+  },
+
+
+  defer : function() {
+    /**
+     * The name of the version label which is shown in the upper right corner.
+     * Defaults to 'qooxdoo'.
+     */
+    qx.core.Environment.add("versionLabel.name", "qooxdoo");
+
+    /**
+     * The version string of the version label which is shown in the upper right corner.
+     * Defaults to 'null' to be able to fallback to 'qx.revision' or 'qx.version' easily.
+     */
+    qx.core.Environment.add("versionLabel.version", null);
   }
 });

@@ -19,7 +19,7 @@
 ************************************************************************ */
 qx.Theme.define("showcase.theme.Decoration",
 {
-  extend : qx.theme.modern.Decoration,
+  extend : qx.theme.indigo.Decoration,
 
   include : [
     showcase.page.theme.calc.theme.Decoration
@@ -27,5 +27,13 @@ qx.Theme.define("showcase.theme.Decoration",
 
   decorations :
   {
+    "previewlist-scrollbar-knob" :
+    {
+      style :
+      {
+        radius: 10,
+        backgroundColor: "#1C1C1C"
+      }
+    }
   }
 });

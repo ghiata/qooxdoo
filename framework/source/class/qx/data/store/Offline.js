@@ -18,46 +18,53 @@
 ************************************************************************ */
 /**
  * This store is a read / write store for local or session storage.
- * It can be used like any other store by setting and manipulating the model 
- * property or the model itsef. Please keep in mind that if you want to have 
- * the update functionality, you have to use a model which supports the 
- * "changeBubble" event.
+ * It can be used like any other store by setting and manipulating the model
+ * property or the model itself. Please keep in mind that if you want to have
+ * the update functionality, you have to use a model which supports the
+ * {@link qx.data.marshal.MEventBubbling#changeBubble} event.
  */
-qx.Class.define("qx.data.store.Offline", 
+qx.Class.define("qx.data.store.Offline",
 {
   extend : qx.core.Object,
 
 
   /**
    * @param key {String} A unique key which is used to store the data.
-   * @param storage {String?} Either "local" or "session" to determinate which 
-   *   storage should be used.
+   * @param storage {String?} Either "local" or "session" to determinate which
+   *   storage should be used. Default: "local"
+   * @param delegate {Object} An object containing one of the methods described
+   *   in {@link qx.data.marshal.IMarshalerDelegate}.
    */
-  construct : function(key, storage)
+  construct : function(key, storage, delegate)
   {
     this.base(arguments);
 
-    if (qx.core.Environment.get("qx.debug")) {
-      this.assertNotUndefined(key);
+    try {
+      if (qx.core.Environment.get("qx.debug")) {
+        this.assertNotUndefined(key);
+      }
+    } catch(e) {
+      this.dispose();
+      throw e;
     }
 
     if (storage == "session") {
-      this._storage = qx.bom.storage.Session.getInstance();
+      this._storage = qx.bom.Storage.getSession();
     } else {
-      this._storage = qx.bom.storage.Local.getInstance();
+      this._storage = qx.bom.Storage.getLocal();
     }
 
-    this._marshaler = new qx.data.marshal.Json();
+    this._marshaler = new qx.data.marshal.Json(delegate);
     this._key = key;
 
     this._initializeModel();
   },
 
 
-  properties : 
+  properties :
   {
     /**
-     * Property for holding the loaded model instance. Please keep in mind to 
+     * Property for holding the loaded model instance. Please keep in mind to
      * use a model supporting the changeBubble event.
      */
     model : {
@@ -68,7 +75,7 @@ qx.Class.define("qx.data.store.Offline",
   },
 
 
-  members : 
+  members :
   {
     _storage : null,
     __modelListenerId : null,
@@ -88,6 +95,8 @@ qx.Class.define("qx.data.store.Offline",
           "changeBubble", this.__storeModel, this
         );
         this.__storeModel();
+      } else {
+        this._storage.removeItem(this._key);
       }
     },
 
@@ -115,7 +124,17 @@ qx.Class.define("qx.data.store.Offline",
      */
     _setModel : function(data) {
       this._marshaler.toClass(data, true);
-      this.setModel(this._marshaler.toModel(data, true));
+
+      // Dispose previous
+      if (this.getModel()) {
+        this.getModel().dispose();
+      }
+
+      var model = this._marshaler.toModel(data, true);
+      if (model === undefined) {
+        model = null;
+      }
+      this.setModel(model);
     },
 
 
@@ -125,6 +144,16 @@ qx.Class.define("qx.data.store.Offline",
      */
     getKey : function() {
       return this._key;
+    }
+  },
+
+  destruct : function() {
+    if (this.getModel()) {
+      this.getModel().dispose();
+    }
+
+    if (this._marshaler) {
+      this._marshaler.dispose();
     }
   }
 });

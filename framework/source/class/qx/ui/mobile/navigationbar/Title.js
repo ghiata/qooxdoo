@@ -18,8 +18,6 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * A navigation bar title widget.
  */
 qx.Class.define("qx.ui.mobile.navigationbar.Title",
@@ -32,11 +30,19 @@ qx.Class.define("qx.ui.mobile.navigationbar.Title",
     {
       refine : true,
       init : false
+    },
+
+
+    // overridden
+    defaultCssClass :
+    {
+      refine : true,
+      init : "title"
     }
   },
 
 
- /*
+  /*
   *****************************************************************************
      MEMBERS
   *****************************************************************************

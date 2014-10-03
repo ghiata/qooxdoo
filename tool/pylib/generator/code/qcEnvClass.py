@@ -23,48 +23,20 @@
 # A specialized class for qx.core.Environment
 ##
 
-from generator.code.Class import Class, CompileOptions
-from generator.code.Script import Script
-from ecmascript.frontend  import treegenerator, treeutil
-from ecmascript.transform.optimizer import variantoptimizer
-from misc                 import util
+from generator.code.Class import Class
+from ecmascript.frontend  import treeutil
+from ecmascript.frontend.tree  import NodeAccessException
+from ecmascript.frontend.treegenerator import PackerFlags as pp
 
 class qcEnvClass(Class):
 
-    def clearTreeCache(self, variantSet, treegen=treegenerator):
-        relevantVariants = self.projectClassVariantsToCurrent(self.classVariants(), variantSet)
-        cacheId = "tree%s-%s-%s" % (treegen.tag, self.path, util.toString(relevantVariants))
-        self.context['cache'].remove(cacheId)
-        return
-
-
-    def optimizeTree(self, variantSet, scriptClasses, treegen=treegenerator):
-        relevantVariants = self.projectClassVariantsToCurrent(self.classVariants(), variantSet)
-        cacheId = "tree%s-%s-%s" % (treegen.tag, self.path, util.toString(relevantVariants))
-        compOpts = CompileOptions(optimize=["variants"], variants=variantSet)
-        compOpts.allClassVariants = scriptClasses
-
-        tree = self.optimizeEnvironmentClass(compOpts)
-        ## this is for the side-effect of leaving a modified tree for qx.core.Environmet
-        ## in the cache!
-        self.context['cache'].write(cacheId, tree, memory=True, writeToFile=False)
-        ## this is for the side-effect of re-calculating the transitive dependencies
-        ## of qx.core.Environment!
-        _ = self.dependencies(variantSet, force=True)
-        return
-
-    def optimizeEnvironmentClass(self, compOptions):
-        tree = self.tree(compOptions.variantset)
-        ## has to come before string optimization, or the "qx.debug", etc. args are gone
-        tree = variantoptimizer.processEnvironmentClass(tree, compOptions.allClassVariants)
-        if compOptions.optimize:
-            tree = self.optimize(tree, compOptions.optimize)
-        return tree
+    def init_checksMap(self):
+        self.checksMap = self.extractChecksMap()
 
     def extractChecksMap(self):
-        tree = self.tree({})
+        tree = self.tree()
         checksMap = None
-        for node in treeutil.nodeIterator(tree, "keyvalue"):
+        for node in treeutil.nodeIterator(tree, ["keyvalue"]):
             if node.get("key", "") == "_checksMap":
                 checksMap = node
                 break
@@ -74,6 +46,45 @@ class qcEnvClass(Class):
         checksMap = treeutil.mapNodeToMap(checksMap)
         # stringify map values
         for key in checksMap:
-            checksMap[key] = checksMap[key].children[0].get("value")
+            try:
+                checksMap[key] = checksMap[key].children[0].get("value")
+            except NodeAccessException:
+                raise ValueError(("Error extracting checks map from %s: " +
+                                  "expected string value for key '%s' (found %s)") %
+                                  (self.id, key, checksMap[key].children[0].type))
         return checksMap
+
+    def init_envKeyProviderIndex(self, classesAll):
+        self.envKeyProviderIndex = self.createEnvKeyProviderIndex(classesAll)
+
+    def createEnvKeyProviderIndex(self, classesAll):
+        envProviders = {}
+        providingEnvClasses = [className for className in classesAll.keys() if className.startswith("qx.bom.client")]
+        for className in providingEnvClasses:
+            tree = classesAll[className].tree()
+            for callnode in list(treeutil.nodeIterator(tree, ['call'])):
+                if callnode.toJS(pp).startswith("qx.core.Environment.add"):
+                    envKey = treeutil.selectNode(callnode, "arguments/constant/@value")
+                    envProviders[envKey] = className
+
+        return envProviders
+
+    def classNameFromEnvKeyByIndex(self, key):
+        result = ''
+        if key in self.envKeyProviderIndex:
+            result = self.envKeyProviderIndex[key]
+        return result
+
+    ##
+    # Looks up the environment key in a map that yields the full class plus
+    # method name as a string.
+    def classNameFromEnvKey(self, key):
+        result = '',''
+        if key in self.checksMap:
+            implementation = self.checksMap[key]
+            fullname, methname = implementation.rsplit(".", 1)
+            result = fullname, methname
+        return result
+
+
 

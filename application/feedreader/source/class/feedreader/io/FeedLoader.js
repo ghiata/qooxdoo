@@ -79,14 +79,14 @@ qx.Class.define("feedreader.io.FeedLoader",
           // locale storage support
           if (qx.core.Environment.get("html.storage.local")) {
             var key = "qx-feeds-" + feed.getUrl();
-            qx.bom.storage.Local.getInstance().setItem(key, data);
+            qx.bom.Storage.getLocal().setItem(key, data);
           }
           return data;
         } catch (e) {
           return "failed";
         }
       }, configureRequest : function(req) {
-        req.setTimeout(10);
+        req.setTimeout(10000);
       }}, qx.core.Environment.get("io.ssl"));
 
       store.addListener("loaded", this.__createOnLoaded(feed), this);
@@ -105,13 +105,13 @@ qx.Class.define("feedreader.io.FeedLoader",
     {
       if (e.getData() == "aborted" ||
         e.getData() == "timeout" ||
-        e.getData() == "failed") 
+        e.getData() == "failed")
       {
         var state = "error";
         // locale storage support
         if (qx.core.Environment.get("html.storage.local")) {
           var key = "qx-feeds-" + feed.getUrl();
-          var oldData = qx.bom.storage.Local.getInstance().getItem(key);
+          var oldData = qx.bom.Storage.getLocal().getItem(key);
           if (oldData) {
             var articles = qx.data.marshal.Json.createModel(oldData);
             feed.setArticles(articles);

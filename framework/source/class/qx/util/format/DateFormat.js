@@ -51,7 +51,7 @@
  * <tr><td><code> j </code><td> special symbol [Not supported yet]
  * <tr><td><code> m </code><td> minute
  * <tr><td><code> s </code><td> second
- * <tr><td><code> S </code><td> fractal second
+ * <tr><td><code> S </code><td> fractional second
  * <tr><td><code> A </code><td> millisecond in day [Not supported yet]
  * <tr><td><code> z </code><td> time zone, specific non-location format
  * <tr><td><code> Z </code><td> time zone, rfc822/gmt format
@@ -146,29 +146,14 @@ qx.Class.define("qx.util.format.DateFormat",
   statics :
   {
     /**
-     * Returns a <code>DateFomat</code> instance that uses the
-     * format.
+     * Convenience factory that returns a <code>DateFomat</code> instance that
+     * uses a short date-only format. Beware that the overall layout of the
+     * date/time format string is that of the locale in effect when the factory
+     * function is called.
      *
-     * @return {String} the date/time instance.
-     */
-    getDateTimeInstance : function()
-    {
-      var DateFormat = qx.util.format.DateFormat;
-
-      var format = qx.locale.Date.getDateFormat("long") + " " + qx.locale.Date.getDateTimeFormat("HHmmss", "HH:mm:ss");
-
-      if (DateFormat._dateInstance == null || DateFormat._dateInstance.__format != format) {
-        DateFormat._dateTimeInstance = new DateFormat();
-      }
-
-      return DateFormat._dateTimeInstance;
-    },
-
-
-    /**
-     * Returns a <code>DateFomat</code> instance that uses the format.
+     * Implemented as a quasi-singleton, so beware of side effects.
      *
-     * @return {String} the date instance.
+     * @return {DateFormat} a DateFormat instance.
      */
     getDateInstance : function()
     {
@@ -176,6 +161,7 @@ qx.Class.define("qx.util.format.DateFormat",
 
       var format = qx.locale.Date.getDateFormat("short") + "";
 
+      // Memoizing the instance, so caller doesn't have to dispose it.
       if (DateFormat._dateInstance == null || DateFormat._dateInstance.__format != format) {
         DateFormat._dateInstance = new DateFormat(format);
       }
@@ -185,17 +171,39 @@ qx.Class.define("qx.util.format.DateFormat",
 
 
     /**
-     * {Integer} The threshold until when a year should be assumed to belong to the
-     * 21st century (e.g. 12 -> 2012). Years over this threshold but below 100 will be
-     * assumed to belong to the 20th century (e.g. 88 -> 1988). Years over 100 will be
-     * used unchanged (e.g. 1792 -> 1792).
+     * Convenience factory that returns a <code>DateFomat</code> instance that
+     * uses a long date/time format. Beware that the overall layout of the
+     * date/time format string is that of the locale in effect when the factory
+     * function is called.
+     *
+     * Implemented as a quasi-singleton, so beware of side effects.
+     *
+     * @return {DateFormat} a DateFormat instance.
+     */
+    getDateTimeInstance : function()
+    {
+      var DateFormat = qx.util.format.DateFormat;
+
+      var format = qx.locale.Date.getDateFormat("long") + " " + qx.locale.Date.getDateTimeFormat("HHmmss", "HH:mm:ss");
+
+      // Memoizing the instance, so caller doesn't have to dispose it.
+      if (DateFormat._dateTimeInstance == null || DateFormat._dateTimeInstance.__format != format) {
+        DateFormat._dateTimeInstance = new DateFormat(format);
+      }
+
+      return DateFormat._dateTimeInstance;
+    },
+
+
+    /**
+     * @type {Integer} The threshold until when a year should be assumed to belong to the
+     *   21st century (e.g. 12 -> 2012). Years over this threshold but below 100 will be
+     *   assumed to belong to the 20th century (e.g. 88 -> 1988). Years over 100 will be
+     *   used unchanged (e.g. 1792 -> 1792).
      */
     ASSUME_YEAR_2000_THRESHOLD : 30,
 
-    /** {String} The date format used for logging. */
-    LOGGING_DATE_TIME__format : "yyyy-MM-dd HH:mm:ss",
-
-    /** Special masks of patterns that are used frequently*/
+    /** @type {Map} Special masks of patterns that are used frequently*/
     ISO_MASKS : {
       isoDate :        "yyyy-MM-dd",
       isoTime :        "HH:mm:ss",
@@ -203,10 +211,10 @@ qx.Class.define("qx.util.format.DateFormat",
       isoUtcDateTime : "yyyy-MM-dd'T'HH:mm:ss'Z'"
     },
 
-    /** {String} The am marker. */
+    /** @type {String} The am marker. */
     AM_MARKER : "am",
 
-    /** {String} The pm marker. */
+    /** @type {String} The pm marker. */
     PM_MARKER : "pm"
 
   },
@@ -291,10 +299,6 @@ qx.Class.define("qx.util.format.DateFormat",
      */
     __getWeekInYear : function(date)
     {
-      // This algorithm gets the correct calendar week after ISO 8601.
-      // This standard is used in almost all european countries.
-      // TODO: In the US week in year is calculated different!
-      // See http://www.merlyn.demon.co.uk/weekinfo.htm
       // The following algorithm comes from http://www.salesianer.de/util/kalwoch.html
       // Get the thursday of the week the date belongs to
       var thursdayDate = this.__thursdayOfSameWeek(date);
@@ -491,7 +495,6 @@ qx.Class.define("qx.util.format.DateFormat",
 
           switch(wildcardChar)
           {
-              // TODO: F - Day of week in month (e.g.   2). Problem: What is this?
             case 'y': // Year
               if (wildcardSize == 2) {
                 replacement = this.__fillNumber(fullYear % 100, 2);
@@ -501,7 +504,7 @@ qx.Class.define("qx.util.format.DateFormat",
                 if (wildcardSize > replacement.length) {
                   for (var j = replacement.length; j < wildcardSize; j++) {
                     replacement = "0" + replacement;
-                  };
+                  }
                 }
                 if(fullYear < 0) {
                   replacement = "-" + replacement;
@@ -516,7 +519,7 @@ qx.Class.define("qx.util.format.DateFormat",
               if (wildcardSize > replacement.length) {
                 for (var j = year.length; j < wildcardSize; j++) {
                   year = "0" + year;
-                };
+                }
               }
               replacement = replacement.indexOf("-") != -1 ? "-" + year : year;
 
@@ -623,7 +626,7 @@ qx.Class.define("qx.util.format.DateFormat",
                 replacement = qx.locale.Date.getMonthName("wide", month, locale, "format", true);
               } else if (wildcardSize == 5) {
                 replacement = qx.locale.Date.getMonthName("narrow", month, locale, "format", true);
-                
+
               }
 
               break;
@@ -670,16 +673,16 @@ qx.Class.define("qx.util.format.DateFormat",
               replacement = this.__fillNumber(seconds, wildcardSize);
               break;
 
-            case 'S': // Millisecond
-              replacement = ms + "";
-              if (wildcardSize <= replacement.length) {
-                    replacement = replacement.substr(0, wildcardSize);
+            case 'S': // Fractional second
+              replacement = this.__fillNumber(ms, 3);
+              if (wildcardSize < replacement.length) {
+                replacement = replacement.substr(0, wildcardSize);
+              } else {
+                while (wildcardSize > replacement.length) {
+                  // if needed, fill the remaining wildcard length with trailing zeros
+                  replacement += "0";
                 }
-                else {
-                  for (var j = replacement.length; j < wildcardSize; j++) {
-                    replacement = replacement + "0";
-                  };
-                }
+              }
               break;
 
             case 'z': // Time zone
@@ -827,9 +830,7 @@ qx.Class.define("qx.util.format.DateFormat",
         date = new Date(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate(),date.getUTCHours(),date.getUTCMinutes(),date.getUTCSeconds(),date.getUTCMilliseconds());
       }
 
-      if (dateValues.month != date.getMonth() || dateValues.year != date.getFullYear())
-      {
-        // TODO: check if this is also necessary for the time components
+      if (dateValues.month != date.getMonth() || dateValues.year != date.getFullYear()) {
         throw new Error("Error parsing date '" + dateStr + "': the value for day or month is too large");
       }
 
@@ -841,7 +842,6 @@ qx.Class.define("qx.util.format.DateFormat",
      * Helper method for {@link #format()} and {@link #parse()}.
      * Parses the date format.
      *
-     * @return {void}
      */
     __initFormatTree : function()
     {
@@ -1017,7 +1017,6 @@ qx.Class.define("qx.util.format.DateFormat",
      * The parse contains everything needed for parsing: The regular expression
      * (in compiled and uncompiled form) and the used rules.
      *
-     * @return {Map} the parse feed.
      * @throws {Error} If the date format is malformed.
      */
     __initParseFeed : function()
@@ -1025,7 +1024,7 @@ qx.Class.define("qx.util.format.DateFormat",
       if (this.__parseFeed != null)
       {
         // We already have the parse feed
-        return ;
+        return;
       }
 
       var format = this.__format;
@@ -1134,7 +1133,6 @@ qx.Class.define("qx.util.format.DateFormat",
     /**
      * Initializes the static parse rules.
      *
-     * @return {void}
      */
     __initParseRules : function()
     {
@@ -1157,7 +1155,7 @@ qx.Class.define("qx.util.format.DateFormat",
       {
         value = parseInt(value, 10);
 
-        if(value > 0)
+        if(value >= 0)
         {
           if (value < DateFormat.ASSUME_YEAR_2000_THRESHOLD) {
             value += 2000;
@@ -1173,7 +1171,7 @@ qx.Class.define("qx.util.format.DateFormat",
       {
         value = parseInt(value, 10);
 
-        if(value > 0)
+        if(value >= 0)
         {
           if (value < DateFormat.ASSUME_YEAR_2000_THRESHOLD) {
             value += 2000;
@@ -1193,7 +1191,7 @@ qx.Class.define("qx.util.format.DateFormat",
         var startOfWeek = qx.locale.Date.getWeekStart(locale);
         var dayOfWeek =  (parseInt(value,10) - 1 + startOfWeek) <= 6 ? parseInt(value,10) - 1 + startOfWeek : (parseInt(value,10) - 1 + startOfWeek) -7;
         dateValues.weekDay = dayOfWeek;
-      }
+      };
 
       var ampmManipulator = function(dateValues, value) {
         var pmMarker = qx.locale.Date.getPmMarker(locale).toString() || DateFormat.PM_MARKER;
@@ -1215,36 +1213,36 @@ qx.Class.define("qx.util.format.DateFormat",
       var narrowEraNames = ['A', 'B'];
       var narrowEraNameManipulator = function(dateValues, value) {
         dateValues.era = value == 'A' ? 1 : -1;
-      }
+      };
 
       var abbrevEraNames = ['AD', 'BC'];
       var abbrevEraNameManipulator = function(dateValues, value) {
         dateValues.era = value == 'AD' ? 1 : -1;
-      }
+      };
 
       var fullEraNames = ['Anno Domini', 'Before Christ'];
       var fullEraNameManipulator = function(dateValues, value) {
         dateValues.era = value == 'Anno Domini' ? 1 : -1;
-      }
+      };
 
       var abbrevQuarterNames = ['Q1','Q2','Q3','Q4'];
       var abbrevQuarterManipulator = function(dateValues, value) {
         dateValues.quarter = abbrevQuarterNames.indexOf(value);
-      }
+      };
 
       var fullQuarterNames = ['1st quarter','2nd quarter','3rd quarter','4th quarter'];
       var fullQuarterManipulator = function(dateValues, value) {
         dateValues.quarter = fullQuarterNames.indexOf(value);
-      }
-      
+      };
+
       var cache = {};
-      
+
       var dateNamesManipulator = function(pattern){
         var monthPatternLetters = ['L','M'];
         var dayPatternLetters = ['c', 'e', 'E'];
         var firstLetterInPattern = pattern.charAt(0);
         var isMonth = monthPatternLetters.indexOf(firstLetterInPattern)>=0;
-        
+
         var getContext = function() {
           var letters = isMonth ? monthPatternLetters : dayPatternLetters;
           var context = firstLetterInPattern === letters[0] ? "stand-alone" : "format" ;
@@ -1262,7 +1260,7 @@ qx.Class.define("qx.util.format.DateFormat",
               lengthName = 'abbreviated';
           }
           return [context, lengthName];
-        }
+        };
 
         if(!cache[pattern])
         {
@@ -1281,9 +1279,9 @@ qx.Class.define("qx.util.format.DateFormat",
             dateValues[isMonth ? 'month' : 'weekDay'] = names.indexOf(value);
           }
         }
-        
+
         return cache[pattern];
-      }
+      };
 
       // Unsupported: F (Day of week in month)
 
@@ -1636,14 +1634,14 @@ qx.Class.define("qx.util.format.DateFormat",
       rules.push(
       {
         pattern : "w",
-        regex   : "(\\d?)",
+        regex   : "(\\d\\d?)",
         field   : "weekOfYear"
       });
 
       rules.push(
       {
         pattern : "ww",
-        regex   : "(\\d\\d?)",
+        regex   : "(\\d\\d)",
         field   : "weekOfYear"
       });
 

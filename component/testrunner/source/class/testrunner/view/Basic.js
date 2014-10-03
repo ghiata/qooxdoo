@@ -21,9 +21,9 @@
  * Testrunner view intended for browserless environments, e.g. node.js, Rhino
  */
 qx.Class.define("testrunner.view.Basic", {
-  
+
   extend : testrunner.view.Abstract,
-  
+
   members :
   {
     __testResults : null,
@@ -47,11 +47,11 @@ qx.Class.define("testrunner.view.Basic", {
       this.fireEvent("stopTests");
     },
 
-    
+
     /**
      * Returns the test result counts by type. Failed tests and tests with
      * unexpected errors are both listed as "failed".
-     * 
+     *
      * @return {String} Results summary
      */
     getSummary : function()
@@ -74,8 +74,8 @@ qx.Class.define("testrunner.view.Basic", {
             count.fail += 1;
         }
       }
-      
-      return count.pass + " passed, " + count.fail + " failed, " + count.skip 
+
+      return count.pass + " passed, " + count.fail + " failed, " + count.skip
       + " skipped.";
     },
 
@@ -105,6 +105,9 @@ qx.Class.define("testrunner.view.Basic", {
     {
       switch(value)
       {
+        case "init":
+          this.setStatus("Waiting for tests");
+          break;
         case "loading" :
           this.setStatus("Loading tests...");
           break;
@@ -124,7 +127,7 @@ qx.Class.define("testrunner.view.Basic", {
         case "aborted" :
           this.setStatus("Test run aborted");
           break;
-      };
+      }
     },
 
 

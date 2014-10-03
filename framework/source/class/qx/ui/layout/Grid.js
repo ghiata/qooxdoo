@@ -71,7 +71,7 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/layout/grid.html'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/layout/grid.html'>
  * Extended documentation</a> and links to demos of this layout in the qooxdoo manual.
  */
 qx.Class.define("qx.ui.layout.Grid",
@@ -155,7 +155,7 @@ qx.Class.define("qx.ui.layout.Grid",
 
   members :
   {
-    /** {Array} 2D array of grid cell data */
+    /** @type {Array} 2D array of grid cell data */
     __grid : null,
     __rowData : null,
     __colData : null,
@@ -165,10 +165,10 @@ qx.Class.define("qx.ui.layout.Grid",
     __maxRowIndex : null,
     __maxColIndex : null,
 
-    /** {Array} cached row heights */
+    /** @type {Array} cached row heights */
     __rowHeights : null,
 
-    /** {Array} cached column widths */
+    /** @type {Array} cached column widths */
     __colWidths : null,
 
 
@@ -230,7 +230,7 @@ qx.Class.define("qx.ui.layout.Grid",
           throw new Error(
             "Cannot add widget '" + child + "'!. " +
             "There is already a widget '" + grid[row][column] +
-            "' in this cell (" + row + ", " + column + ")"
+            "' in this cell (" + row + ", " + column + ") for '" + this + "'"
           );
         }
 
@@ -1265,7 +1265,7 @@ qx.Class.define("qx.ui.layout.Grid",
 
 
     // overridden
-    renderLayout : function(availWidth, availHeight)
+    renderLayout : function(availWidth, availHeight, padding)
     {
       if (this._invalidChildrenCache) {
         this.__buildGrid();
@@ -1356,8 +1356,8 @@ qx.Class.define("qx.ui.layout.Grid",
           var cellTop = top + Util.computeVerticalAlignOffset(cellAlign.vAlign, cellHeight, spanHeight, marginTop, marginBottom);
 
           widget.renderLayout(
-            cellLeft,
-            cellTop,
+            cellLeft + padding.left,
+            cellTop + padding.top,
             cellWidth,
             cellHeight
           );

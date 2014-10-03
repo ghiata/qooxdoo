@@ -5,7 +5,7 @@
    http://qooxdoo.org
 
    Copyright:
-     2004-2010 1&1 Internet AG, Germany, http://www.1und1.de
+     2004-2012 1&1 Internet AG, Germany, http://www.1und1.de
 
    License:
      LGPL: http://www.gnu.org/licenses/lgpl.html
@@ -13,21 +13,34 @@
      See the LICENSE file in the project's top-level directory for details.
 
    Authors:
-     * Daniel Wagner (d_wagner)
+     * Daniel Wagner (danielwagner)
 
 ************************************************************************ */
 
 /* *********************************************************************
-#asset(qx/test/xmlhttp/php_version.php)
-#use(feature-checks)
 ************************************************************************ */
 
 /**
- * Adds support for verification of infrastructure requirements to unit test
- * classes.
+ * Common requirement checks for unit tests. Example:
+ *
+ * <pre class="javascript">
+ * testBackend : function()
+ * {
+ *   this.require(["http", "php"]); // test will be skipped unless all conditions are met
+ *   // test code goes here
+ * }
+ * </pre>
+ *
+ * @use(feature-checks)
+ * @ignore(qx.application.Standalone)
+ * @ignore(qx.application.Inline)
+ * @ignore(qx.application.Native)
+ *
+ * @asset(qx/test/xmlhttp/php_version.php)
  */
 qx.Mixin.define("qx.dev.unit.MRequirements", {
 
+  include : [qx.dev.unit.MRequirementsBasic],
 
   /*
   *****************************************************************************
@@ -36,7 +49,7 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
   */
   statics :
   {
-    /** {Boolean} Result of {@link #hasPhp}. Stored as class member to avoid
+    /** @type {Boolean} Result of {@link #hasPhp}. Stored as class member to avoid
      * repeating the check. */
     __hasPhp : null
   },
@@ -50,82 +63,9 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
   {
 
     /**
-     * Verifies a list of infrastructure requirements by checking for
-     * corresponding "has" methods. If no such method was found, 
-     * {@link qx.core.Environment} will be checked for a key matching the given 
-     * feature name. Note that asynchronous environment checks are not supported! 
-     * 
-     * See the manual for further details:
-     * {@link http://manual.qooxdoo.org/current/pages/development/frame_apps_testrunner.html#defining-test-requirements}
-     * 
-     * @throws RequirementError if any requirement check returned 
-     * <code>false</code>
-     * @throws if no valid check was found for a feature.
-     *
-     * @param featureList {String[]} List of infrastructure requirements
-     */
-    require : function(featureList) {
-      
-      if (qx.core.Environment.get("qx.debug")) {
-        qx.core.Assert.assertArray(featureList);
-      }
-      
-      for (var i=0,l=featureList.length; i<l; i++) {
-        var feature = featureList[i];
-        var hasMethodName = "has" + qx.lang.String.capitalize(feature);
-
-        if (this[hasMethodName]) {
-          if (this[hasMethodName]() === true) {
-            continue;
-          }
-          else {
-            throw new qx.dev.unit.RequirementError(feature);
-          }
-        }
-        
-        if (qx.core.Environment._checks[feature]) {
-          var envValue = qx.core.Environment.get(feature);
-          if (envValue === true) {
-            continue;
-          }
-          if (envValue === false) {
-            throw new qx.dev.unit.RequirementError(feature);
-          }
-          else {
-            throw new Error("The Environment key " + feature + " cannot be used"
-             + " as a Test Requirement since its value is not boolean!");
-          }
-        }
-        
-        if (qx.core.Environment._asyncChecks[feature]) {
-          throw new Error('Unable to verify requirement ' + feature + ': '
-          + 'Asynchronous environment checks are not supported!');
-        }
-        
-        throw new Error('Unable to verify requirement: No method "'
-          + hasMethodName + '" or valid Environment key "' + feature + '" found');
-      }
-    },
-
-
-    /**
-     * Checks if the application has been loaded over HTTPS.
-     *
-     * @return {Boolean} Whether SSL is currently used
-     * @deprecated since 1.6
-     */
-    hasSsl : function()
-    {
-      qx.log.Logger.deprecatedMethodWarning(arguments.callee, 
-      "use require([\"io.ssl\"]) instead.");
-      return this.require(["io.ssl"]);
-    },
-
-
-    /**
      * Checks if the application has been loaded over HTTP.
      *
-     * @return {Boolean} Whether HTTP is currently used
+     * @return {Boolean} <code>true</code> if HTTP is currently used
      */
     hasHttp : function()
     {
@@ -136,7 +76,7 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
     /**
      * Checks if the server supports PHP.
      *
-     * @return {Boolean} Whether PHP is supported by the backend
+     * @return {Boolean} <code>true</code> if PHP is supported by the backend
      */
     hasPhp : function()
     {
@@ -174,7 +114,7 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
     /**
      * Checks if the application extends qx.application.Standalone
      *
-     * @return {Boolean} Whether the application is a standalone (GUI)
+     * @return {Boolean} <code>true</code> if the application is a standalone (GUI)
      * application
      */
     hasGuiApp : function()
@@ -190,7 +130,7 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
     /**
      * Checks if the application extends qx.application.Inline
      *
-     * @return {Boolean} Whether the application is an inline application
+     * @return {Boolean} <code>true</code> if the application is an inline application
      */
     hasInlineApp : function()
     {
@@ -205,7 +145,7 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
     /**
      * Checks if the application extends qx.application.Native
      *
-     * @return {Boolean} Whether the application is a native application
+     * @return {Boolean} <code>true</code> if the application is a native application
      */
     hasNativeApp : function()
     {
@@ -218,38 +158,9 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
 
 
     /**
-     * Checks if the device running the application is touch-enabled
-     *
-     * @return {Boolean} Whether the application is running on a touch-enabled
-     * device
-     * @deprecated since 1.6
-     */
-    hasTouch : function()
-    {
-      qx.log.Logger.deprecatedMethodWarning(arguments.callee, 
-      "use require([\"event.touch\"]) instead.");
-      return this.require(["event.touch"]);
-    },
-
-
-    /**
-     * Checks if the browser running the application has a Flash plugin
-     *
-     * @return {Boolean} Whether the browser has a Flash plugin
-     * @deprecated since 1.6
-     */
-    hasFlash : function()
-    {
-      qx.log.Logger.deprecatedMethodWarning(arguments.callee, 
-      "use require([\"plugin.flash\"]) instead.");
-      return this.require(["plugin.flash"]);
-    },
-
-
-    /**
      * Checks if the application is running in Google Chrome
      *
-     * @return {Boolean} Whether the browser is Google Chrome
+     * @return {Boolean} <code>true</code> if the browser is Google Chrome
      */
     hasChrome : function()
     {
@@ -260,7 +171,7 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
     /**
      * Checks if the application is running in Firefox
      *
-     * @return {Boolean} Whether the browser is Firefox
+     * @return {Boolean} <code>true</code> if the browser is Firefox
      */
     hasFirefox : function()
     {
@@ -271,7 +182,7 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
     /**
      * Checks if the application is running in a browser using the Gecko engine
      *
-     * @return {Boolean} Whether the browser engine is Mozilla Gecko
+     * @return {Boolean} <code>true</code> if the browser engine is Mozilla Gecko
      */
     hasGecko : function()
     {
@@ -282,7 +193,7 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
     /**
      * Checks if the application is running in Internet Explorer
      *
-     * @return {Boolean} Whether the browser is Internet Explorer
+     * @return {Boolean} <code>true</code> if the browser is Internet Explorer
      */
     hasIe : function()
     {
@@ -293,7 +204,7 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
     /**
      * Checks if the application is running in a browser using the MSHTML engine
      *
-     * @return {Boolean} Whether the browser engine is MSHTML
+     * @return {Boolean} <code>true</code> if the browser engine is MSHTML
      */
     hasMshtml : function()
     {
@@ -304,7 +215,7 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
     /**
      * Checks if the application is running in a browser using the Opera engine
      *
-     * @return {Boolean} Whether the browser engine is Opera
+     * @return {Boolean} <code>true</code> if the browser engine is Opera
      */
     hasOpera : function()
     {
@@ -315,7 +226,7 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
     /**
      * Checks if the application is running in a browser using the Webkit engine
      *
-     * @return {Boolean} Whether the browser engine is Webkit
+     * @return {Boolean} <code>true</code> if the browser engine is Webkit
      */
     hasWebkit : function()
     {
@@ -325,11 +236,15 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
 
     /**
      * Checks if the application is controlled by Selenium
-     * 
-     * @return {Boolean} Whether the application is controlled by Selenium
+     *
+     * @return {Boolean} <code>false</code> if the application is controlled by Selenium
      */
     hasNoSelenium : function()
     {
+      if (window.selenium) {
+        return false;
+      }
+
       var win = window.top || window;
       var opener = win.opener || win;
       try {
@@ -339,6 +254,18 @@ qx.Mixin.define("qx.dev.unit.MRequirements", {
       catch(ex) {
         return win.name.indexOf("selenium") < 0;
       }
+    },
+
+
+    /**
+     * Checks if the application is running on Windows 7
+     *
+     * @return {Boolean} <code>false</code> if operating system is Windows 7
+     */
+    hasNoWin7 : function()
+    {
+      var isWin7 = (qx.core.Environment.get("os.name") === "win" && qx.core.Environment.get("os.version") === "7");
+      return (isWin7 ? false : true);
     }
   }
 

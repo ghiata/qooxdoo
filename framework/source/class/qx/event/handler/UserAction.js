@@ -19,8 +19,8 @@
 ************************************************************************ */
 
 /**
- * This handler accepts the useraction event fired by the keyboard and
- * and mouse handlers after an user triggered action has occurred.
+ * This handler accepts the useraction event fired by the keyboard, mouse and
+ * pointer handlers after an user triggered action has occurred.
  */
 qx.Class.define("qx.event.handler.UserAction",
 {
@@ -62,18 +62,18 @@ qx.Class.define("qx.event.handler.UserAction",
 
   statics :
   {
-    /** {Integer} Priority of this handler */
+    /** @type {Integer} Priority of this handler */
     PRIORITY : qx.event.Registration.PRIORITY_NORMAL,
 
-    /** {Map} Supported event types */
+    /** @type {Map} Supported event types */
     SUPPORTED_TYPES : {
       useraction : 1
     },
 
-    /** {Integer} Which target check to use */
+    /** @type {Integer} Which target check to use */
     TARGET_CHECK : qx.event.IEventHandler.TARGET_WINDOW,
 
-    /** {Integer} Whether the method "canHandleEvent" must be called */
+    /** @type {Integer} Whether the method "canHandleEvent" must be called */
     IGNORE_CAN_HANDLE : true
   },
 

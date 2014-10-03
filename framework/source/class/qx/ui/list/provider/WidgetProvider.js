@@ -58,11 +58,11 @@ qx.Class.define("qx.ui.list.provider.WidgetProvider",
 
   members :
   {
-    /** {qx.ui.virtual.cell.WidgetCell} the used item renderer */
+    /** @type {qx.ui.virtual.cell.WidgetCell} the used item renderer */
     _itemRenderer : null,
 
 
-    /** {qx.ui.virtual.cell.WidgetCell} the used group renderer */
+    /** @type {qx.ui.virtual.cell.WidgetCell} the used group renderer */
     _groupRenderer : null,
 
 
@@ -227,7 +227,7 @@ qx.Class.define("qx.ui.list.provider.WidgetProvider",
     /**
      * Calls the delegate <code>onPool</code> method when it is used in the
      * {@link #delegate} property.
-     * 
+     *
      * @param item {qx.ui.core.Widget} Item to modify.
      */
     _onPool : function(item)

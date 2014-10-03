@@ -61,7 +61,7 @@
  *
  * *Example*
  *
- * Here is a little example of how to use the grid layout.
+ * Here is a little example of how to use the HBox layout.
  *
  * <pre class="javascript">
  * var layout = new qx.ui.layout.HBox();
@@ -76,7 +76,7 @@
  *
  * *External Documentation*
  *
- * See <a href='http://manual.qooxdoo.org/1.4/pages/layout/box.html'>extended documentation</a>
+ * See <a href='http://manual.qooxdoo.org/${qxversion}/pages/layout/box.html'>extended documentation</a>
  * and links to demos for this layout.
  *
  */
@@ -97,7 +97,7 @@ qx.Class.define("qx.ui.layout.HBox",
    * @param spacing {Integer?0} The spacing between child widgets {@link #spacing}.
    * @param alignX {String?"left"} Horizontal alignment of the whole children
    *     block {@link #alignX}.
-   * @param separator {Decorator} A separator to render between the items
+   * @param separator {String|qx.ui.decoration.IDecorator} A separator to render between the items
    */
   construct : function(spacing, alignX, separator)
   {
@@ -301,7 +301,7 @@ qx.Class.define("qx.ui.layout.HBox",
 
 
     // overridden
-    renderLayout : function(availWidth, availHeight)
+    renderLayout : function(availWidth, availHeight, padding)
     {
       // Rebuild flex/width caches
       if (this._invalidChildrenCache) {
@@ -433,8 +433,8 @@ qx.Class.define("qx.ui.layout.HBox",
 
             // then render the separator at this position
             this._renderSeparator(separator, {
-              left : left,
-              top : 0,
+              left : left + padding.left,
+              top : padding.top,
               width : separatorWidth,
               height : availHeight
             });
@@ -450,7 +450,7 @@ qx.Class.define("qx.ui.layout.HBox",
         }
 
         // Layout child
-        child.renderLayout(left, top, width, height);
+        child.renderLayout(left + padding.left, top + padding.top, width, height);
 
         // Add width
         left += width;

@@ -18,8 +18,6 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * Base class for all box layout managers.
  */
 qx.Class.define("qx.ui.mobile.layout.AbstractBox",
@@ -118,44 +116,44 @@ qx.Class.define("qx.ui.mobile.layout.AbstractBox",
     {
       "alignX":
       {
-        "hbox" :
+        "qx-hbox" :
         {
-          "left" : "boxPackStart",
-          "center" : "boxPackCenter",
-          "right" : "boxPackEnd"
+          "left" : "qx-flex-justify-start",
+          "center" : "qx-flex-justify-center",
+          "right" : "qx-flex-justify-end"
         },
-        "vbox" :
+        "qx-vbox" :
         {
-          "left" : "boxAlignStart",
-          "center" : "boxAlignCenter",
-          "right" : "boxAlignEnd"
+          "left" : "qx-flex-align-start",
+          "center" : "qx-flex-align-center",
+          "right" : "qx-flex-align-end"
         }
       },
       "alignY" :
       {
-        "hbox" :
+        "qx-hbox" :
         {
-          "top" : "boxAlignStart",
-          "middle" : "boxAlignCenter",
-          "bottom" : "boxAlignEnd"
+          "top" : "qx-flex-align-start",
+          "middle" : "qx-flex-align-center",
+          "bottom" : "qx-flex-align-end"
         },
-        "vbox" :
+        "qx-vbox" :
         {
-          "top" : "boxPackStart",
-          "middle" : "boxPackCenter",
-          "bottom" : "boxPackEnd"
+          "top" : "qx-flex-justify-start",
+          "middle" : "qx-flex-justify-center",
+          "bottom" : "qx-flex-justify-end"
         }
       },
       "reversed" :
       {
-        "hbox" :
+        "qx-hbox" :
         {
-          "true" : "boxReverse",
+          "true" : "qx-flex-reverse",
           "false" : null
         },
-        "vbox" :
+        "qx-vbox" :
         {
-          "true" : "boxReverse",
+          "true" : "qx-flex-reverse",
           "false" : null
         }
       }
@@ -170,8 +168,6 @@ qx.Class.define("qx.ui.mobile.layout.AbstractBox",
       "flex" : 1
     }
   },
-
-
 
 
  /*
@@ -194,9 +190,9 @@ qx.Class.define("qx.ui.mobile.layout.AbstractBox",
       if (property == "flex") {
         var old = this._getChildLayoutPropertyValue(widget, property);
         if (old != null) {
-          widget.removeCssClass("boxFlex" + value);
+          widget.removeCssClass("qx-flex" + value);
         }
-        widget.addCssClass("boxFlex" + value);
+        widget.addCssClass("qx-flex" + value);
       }
     },
 
@@ -213,12 +209,24 @@ qx.Class.define("qx.ui.mobile.layout.AbstractBox",
     },
 
 
+    // overridden
+    disconnectFromChildWidget : function(widget)
+    {
+      this.base(arguments);
+      for (var i = 0; i <= 6; i++) {
+        widget.removeCssClass("qx-flex" +i);
+      }
+    },
+
+
+
     // property apply
     _applyLayoutChange : function(value, old, property)
     {
       if (this._widget)
       {
-        var layoutCss = this.getCssClass();
+        // In this case the layout should only have one main css class.
+        var layoutCss = this._getCssClasses()[0];
         var CSS_MAPPING = qx.ui.mobile.layout.AbstractBox.PROPERTY_CSS_MAPPING[property][layoutCss];
         if (old)
         {

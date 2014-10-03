@@ -46,7 +46,7 @@ qx.Class.define("qx.event.type.Drag",
      *     right click) or the default action of a qooxdoo class (e.g. close
      *     the window widget). The default action can be prevented by calling
      *     {@link qx.event.type.Event#preventDefault}
-     * @param originalEvent {qx.event.type.Mouse} The original (mouse) event to use
+     * @param originalEvent {qx.event.type.Track} The original (mouse) event to use
      * @return {qx.event.type.Event} The initialized event instance
      */
     init : function(cancelable, originalEvent)
@@ -56,7 +56,7 @@ qx.Class.define("qx.event.type.Drag",
       if (originalEvent)
       {
         this._native = originalEvent.getNativeEvent() || null;
-        this._originalTarget = originalEvent.getTarget() || null;
+        this._originalTarget = originalEvent.getOriginalTarget() || null;
       }
       else
       {
@@ -91,12 +91,16 @@ qx.Class.define("qx.event.type.Drag",
       if (this._native == null) {
         return 0;
       }
-
-      if (this._native.pageX !== undefined) {
-        return this._native.pageX;
+      var x = this._native.pageX;
+      if (x !== undefined) {
+        // iOS 6 does not copy pageX over to the fake pointer event
+        if (x == 0 && this._native.pointerType == "touch") {
+          x = this._native._original.changedTouches[0].pageX || 0;
+        }
+        return Math.round(x);
       } else {
         var win = qx.dom.Node.getWindow(this._native.srcElement);
-        return this._native.clientX + qx.bom.Viewport.getScrollLeft(win);
+        return Math.round(this._native.clientX) + qx.bom.Viewport.getScrollLeft(win);
       }
     },
 
@@ -114,11 +118,16 @@ qx.Class.define("qx.event.type.Drag",
         return 0;
       }
 
-      if (this._native.pageY !== undefined) {
-        return this._native.pageY;
+      var y = this._native.pageY;
+      if (y !== undefined) {
+        // iOS 6 does not copy pageY over to the fake pointer event
+        if (y == 0 && this._native.pointerType == "touch") {
+          y = this._native._original.changedTouches[0].pageY || 0;
+        }
+        return Math.round(y);
       } else {
         var win = qx.dom.Node.getWindow(this._native.srcElement);
-        return this._native.clientY + qx.bom.Viewport.getScrollTop(win);
+        return Math.round(this._native.clientY) + qx.bom.Viewport.getScrollTop(win);
       }
     },
 
@@ -201,6 +210,7 @@ qx.Class.define("qx.event.type.Drag",
      * Returns the data of the given type. Used in the <code>drop</code> listener.
      *
      * @param type {String} Any of the supported types.
+     * @return {var} The data for the given type
      */
     getData : function(type) {
       return this.getManager().getData(type);
@@ -229,7 +239,27 @@ qx.Class.define("qx.event.type.Drag",
      *    <code>copy</code> or <code>alias</code>.
      */
     getCurrentAction : function() {
+      if (this.getDefaultPrevented()) {
+        return null;
+      }
       return this.getManager().getCurrentAction();
+    },
+
+
+    /**
+     * Returns the target which has been initially tapped on.
+     * @return {qx.ui.core.Widget} The tapped widget.
+     */
+    getDragTarget : function() {
+      return this.getManager().getDragTarget();
+    },
+
+
+    /**
+     * Stops the drag&drop session and fires a <code>dragend</code> event.
+     */
+    stopSession : function() {
+      this.getManager().clearSession();
     }
   }
 });

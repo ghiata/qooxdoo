@@ -19,11 +19,14 @@
 
 /* ************************************************************************
 
-#asset(qx/test/xmlhttp/random.php)
-#asset(qx/test/xmlhttp/long_poll.php)
-#asset(qx/test/xmlhttp/sample.txt)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/test/xmlhttp/random.php)
+ * @asset(qx/test/xmlhttp/long_poll.php)
+ * @asset(qx/test/xmlhttp/sample.txt)
+ */
 
 qx.Class.define("qx.test.io.rest.ResourceWithRemote",
 {
@@ -56,23 +59,6 @@ qx.Class.define("qx.test.io.rest.ResourceWithRemote",
       }, this);
 
       res.get();
-      this.wait();
-    },
-
-    "test: invoke action and handle response shorthand": function() {
-      // Handles GET
-      var url = this.getUrl("qx/test/xmlhttp/sample.txt"),
-          res;
-
-      res = this.res = new qx.io.rest.Resource(
-        {get: {method: "GET", url: url} });
-
-      res.get().addListener("getSuccess", function(e) {
-        this.resume(function() {
-          this.assertEquals("SAMPLE", e.getData());
-        }, this);
-      }, this);
-
       this.wait();
     },
 

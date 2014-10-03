@@ -45,7 +45,7 @@ qx.Class.define("qx.type.Array",
    * * <code>length</code>: The initial length of the array.
    * * <code>item1, item2. .. itemN</code>:  the items that will make up the newly created array
    *
-   * @param length_or_items {Integer|varargs?null} The initial size of the collection
+   * @param length_or_items {Integer|var?null} The initial size of the collection
    *        OR an argument list of elements.
    */
   construct : function(length_or_items) {
@@ -149,10 +149,39 @@ qx.Class.define("qx.type.Array",
      *
      * @param arr {Array} the elements of this array will be appended to other one
      * @return {Array} The modified array.
-     * @throws an exception if one of the arguments is not an array
+     * @throws {Error} if one of the arguments is not an array
      */
     append : function(arr)
     {
+      var arg = this.__toPlainArray(arr);
+      Array.prototype.push.apply(this, arg);
+      return this;
+    },
+
+
+    /**
+     * Prepend the elements of the given array.
+     *
+     * @param arr {Array} The elements of this array will be prepended to other one
+     * @return {Array} The modified array.
+     * @throws {Error} if one of the arguments is not an array
+     */
+    prepend : function(arr)
+    {
+      var arg = this.__toPlainArray(arr);
+      Array.prototype.splice.apply(this, [0, 0].concat(arg));
+      return this;
+    },
+
+
+    /**
+     * Helper which checks for the given element and converts that to a
+     * native array if necessary.
+     *
+     * @param arr {Array} Native or qx.type.BaseArray to convert.
+     * @return {Array} A native array.
+     */
+    __toPlainArray : function(arr) {
       // this check is important because Opera throws an uncatchable error if
       // apply is called without an arr as second argument.
       if (qx.core.Environment.get("qx.debug")) {
@@ -160,16 +189,14 @@ qx.Class.define("qx.type.Array",
       }
 
       var arg = arr;
-      // push needs a plain array as arguments list [BUG #4488]
-      if (arr instanceof qx.type.Array) {
+      // concat needs a plain array as argument [BUG #4488]
+      if (arr instanceof qx.type.BaseArray) {
         arg = [];
         for (var i=0; i < arr.length; i++) {
           arg[i] = arr[i];
         };
       }
-
-      Array.prototype.push.apply(this, arg);
-      return this;
+      return arg;
     },
 
 

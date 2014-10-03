@@ -24,13 +24,11 @@
     "profiling",
     "source",
     "source-all",
-    "simulation-build",
-    "simulation-run",
     "test",
     "test-source",
     "translation"
   ],
-  
+
   "default-job" : "source",
 
   "let" :
@@ -42,5 +40,18 @@
     "LOCALES"      : [ "en", "de", "ro", "sv"],
     "CACHE"        : "${TMPDIR}/qx${QOOXDOO_VERSION}/cache",
     "ROOT"         : "."
+  },
+
+  "config-warnings" :
+  {
+    "job-shadowing" : ["translation"]
+  },
+
+  "jobs" :
+  {
+    "translation" :
+    {
+      "translate" : { "poentry-with-occurrences" : false  }
+    }
   }
 }

@@ -101,7 +101,7 @@ qx.Mixin.define("qx.ui.tree.core.MWidgetController",
 
   members :
   {
-    /** {Array} which contains the bounded items */
+    /** @type {Array} which contains the bounded items */
     __boundItems : null,
 
 
@@ -156,6 +156,7 @@ qx.Mixin.define("qx.ui.tree.core.MWidgetController",
      * function implemented by the {@link #delegate} property.
      *
      * @param sourcePath {String | null} The path to the property in the model.
+     *   If you use an empty string, the whole model item will be bound.
      * @param targetProperty {String} The name of the property in the target widget.
      * @param options {Map | null} The options to use for the binding.
      * @param targetWidget {qx.ui.core.Widget} The target widget.
@@ -256,6 +257,7 @@ qx.Mixin.define("qx.ui.tree.core.MWidgetController",
      *
      * @param index {Integer} The index of the item.
      * @param path {String|null} The path to the property.
+     * @return {String} The binding path
      */
     __getBindPath : function(index, path)
     {

@@ -33,6 +33,12 @@ qx.Class.define("qx.test.ui.form.TextArea",
       this.getRoot().add(textArea);
     },
 
+    hasNoBuggyIe : function()
+    {
+      return (qx.core.Environment.get("engine.name") != "mshtml" ||
+        qx.core.Environment.get("browser.documentmode") > 10);
+    },
+
     //
     // "Plain" textarea
     //
@@ -64,6 +70,7 @@ qx.Class.define("qx.test.ui.form.TextArea",
     //
 
     "test: textarea with autoSize grows when input would trigger scrollbar": function() {
+      this.require(["noBuggyIe"]);
       var textArea = this.__textArea;
       textArea.setAutoSize(true);
       this.flush();
@@ -83,6 +90,7 @@ qx.Class.define("qx.test.ui.form.TextArea",
     },
 
     "test: textarea with autoSize shrinks when removal would hide scrollbar": function() {
+      this.require(["noBuggyIe"]);
       var textArea = this.__textArea;
       textArea.setAutoSize(true);
       this.flush();
@@ -106,6 +114,7 @@ qx.Class.define("qx.test.ui.form.TextArea",
     },
 
     "test: textarea with autoSize does not shrink below original height": function() {
+      this.require(["noBuggyIe"]);
       var textArea = this.__textArea;
       textArea.setAutoSize(true);
       this.flush();
@@ -126,6 +135,7 @@ qx.Class.define("qx.test.ui.form.TextArea",
     },
 
     "test: textarea with autoSize shows scroll-bar when above maxHeight": function() {
+      this.require(["noBuggyIe"]);
       var textArea = this.__textArea;
       textArea.set({
         autoSize: true,
@@ -143,6 +153,7 @@ qx.Class.define("qx.test.ui.form.TextArea",
     },
 
     "test: textarea with autoSize shows scroll-bar when finally above maxHeight": function() {
+      this.require(["noBuggyIe"]);
       var textArea = this.__textArea;
       textArea.set({
         autoSize: true,
@@ -163,6 +174,7 @@ qx.Class.define("qx.test.ui.form.TextArea",
     },
 
     "test: textarea with autoSize hides scroll-bar when finally below maxHeight": function() {
+      this.require(["noBuggyIe"]);
       var textArea = this.__textArea;
       textArea.set({
         autoSize: true,
@@ -183,6 +195,7 @@ qx.Class.define("qx.test.ui.form.TextArea",
     },
 
     "test: textarea with autoSize respects initial value": function() {
+      this.require(["noBuggyIe"]);
       var textArea = this.__textArea;
       textArea.set({
         autoSize: true,
@@ -207,6 +220,7 @@ qx.Class.define("qx.test.ui.form.TextArea",
     },
 
     "test: textarea with autoSize respects initial wrap": function() {
+      this.require(["noBuggyIe"]);
       var textArea = this.__textArea;
       textArea.set({
         autoSize: true,
@@ -232,6 +246,7 @@ qx.Class.define("qx.test.ui.form.TextArea",
     },
 
     "test: textarea with autoSize shrinks when long line is unwrapped": function() {
+      this.require(["noBuggyIe"]);
       if (!this.__supportsLiveWrap()) {
         this.skip();
       }
@@ -257,7 +272,7 @@ qx.Class.define("qx.test.ui.form.TextArea",
     },
 
     "test: textarea with autoSize grows when long line is wrapped": function() {
-
+      this.require(["noBuggyIe"]);
       if (!this.__supportsLiveWrap()) {
         this.skip();
       }
@@ -309,16 +324,9 @@ qx.Class.define("qx.test.ui.form.TextArea",
     },
 
     __supportsLiveWrap: function() {
-      // Opera and older versions of IE ignore changes to wrap settings
+      // Opera ignores changes to wrap settings
       // once the textarea is in the DOM
-      if (
-        qx.core.Environment.get("engine.name") == "opera" ||
-        (qx.core.Environment.get("engine.name") == "mshtml" &&
-        parseFloat(qx.core.Environment.get("engine.version")) < 7))
-      {
-        return false;
-      }
-      return true;
+      return qx.core.Environment.get("engine.name") != "opera";
     },
 
     skip: function(msg) {
@@ -329,6 +337,7 @@ qx.Class.define("qx.test.ui.form.TextArea",
     {
       this.base(arguments);
       this.__textArea.destroy();
+      qx.ui.core.queue.Dispose.flush();
     }
   }
 });

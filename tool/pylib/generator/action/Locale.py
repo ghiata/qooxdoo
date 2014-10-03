@@ -20,7 +20,7 @@
 #
 ################################################################################
 
-import os, sys, re
+import os, sys, re, collections
 import time, datetime
 import cPickle as pickle
 
@@ -29,6 +29,7 @@ from ecmascript.frontend import treeutil, tree
 from misc import cldr, util, filetool, util
 from generator.resource.Library import Library
 from generator.code import Class
+from generator import Context
 
 ##
 # creates an up-to-date index of the msgid's in the POFile
@@ -131,7 +132,7 @@ class Locale(object):
             # adding a hint/comment if available
             if "hint" in strings[msgid]:
                 obj.comment = strings[msgid]["hint"]
-            
+
             if "plural" in strings[msgid]:
                 #obj.msgid_plural = strings[msgid]["plural"]
                 obj.msgid_plural = polib.unescape(strings[msgid]["plural"])
@@ -159,18 +160,20 @@ class Locale(object):
                 if poentry.msgid.find(r'\\') > -1:
                     poentry.msgid = self.recoverBackslashEscapes(poentry.msgid)
 
+        # ----------------------------------------------------------------------
+
         self._console.info("Updating namespace: %s" % namespace)
         self._console.indent()
-        
+
         self._console.debug("Looking up relevant class files...")
         classList = []
         classes = self._classesObj
         for classId in classes:
             if classes[classId].library.namespace == namespace:
                 classList.append(classId)
-                    
+
         self._console.debug("Compiling filter...")
-        pot = self.getPotFile(classList)  # pot: source code => POFile object
+        pot = self.getPotFile(classList)  # pot: translation keys from the source code
         pot.sort()
 
         allLocales = self._translation[namespace]
@@ -195,14 +198,22 @@ class Locale(object):
             self._console.indent()
 
             entry = allLocales[locale]
-            po = polib.pofile(entry["path"])  # po: .po file from disk
-            po.merge(pot)
-            po.sort()
-            self._console.debug("Percent translated: %d" % (po.percent_translated(),))
-            #po.save(entry["path"])
-            poString = str(po)
-            #poString = self.recoverBackslashEscapes(poString)
-            filetool.save(entry["path"], poString)
+
+            try:
+                po = polib.pofile(entry["path"])  # po: .po file from disk
+                po.merge(pot)
+                po.sort()
+                self._console.debug("Percent translated: %d" % (po.percent_translated(),))
+                #po.save(entry["path"])
+                poString = str(po)
+                #poString = self.recoverBackslashEscapes(poString)
+                filetool.save(entry["path"], poString)
+            except UnicodeDecodeError:
+                self._console.nl()
+                err_msg = "Likely charset declaration and file encoding mismatch (consider using utf-8) in:"
+                self._console.error(err_msg + "\n%s" % entry["path"])
+                self._console.nl()
+
             self._console.outdent()
 
         self._console.outdent()
@@ -215,9 +226,43 @@ class Locale(object):
         return s.replace(r'\\', '\\')
 
 
-    def getTranslationData(self, clazzList, variants, targetLocales, addUntranslatedEntries=False):
+    ##
+    # Takes a list of classes and target locales, returns a map of those locales to translation
+    # maps, which contain the keys used in the classes and the translation in that locale.
+    #
+    def getTranslationData(self, clazzList, variants, targetLocales, addUntranslatedEntries=False, statsObj=None):
 
-        def extractTranslations(pot, po):
+        ##
+        # Collect the namespaces from classes in clazzlist
+        def namespacesFromClasses(clazzlist):
+            return set([clazz.library.namespace for clazz in clazzlist])
+
+        ##
+        # Collect all .po files for a given locale across libraries
+        def localesToPofiles(libnames, targetlocales):
+            LocalesToPofiles = collections.defaultdict(list)
+            for libname in libnames:
+                liblocales = self._translation[libname]  # {"en": <translationEntry>, ...}
+                for locale in (lcl for lcl in targetlocales if lcl in liblocales):
+                    LocalesToPofiles[locale].append(liblocales[locale]["path"])
+            return LocalesToPofiles
+
+        ##
+        # Adding translation entries from <pofiles> to <pot>
+        def translationsFromPofiles(pofiles, pot, statsObj=None):
+            for path in pofiles:
+                self._console.debug("Reading file: %s" % path)
+
+                # .po files are only read-accessed
+                cacheId = "pofile-%s" % path
+                po, _ = self._cache.read(cacheId, path, memory=True)
+                if po == None:
+                    po = polib.pofile(path)
+                    self._cache.write(cacheId, po, memory=True)
+                extractTranslations(pot, po, statsObj)
+            return pot
+
+        def extractTranslations(pot, po, statsObj=None):
             po.getIdIndex()
             for potentry in pot:
                 #otherentry = po.find(potentry.msgid)   # this is slower on average than my own functions (bec. 'getattr')
@@ -228,87 +273,73 @@ class Locale(object):
                     if otherentry.msgstr_plural:
                         for pos in otherentry.msgstr_plural:
                             potentry.msgstr_plural[pos] = otherentry.msgstr_plural[pos]
+                    if statsObj and not potentry.translated():
+                        statsObj['untranslated'][potentry.msgid] = po.fpath
             return
+
+        def reportUntranslated(locale, cnt_untranslated, cnt_total):
+            if cnt_total > 0:
+                self._console.debug(
+                    "%s:\t untranslated entries: %2d%% (%d/%d)" % (locale, 100*cnt_untranslated/cnt_total,
+                        cnt_untranslated, cnt_total)
+                )
 
         # -------------------------------------------------------------------------
 
-        # Find all influenced namespaces
-        libnames = {}
+        # Get the actually used translation keys from the code
+        langToTranslationMap = {}
         classList = [x.id for x in clazzList]
-        for clazz in clazzList:
-            ns = clazz.library.namespace
-            libnames[ns] = True
+        mainpot = self.getPotFile(classList, variants)  # pot file for this package, represents translation keys in the code
 
-        # Create a map of locale => [pofiles]
-        PoFiles = {}
-        for libname in libnames:
-            liblocales = self._translation[libname]  # {"en": <translationEntry>, ...}
-
-            for locale in targetLocales:
-                if locale in liblocales:
-                    if not locale in PoFiles:
-                        PoFiles[locale] = []
-                    PoFiles[locale].append(liblocales[locale]["path"]) # collect all .po files for a given locale across libraries
+        #if len(mainpot) == 0: # Early exit
+        #    return langToTranslationMap
+        libnames = namespacesFromClasses(clazzList) # Find all influenced namespaces
+        LocalesToPofiles = localesToPofiles(libnames, targetLocales)  # Create a map of locale => [pofiles]
+        mainpotS = pickle.dumps(mainpot)  # create a string-backup of mainpot
 
         # Load po files and process their content
-        blocks = {}
-        mainpot = self.getPotFile(classList, variants)  # pot file for this package
-        mainpotS = pickle.dumps(mainpot)
-        # loop through locales
-        for locale in PoFiles:
-            # ----------------------------------------------------------------------
+        for locale in LocalesToPofiles:
             # Generate POT file to filter PO files
             self._console.debug("Compiling filter...")
-            # need a fresh pot, as it will be modified
-            pot = pickle.loads(mainpotS)  # copy.deepcopy(mainpot) chokes on overridden Array.append
-
-            if len(pot) == 0:
-                return {}
-                
+            pot = pickle.loads(mainpotS)  # need a fresh pot, as it will be modified
+                                          # copy.deepcopy(mainpot) chokes on overridden Array.append
             self._console.debug("Processing translation: %s" % locale)
             self._console.indent()
 
-            result = {}
-            # loop through .po files
-            for path in PoFiles[locale]:
-                self._console.debug("Reading file: %s" % path)
-
-                # .po files are only read-accessed
-                cacheId = "pofile-%s" % path
-                po, _ = self._cache.read(cacheId, path, memory=True)
-                if po == None:
-                    po = polib.pofile(path)
-                    self._cache.write(cacheId, po, memory=True)
-                extractTranslations(pot, po)
-
+            if statsObj:
+               statsObj.update(locale, 0, 0)
+            # Get relevant entries from po files for this locale, and convert to dict
+            pot = translationsFromPofiles(LocalesToPofiles[locale], pot,
+                statsObj.stats[locale] if statsObj else statsObj) # loop through .po files, updating pot
             poentries = pot.translated_entries()
             if addUntranslatedEntries:
                 poentries.extend(pot.untranslated_entries())
-            result.update(self.entriesToDict(poentries))
+            transdict = self.entriesToDict(poentries)
+            langToTranslationMap[locale] = transdict
+            if statsObj:
+                statsObj.stats[locale]['total'] = len(pot)
 
-            self._console.debug("Formatting %s entries" % len(result))
-            blocks[locale] = result
             self._console.outdent()
 
-        return blocks
+        return langToTranslationMap
 
 
 
 
 
     def entriesToDict(self, entries):
-        all = {}
+        all_ = {}
 
         for entry in entries:
             if ('msgstr_plural' in dir(entry) and
                 '0' in entry.msgstr_plural and '1' in entry.msgstr_plural):
-                all[entry.msgid]        = entry.msgstr_plural['0']
-                all[entry.msgid_plural] = entry.msgstr_plural['1']
+                all_[entry.msgid]        = entry.msgstr_plural['0']
+                all_[entry.msgid_plural] = entry.msgstr_plural['1']
                 # missing: handling of potential msgstr_plural[2:N]
             else:
-                all[entry.msgid] = entry.msgstr
+                all_[entry.msgid] = entry.msgstr
 
-        return all
+        return all_
 
 
 
@@ -358,9 +389,8 @@ class Locale(object):
 
         self._console.debug("Collecting package strings...")
         self._console.indent()
-        
+
         result = {}
-        numClass = len(content)
         for num,classId in enumerate(content):
             #translation, cached = self.getTranslation(classId, variants) # should be a method on clazz
             translation, cached = self._classesObj[classId].messageStrings(variants)
@@ -379,12 +409,12 @@ class Locale(object):
                         "occurrences" : []
                     }
 
-                    if "plural" in source:
-                        #target["plural"] = self.parseAsUnicodeString(source["plural"])
-                        target["plural"] = source["plural"]
+                if "plural" in source:
+                    #target["plural"] = self.parseAsUnicodeString(source["plural"])
+                    target["plural"] = source["plural"]
 
-                    if "hint" in source:
-                        target["hint"] = source["hint"]
+                if "hint" in source:
+                    target["hint"] = source["hint"]
 
                 target["occurrences"].append({
                     "file" : self._classesObj[classId].relpath,
@@ -396,3 +426,42 @@ class Locale(object):
         self._console.debug("Package contains %s unique translation strings" % len(result))
         self._console.outdent()
         return result
+
+
+##
+# LocStats -- collect stats from translations
+#
+class LocStats(object):
+
+    def __init__(self):
+        self.stats = {}  # {locale: {untranslated: {msgid1:PoFilePath}, total: m}}
+
+    def update(self, locale, untrans, total):
+        if locale not in self.stats:
+            self.stats[locale] = { 'untranslated' : {}, 'total' : 0}
+        self.stats[locale]['untranslated'] = {}
+        self.stats[locale]['total'] = total
+
+##
+# update .po files
+#
+def runUpdateTranslation(jobconf, classesObj, libraries, translations):
+    namespaces = jobconf.get("translate/namespaces")
+    if not namespaces:
+        return
+
+    console = Context.console
+    cache = Context.cache
+    locales = jobconf.get("translate/locales", None)
+    console.info("Updating translations...")
+    console.indent()
+    context = {}
+    context['jobconf'] = jobconf
+    localeObj = Locale(context, classesObj, translations, cache, console)
+    for namespace in namespaces:
+        lib = [x for x in libraries if x.namespace == namespace][0]
+        localeObj.updateTranslations(namespace, lib.translationPathSuffix(), locales)
+
+    console.outdent()
+
+

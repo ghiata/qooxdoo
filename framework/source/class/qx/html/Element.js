@@ -36,6 +36,8 @@
  * {@link #getParent}, {@link #free},
  * {@link #insertInto}, {@link #insertBefore}, {@link #insertAfter},
  * {@link #moveTo}, {@link #moveBefore}, {@link #moveAfter},
+ *
+ * @require(qx.module.Animation)
  */
 qx.Class.define("qx.html.Element",
 {
@@ -87,28 +89,34 @@ qx.Class.define("qx.html.Element",
     ---------------------------------------------------------------------------
     */
 
-    /** {Boolean} If debugging should be enabled */
+    /** @type {Boolean} If debugging should be enabled */
     DEBUG : false,
 
 
-    /** {Map} Contains the modified {@link qx.html.Element}s. The key is the hash code. */
+    /** @type {Map} Contains the modified {@link qx.html.Element}s. The key is the hash code. */
     _modified : {},
 
 
-    /** {Map} Contains the {@link qx.html.Element}s which should get hidden or visible at the next flush. The key is the hash code. */
+    /** @type {Map} Contains the {@link qx.html.Element}s which should get hidden or visible at the next flush. The key is the hash code. */
     _visibility : {},
 
 
-    /** {Map} Contains the {@link qx.html.Element}s which should scrolled at the next flush */
+    /** @type {Map} Contains the {@link qx.html.Element}s which should scrolled at the next flush */
     _scroll : {},
 
 
-    /** {Array} List of post actions for elements. The key is the action name. The value the {@link qx.html.Element}. */
+    /** @type {Array} List of post actions for elements. The key is the action name. The value the {@link qx.html.Element}. */
     _actions : [],
 
 
-    /**  {Map} List of all selections. */
+    /**  @type {Map} List of all selections. */
     __selection : {},
+
+
+    __focusHandler : null,
+
+
+    __mouseCapture : null,
 
 
 
@@ -173,10 +181,9 @@ qx.Class.define("qx.html.Element",
       for (var hc in modified)
       {
         obj = modified[hc];
-        // Ignore all hidden elements
+        // Ignore all hidden elements except iframes
         // but keep them until they get visible (again)
-
-        if (obj.__willBeSeeable())
+        if (obj.__willBeSeeable() || obj.classname == "qx.html.Iframe")
         {
           // Separately queue rendered elements
           if (obj.__element && qx.dom.Hierarchy.isRendered(obj.__element)) {
@@ -425,16 +432,16 @@ qx.Class.define("qx.html.Element",
 
     __nodeName : null,
 
-    /** {Element} DOM element of this object */
+    /** @type {Element} DOM element of this object */
     __element : null,
 
-    /** {Boolean} Marker for always visible root nodes (often the body node) */
+    /** @type {Boolean} Marker for always visible root nodes (often the body node) */
     __root : false,
 
-    /** {Boolean} Whether the element should be included in the render result */
+    /** @type {Boolean} Whether the element should be included in the render result */
     __included : true,
 
-    /** {Boolean} Whether the element should be visible in the render result */
+    /** @type {Boolean} Whether the element should be visible in the render result */
     __visible : true,
 
     __lazyScrollIntoViewX : null,
@@ -460,7 +467,6 @@ qx.Class.define("qx.html.Element",
     /**
      * Add the element to the global modification list.
      *
-     * @return {void}
      */
     _scheduleChildrenUpdate : function()
     {
@@ -478,9 +484,10 @@ qx.Class.define("qx.html.Element",
     /**
      * Internal helper to generate the DOM element
      *
+     * @return {Element} DOM element
      */
     _createDomElement : function() {
-      return qx.bom.Element.create(this.__nodeName);
+      return qx.dom.Element.create(this.__nodeName);
     },
 
 
@@ -497,7 +504,6 @@ qx.Class.define("qx.html.Element",
     /**
      * Syncs data of an HtmlElement object to the DOM.
      *
-     * @return {void}
      */
     __flush : function()
     {
@@ -563,7 +569,6 @@ qx.Class.define("qx.html.Element",
      * created. After this initial apply {@link #_syncChildren} is used
      * instead.
      *
-     * @return {void}
      */
     _insertChildren : function()
     {
@@ -603,7 +608,6 @@ qx.Class.define("qx.html.Element",
      * for further runtime updates after the element has been created
      * initially.
      *
-     * @return {void}
      */
     _syncChildren : function()
     {
@@ -702,7 +706,6 @@ qx.Class.define("qx.html.Element",
      *
      * @param fromMarkup {Boolean} Whether the copy should respect styles
      *   given from markup
-     * @return {void}
      */
     _copyData : function(fromMarkup)
     {
@@ -766,7 +769,6 @@ qx.Class.define("qx.html.Element",
      * is the counterpart of {@link #_copyData} and is used for further updates
      * after the element has been created.
      *
-     * @return {void}
      */
     _syncData : function()
     {
@@ -854,6 +856,7 @@ qx.Class.define("qx.html.Element",
      *
      * This method is quite performance hungry as it
      * really walks up recursively.
+     * @return {Boolean} <code>true</code> if the element will be seeable
      */
     __willBeSeeable : function()
     {
@@ -881,7 +884,7 @@ qx.Class.define("qx.html.Element",
      * Internal helper for all children addition needs
      *
      * @param child {var} the element to add
-     * @throws an exception if the given element is already a child
+     * @throws {Error} if the given element is already a child
      *     of this element
      */
     __addChildHelper : function(child)
@@ -918,7 +921,7 @@ qx.Class.define("qx.html.Element",
      * Internal helper for all children removal needs
      *
      * @param child {qx.html.Element} the removed element
-     * @throws an exception if the given element is not a child
+     * @throws {Error} if the given element is not a child
      *     of this element
      */
     __removeChildHelper : function(child)
@@ -941,7 +944,7 @@ qx.Class.define("qx.html.Element",
      * Internal helper for all children move needs
      *
      * @param child {qx.html.Element} the moved element
-     * @throws an exception if the given element is not a child
+     * @throws {Error} if the given element is not a child
      *     of this element
      */
     __moveChildHelper : function(child)
@@ -1036,7 +1039,7 @@ qx.Class.define("qx.html.Element",
     /**
      * Append all given children at the end of this element.
      *
-     * @param varargs {qx.html.Element...} elements to insert
+     * @param varargs {qx.html.Element} elements to insert
      * @return {qx.html.Element} this object (for chaining support)
      */
     add : function(varargs)
@@ -1082,14 +1085,14 @@ qx.Class.define("qx.html.Element",
     /**
      * Removes all given children
      *
-     * @param childs {qx.html.Element...} children to remove
+     * @param childs {qx.html.Element} children to remove
      * @return {qx.html.Element} this object (for chaining support)
      */
     remove : function(childs)
     {
       var children = this.__children;
       if (!children) {
-        return;
+        return this;
       }
 
       if (arguments[1])
@@ -1246,7 +1249,7 @@ qx.Class.define("qx.html.Element",
      *
      * @param index {Integer} the index (starts at 0 for the first child)
      * @return {qx.html.Element} this object (for chaining support)
-     * @throws an exception when the given element is not child
+     * @throws {Error} when the given element is not child
      *      of this element.
      */
     moveTo : function(index)
@@ -1309,7 +1312,7 @@ qx.Class.define("qx.html.Element",
       }
 
       if (!parent.__children) {
-        return;
+        return this;
       }
 
       parent.__removeChildHelper(this);
@@ -1387,10 +1390,10 @@ qx.Class.define("qx.html.Element",
       // when we try to use the same DOM node again. I am not sure
       // why this happens. Would be a good performance improvement,
       // but does not seem to work.
-      if ((qx.core.Environment.get("engine.name") == "mshtml")) {
+      if (qx.core.Environment.get("engine.name") == "mshtml") {
         var helper = document.createElement("div");
       } else {
-        var helper = qx.bom.Element.getHelperElement();
+        var helper = qx.dom.Element.getHelperElement();
       }
 
       // Extract first element
@@ -1448,31 +1451,17 @@ qx.Class.define("qx.html.Element",
      * qxSelectable with the values 'on' or 'off'.
      * In webkit, a special css property will be used (-webkit-user-select).
      *
-     * @signature function(value)
      * @param value {Boolean} True, if the element should be selectable.
      */
-    setSelectable : qx.core.Environment.select("engine.name",
+    setSelectable : function(value)
     {
-      "webkit" : function(value)
-      {
-        // Apply qooxdoo attribute
-        this.setAttribute("qxSelectable", value ? "on" : "off");
-        this.setStyle("userSelect", value ? "text" : "none");
-      },
-
-      "gecko" : function(value)
-      {
-        // Apply qooxdoo attribute
-        this.setAttribute("qxSelectable", value ? "on" : "off");
-        this.setStyle("MozUserSelect", value ? "text" : "-moz-none");
-      },
-
-      "default" : function(value)
-      {
-        // Apply qooxdoo attribute
-        this.setAttribute("qxSelectable", value ? "on" : "off");
+      this.setAttribute("qxSelectable", value ? "on" : "off");
+      var userSelect = qx.core.Environment.get("css.userselect");
+      if (userSelect) {
+        this.setStyle(userSelect, value ? "text" :
+          qx.core.Environment.get("css.userselect.none"));
       }
-    }),
+    },
 
 
     /**
@@ -1507,7 +1496,7 @@ qx.Class.define("qx.html.Element",
     include : function()
     {
       if (this.__included) {
-        return;
+        return this;
       }
 
       delete this.__included;
@@ -1529,7 +1518,7 @@ qx.Class.define("qx.html.Element",
     exclude : function()
     {
       if (!this.__included) {
-        return;
+        return this;
       }
 
       this.__included = false;
@@ -1554,6 +1543,56 @@ qx.Class.define("qx.html.Element",
 
 
 
+    /*
+    ---------------------------------------------------------------------------
+      ANIMATION SUPPORT
+    ---------------------------------------------------------------------------
+    */
+    /**
+     * Fades in the element.
+     * @param duration {Number} Time in ms.
+     * @return {qx.bom.element.AnimationHandle} The animation handle to react for
+     *   the fade animation.
+     */
+    fadeIn : function(duration) {
+      var col = qxWeb(this.__element);
+      if (col.isPlaying()) {
+        col.stop();
+      }
+      // create the element right away
+      if (!this.__element) {
+        this.__flush();
+        col.push(this.__element);
+      }
+      if (this.__element) {
+        col.fadeIn(duration);
+        return col.getAnimationHandles()[0];
+      }
+    },
+
+
+    /**
+     * Fades out the element.
+     * @param duration {Number} Time in ms.
+     * @return {qx.bom.element.AnimationHandle} The animation handle to react for
+     *   the fade animation.
+     */
+    fadeOut : function(duration) {
+      var col = qxWeb(this.__element);
+      if (col.isPlaying()) {
+        col.stop();
+      }
+
+      if (this.__element) {
+        col.fadeOut(duration).once("animationEnd", function() {
+          this.hide();
+          qx.html.Element.flush();
+        }, this);
+        return col.getAnimationHandles()[0];
+      }
+    },
+
+
 
 
     /*
@@ -1572,7 +1611,7 @@ qx.Class.define("qx.html.Element",
     show : function()
     {
       if (this.__visible) {
-        return;
+        return this;
       }
 
       if (this.__element)
@@ -1587,6 +1626,7 @@ qx.Class.define("qx.html.Element",
       }
 
       delete this.__visible;
+      return this;
     },
 
 
@@ -1599,7 +1639,7 @@ qx.Class.define("qx.html.Element",
     hide : function()
     {
       if (!this.__visible) {
-        return;
+        return this;
       }
 
       if (this.__element)
@@ -1609,6 +1649,7 @@ qx.Class.define("qx.html.Element",
       }
 
       this.__visible = false;
+      return this;
     },
 
 
@@ -1722,7 +1763,6 @@ qx.Class.define("qx.html.Element",
      * @param x {Integer} Horizontal scroll position
      * @param lazy {Boolean?false} Whether the scrolling should be performed
      *    during element flush.
-     * @return {void}
      */
     scrollToX : function(x, lazy)
     {
@@ -1765,7 +1805,6 @@ qx.Class.define("qx.html.Element",
      * @param y {Integer} Vertical scroll position
      * @param lazy {Boolean?false} Whether the scrolling should be performed
      *    during element flush.
-     * @return {void}
      */
     scrollToY : function(y, lazy)
     {
@@ -1931,7 +1970,6 @@ qx.Class.define("qx.html.Element",
      *
      * @param start {Integer} start of the selection (zero based)
      * @param end {Integer} end of the selection
-     * @return {void}
      */
     setTextSelection : function(start, end)
     {
@@ -1956,7 +1994,6 @@ qx.Class.define("qx.html.Element",
      *
      * This method only works if the underlying DOM element is already created.
      *
-     * @return {void}
      */
     clearTextSelection : function()
     {
@@ -1982,7 +2019,6 @@ qx.Class.define("qx.html.Element",
      *
      * @param action {String} action to queue
      * @param args {Array} optional list of arguments for the action
-     * @return {void}
      */
     __performAction : function(action, args)
     {
@@ -2003,7 +2039,6 @@ qx.Class.define("qx.html.Element",
      * If the underlaying DOM element is not yet created, the
      * focus is queued for processing after the element creation.
      *
-     * @return {void}
      */
     focus : function() {
       this.__performAction("focus");
@@ -2013,7 +2048,6 @@ qx.Class.define("qx.html.Element",
     /**
      * Mark this element to get blurred on the next flush of the queue
      *
-     * @return {void}
      */
     blur : function() {
       this.__performAction("blur");
@@ -2023,7 +2057,6 @@ qx.Class.define("qx.html.Element",
     /**
      * Mark this element to get activated on the next flush of the queue
      *
-     * @return {void}
      */
     activate : function() {
       this.__performAction("activate");
@@ -2033,7 +2066,6 @@ qx.Class.define("qx.html.Element",
     /**
      * Mark this element to get deactivated on the next flush of the queue
      *
-     * @return {void}
      */
     deactivate : function() {
       this.__performAction("deactivate");
@@ -2085,7 +2117,7 @@ qx.Class.define("qx.html.Element",
       }
 
       if (this.__styleValues[key] == value) {
-        return;
+        return this;
       }
 
       if (value == null) {
@@ -2209,6 +2241,7 @@ qx.Class.define("qx.html.Element",
      */
     removeStyle : function(key, direct) {
       this.setStyle(key, null, direct);
+      return this;
     },
 
 
@@ -2258,7 +2291,7 @@ qx.Class.define("qx.html.Element",
       }
 
       if (this.__attribValues[key] == value) {
-        return;
+        return this;
       }
 
       if (value == null) {
@@ -2324,7 +2357,7 @@ qx.Class.define("qx.html.Element",
      * @return {qx.html.Element} this object (for chaining support)
      */
     removeAttribute : function(key, direct) {
-      this.setAttribute(key, null, direct);
+      return this.setAttribute(key, null, direct);
     },
 
 
@@ -2339,6 +2372,32 @@ qx.Class.define("qx.html.Element",
     },
 
 
+
+    /*
+    ---------------------------------------------------------------------------
+      CSS CLASS SUPPORT
+    ---------------------------------------------------------------------------
+    */
+    /**
+     * Adds a css class to the element.
+     * @param name {String} Name of the CSS class.
+     */
+    addClass : function(name) {
+      var value = ((this.getAttribute("class") || "") + " " + name).trim();
+      this.setAttribute("class", value);
+    },
+
+
+    /**
+     * Removes a CSS class from the current element.
+     * @param name {String} Name of the CSS class.
+     */
+    removeClass : function(name) {
+      var currentClass = this.getAttribute("class");
+      if (currentClass) {
+        this.setAttribute("class", (currentClass.replace(name, "")).trim());
+      }
+    },
 
 
 
@@ -2358,6 +2417,7 @@ qx.Class.define("qx.html.Element",
      * @param name {String} Unique property identifier
      * @param value {var} Any valid value (depends on the property)
      * @return {qx.html.Element} this object (for chaining support)
+     * @abstract
      */
     _applyProperty : function(name, value) {
       // empty implementation
@@ -2380,7 +2440,7 @@ qx.Class.define("qx.html.Element",
       }
 
       if (this.__propertyValues[key] == value) {
-        return;
+        return this;
       }
 
       if (value == null) {
@@ -2427,7 +2487,7 @@ qx.Class.define("qx.html.Element",
      * @return {qx.html.Element} this object (for chaining support)
      */
     _removeProperty : function(key, direct) {
-      this._setProperty(key, null, direct);
+      return this._setProperty(key, null, direct);
     },
 
 
@@ -2557,6 +2617,11 @@ qx.Class.define("qx.html.Element",
 
       if (this.__element)
       {
+        if (listener.$$wrapped_callback && listener.$$wrapped_callback[type + this.$$hash]) {
+          var callback = listener.$$wrapped_callback[type + this.$$hash];
+          delete listener.$$wrapped_callback[type + this.$$hash];
+          listener = callback;
+        }
         qx.event.Registration.removeListener(this.__element, type, listener, self, capture);
       }
       else
@@ -2644,6 +2709,42 @@ qx.Class.define("qx.html.Element",
       }
 
       return false;
+    },
+
+
+    /**
+     * Serializes and returns all event listeners attached to this element
+     * @return {Map[]} an Array containing a map for each listener. The maps
+     * have the following keys:
+     * <ul>
+     *   <li><code>type</code> (String): Event name</li>
+     *   <li><code>handler</code> (Function): Callback function</li>
+     *   <li><code>self</code> (Object): The callback's context</li>
+     *   <li><code>capture</code> (Boolean): If <code>true</code>, the listener is
+     * attached to the capturing phase</li>
+     * </ul>
+     */
+    getListeners : function() {
+      if (this.$$disposed) {
+        return null;
+      }
+
+      if (this.__element) {
+        return qx.event.Registration.getManager(this.__element).serializeListeners(this.__element);
+      }
+
+      var listeners = [];
+      for (var id in this.__eventValues) {
+        var listenerData = this.__eventValues[id];
+        listeners.push({
+          type: listenerData.type,
+          handler: listenerData.listener,
+          self: listenerData.self,
+          capture: listenerData.capture
+        });
+      }
+
+      return listeners;
     }
   },
 

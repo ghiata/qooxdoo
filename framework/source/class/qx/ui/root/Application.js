@@ -18,15 +18,6 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.event.handler.Window)
-#ignore(qx.ui.popup.Manager)
-#ignore(qx.ui.menu.Manager)
-#ignore(qx.ui)
-
-************************************************************************ */
-
 /**
  * This is the root widget for qooxdoo applications with an
  * "application" like behaviour. The widget will span the whole viewport
@@ -40,6 +31,13 @@
  *
  * This class uses a {@link qx.ui.layout.Canvas} as fixed layout. The layout
  * cannot be changed.
+ *
+ * @require(qx.event.handler.Window)
+ * @ignore(qx.ui.popup)
+ * @ignore(qx.ui.popup.Manager.*)
+ * @ignore(qx.ui.menu)
+ * @ignore(qx.ui.menu.Manager.*)
+ * @ignore(qx.ui)
  */
 qx.Class.define("qx.ui.root.Application",
 {
@@ -78,6 +76,25 @@ qx.Class.define("qx.ui.root.Application",
     qx.ui.core.FocusHandler.getInstance().connectTo(this);
 
     this.getContentElement().disableScrolling();
+
+    // quick fix for [BUG #7680]
+    this.getContentElement().setStyle("-webkit-backface-visibility", "hidden");
+
+    // prevent scrolling on touch devices
+    this.addListener("touchmove", this.__stopScrolling, this);
+
+    // handle focus for iOS which seems to deny any focus action
+    if (qx.core.Environment.get("os.name") == "ios") {
+      this.getContentElement().addListener("tap", function(e) {
+        var widget = qx.ui.core.Widget.getWidgetByElement(e.getTarget());
+        while (widget && !widget.isFocusable()) {
+          widget = widget.getLayoutParent();
+        }
+        if (widget && widget.isFocusable()) {
+          widget.getContentElement().focus();
+        }
+      }, this, true);
+    }
   },
 
 
@@ -96,13 +113,16 @@ qx.Class.define("qx.ui.root.Application",
     __doc : null,
 
     // overridden
-    _createContainerElement : function()
+    /**
+     * Create the widget's container HTML element.
+     *
+     * @lint ignoreDeprecated(alert)
+     * @return {qx.html.Element} The container HTML element
+     */
+    _createContentElement : function()
     {
       var doc = this.__doc;
 
-      /**
-       * @lint ignoreDeprecated(alert)
-       */
       if ((qx.core.Environment.get("engine.name") == "webkit"))
       {
         // In the "DOMContentLoaded" event of WebKit (Safari, Chrome) no body
@@ -126,7 +146,11 @@ qx.Class.define("qx.ui.root.Application",
       doc.body.appendChild(elem);
 
       var root = new qx.html.Root(elem);
-      root.setStyle("position", "absolute");
+      root.setStyles({
+        "position" : "absolute",
+        "overflowX" : "hidden",
+        "overflowY" : "hidden"
+      });
 
       // Store "weak" reference to the widget in the DOM element.
       root.setAttribute("$$widget", this.toHashCode());
@@ -139,7 +163,6 @@ qx.Class.define("qx.ui.root.Application",
      * Listener for window's resize event
      *
      * @param e {qx.event.type.Event} Event object
-     * @return {void}
      */
     _onResize : function(e) {
       qx.ui.core.queue.Layout.add(this);
@@ -183,18 +206,26 @@ qx.Class.define("qx.ui.root.Application",
     },
 
 
-    // overridden
-    _applyDecorator : function(value, old)
-    {
-      this.base(arguments, value, old);
-      if (!value) {
-        return;
-      }
+    /**
+     * Handler for the native 'touchstart' on the window which prevents
+     * the native page scrolling.
+     * @param e {qx.event.type.Touch} The qooxdoo touch event.
+     */
+    __stopScrolling : function(e) {
+      var node = e.getOriginalTarget();
+      while (node && node.style) {
+        var touchAction = qx.bom.element.Style.get(node, "touch-action") !== "none" &&
+          qx.bom.element.Style.get(node, "touch-action") !== "";
+        var webkitOverflowScrolling = qx.bom.element.Style.get(node, "-webkit-overflow-scrolling") === "touch";
+        var overflowX = qx.bom.element.Style.get(node, "overflowX") != "hidden";
+        var overflowY = qx.bom.element.Style.get(node, "overflowY") != "hidden";
 
-      var insets = this.getDecoratorElement().getInsets();
-      if (insets.left || insets.top) {
-        throw new Error("The root widget does not support decorators with 'left', or 'top' insets!");
+        if (touchAction || webkitOverflowScrolling || overflowY || overflowX) {
+          return;
+        }
+        node = node.parentNode;
       }
+      e.preventDefault();
     }
   },
 

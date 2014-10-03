@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE ldml SYSTEM "../../common/dtd/ldml.dtd">
+<!-- Copyright © 1991-2013 Unicode, Inc.
+CLDR data files are interpreted according to the LDML specification (http://unicode.org/reports/tr35/)
+For terms of use, see http://www.unicode.org/copyright.html
+-->
 <ldml>
 	<identity>
-		<version number="$Revision: 5663 $"/>
-		<generation date="$Date: 2011-04-25 14:35:18 -0500 (Mon, 25 Apr 2011) $"/>
+		<version number="$Revision: 9280 $"/>
+		<generation date="$Date: 2013-08-27 13:07:13 -0500 (Tue, 27 Aug 2013) $"/>
 		<language type="ne"/>
 		<territory type="IN"/>
 	</identity>
 	<localeDisplayNames>
 		<measurementSystemNames>
-			<measurementSystemName type="metric">मेट्रिक</measurementSystemName>
 			<measurementSystemName type="US">अमेरिकेली</measurementSystemName>
 		</measurementSystemNames>
 	</localeDisplayNames>
@@ -47,16 +50,6 @@
 						</dayWidth>
 					</dayContext>
 				</days>
-				<quarters>
-					<quarterContext type="format">
-						<quarterWidth type="wide">
-							<quarter type="1">पहिलो पाउ</quarter>
-							<quarter type="2">दोस्रो पाउ</quarter>
-							<quarter type="3">तेस्रो पाउ</quarter>
-							<quarter type="4">चौथो पाउ</quarter>
-						</quarterWidth>
-					</quarterContext>
-				</quarters>
 				<dayPeriods>
 					<dayPeriodContext type="format">
 						<dayPeriodWidth type="wide">
@@ -65,34 +58,6 @@
 						</dayPeriodWidth>
 					</dayPeriodContext>
 				</dayPeriods>
-				<fields>
-					<field type="era">
-						<displayName>युग</displayName>
-					</field>
-					<field type="year">
-						<displayName>वर्ष</displayName>
-					</field>
-					<field type="week">
-						<displayName>साता</displayName>
-					</field>
-					<field type="day">
-						<displayName>वार</displayName>
-						<relative type="2">पर्सि</relative>
-						<relative type="3" draft="unconfirmed">निपर्सि</relative>
-					</field>
-					<field type="weekday">
-						<displayName>हप्ताको वार</displayName>
-					</field>
-					<field type="dayperiod">
-						<displayName>पूर्वाह्न / अपराह्न</displayName>
-					</field>
-					<field type="second">
-						<displayName>सेकेन्ड</displayName>
-					</field>
-					<field type="zone">
-						<displayName>अञ्‍चल</displayName>
-					</field>
-				</fields>
 			</calendar>
 			<calendar type="indian">
 				<months>
@@ -115,6 +80,40 @@
 				</months>
 			</calendar>
 		</calendars>
+		<fields>
+			<field type="era">
+				<displayName>युग</displayName>
+			</field>
+			<field type="year">
+				<displayName>वर्ष</displayName>
+			</field>
+			<field type="week">
+				<displayName>साता</displayName>
+			</field>
+			<field type="day">
+				<displayName>वार</displayName>
+				<relative type="2">पर्सि</relative>
+			</field>
+			<field type="weekday">
+				<displayName>हप्ताको वार</displayName>
+			</field>
+			<field type="dayperiod">
+				<displayName>पूर्वाह्न / अपराह्न</displayName>
+			</field>
+			<field type="second">
+				<displayName>सेकेन्ड</displayName>
+			</field>
+			<field type="zone">
+				<displayName>अञ्‍चल</displayName>
+			</field>
+		</fields>
+		<timeZoneNames>
+			<metazone type="India">
+				<short>
+					<standard>IST</standard>
+				</short>
+			</metazone>
+		</timeZoneNames>
 	</dates>
 	<numbers>
 		<currencies>
@@ -126,12 +125,12 @@
 		</currencies>
 	</numbers>
 	<units>
-		<unit type="week">
-			<unitPattern count="one">{0} साता</unitPattern>
-		</unit>
-		<unit type="year">
-			<unitPattern count="one">{0} वर्ष</unitPattern>
-			<unitPattern count="other">{0} वर्ष</unitPattern>
-		</unit>
+		<unitLength type="long">
+			<unit type="duration-week">
+				<unitPattern count="one">{0} साता</unitPattern>
+				<unitPattern count="other">{0} सप्ताह</unitPattern>
+			</unit>
+		</unitLength>
 	</units>
 </ldml>
+

@@ -17,12 +17,10 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-#ignore(selenium)
-************************************************************************ */
-
 /**
  * Provides event testing support.
+ *
+ * @deprecated{4.0}
  */
 
 qx.Mixin.define("simulator.MEventSupport",
@@ -33,7 +31,7 @@ qx.Mixin.define("simulator.MEventSupport",
      * Adds utility functions to the AUT that allow attaching and removing event
      * listeners to qooxdoo objects identified by their object registry hash.
      *
-     * @lint ignoreUndefined(selenium)
+     * @ignore(selenium.qxStoredVars)
      */
     _addListenerSupport : function()
     {
@@ -59,7 +57,7 @@ qx.Mixin.define("simulator.MEventSupport",
      * @param locator {String} A (Qx)Selenium locator string that finds a
      * qooxdoo widget
      * @param event {String} Name of the event to listen for
-     * @param callback {String} Javascript code to be executed if the event is
+     * @param callback {Function} Function to be executed if the event is
      * fired. The local variable "ev" will reference the event object
      * @param script {String?} JavaScript snippet to be executed in the context
      * of the widget determined by the locator. The listener will be attached
@@ -74,14 +72,7 @@ qx.Mixin.define("simulator.MEventSupport",
         var objectHash = simulator.QxSelenium.getInstance().getQxObjectHash(locator);
       }
       var callbackName = event + "_" + new Date().getTime();
-      
-      if (!qx.lang.Type.isString(callback)) {
-        qx.log.Logger.deprecatedMethodWarning(arguments.callee, "The callback parameter must be a string!");
-        this._addOwnFunction(callbackName, callback);
-      }
-      else {
-        this.addOwnFunctionFromString(callbackName, callback, ["ev"]);
-      }
+      this.addFunctionToAut(callbackName, callback, ["ev"]);
       var callbackInContext = 'selenium.qxStoredVars["autWindow"].qx.Simulation["' + callbackName + '"]';
       var cmd = 'selenium.qxStoredVars["autWindow"].qx.Simulation.addListener("' + objectHash + '", "' + event + '", ' + callbackInContext + ')';
       return simulator.QxSelenium.getInstance().getEval(cmd);
@@ -117,11 +108,13 @@ qx.Mixin.define("simulator.MEventSupport",
      * context.
      * @return {String} The listener's ID as returned by addListener
      *
-     * @lint ignoreUndefined(selenium)
+     * @ignore(qx.Simulation.eventStore.push)
      */
     storeEvent : function(locator, event, script)
     {
-      var callback = 'qx.Simulation.eventStore.push(ev.clone());';
+      var callback = function(ev) {
+        qx.Simulation.eventStore.push(ev.clone());
+      };
       return this.addListener(locator, event, callback, script);
     },
 

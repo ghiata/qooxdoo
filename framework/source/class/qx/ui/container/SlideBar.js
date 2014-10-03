@@ -58,7 +58,7 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/widget/slidebar.html' target='_blank'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/widget/slidebar.html' target='_blank'>
  * Documentation of this widget in the qooxdoo manual.</a>
  */
 qx.Class.define("qx.ui.container.SlideBar",
@@ -95,7 +95,7 @@ qx.Class.define("qx.ui.container.SlideBar",
       this.initOrientation();
     }
 
-    this.addListener("mousewheel", this._onMouseWheel, this);
+    this.addListener("roll", this._onRoll, this);
   },
 
 
@@ -134,7 +134,17 @@ qx.Class.define("qx.ui.container.SlideBar",
   },
 
 
+  /*
+  *****************************************************************************
+     EVENTS
+  *****************************************************************************
+  */
 
+  events :
+  {
+    /** Fired on scroll animation end invoked by 'scroll*' methods. */
+    scrollAnimationEnd : "qx.event.type.Event"
+  },
 
 
   /*
@@ -181,16 +191,6 @@ qx.Class.define("qx.ui.container.SlideBar",
         case "content":
           control = new qx.ui.container.Composite();
 
-          /*
-           * Gecko < 2 does not update the scroll position after removing an
-           * element. So we have to do this by hand.
-           */
-          if (qx.core.Environment.get("engine.name") == "gecko" &&
-            parseInt(qx.core.Environment.get("engine.version")) < 2) 
-          {
-            control.addListener("removeChildWidget", this._onRemoveChild, this);
-          }
-
           this.getChildControl("scrollpane").add(control);
           break;
 
@@ -199,6 +199,7 @@ qx.Class.define("qx.ui.container.SlideBar",
           control.addListener("update", this._onResize, this);
           control.addListener("scrollX", this._onScroll, this);
           control.addListener("scrollY", this._onScroll, this);
+          control.addListener("scrollAnimationEnd", this._onScrollAnimationEnd, this);
           break;
       }
 
@@ -227,15 +228,15 @@ qx.Class.define("qx.ui.container.SlideBar",
      * Scrolls the element's content by the given amount.
      *
      * @param offset {Integer?0} Amount to scroll
-     * @return {void}
+     * @param duration {Number?} The time in milliseconds the scroll to should take.
      */
-    scrollBy : function(offset)
+    scrollBy : function(offset, duration)
     {
       var pane = this.getChildControl("scrollpane");
       if (this.getOrientation() === "horizontal") {
-        pane.scrollByX(offset);
+        pane.scrollByX(offset, duration);
       } else {
-        pane.scrollByY(offset);
+        pane.scrollByY(offset, duration);
       }
     },
 
@@ -244,15 +245,15 @@ qx.Class.define("qx.ui.container.SlideBar",
      * Scrolls the element's content to the given coordinate
      *
      * @param value {Integer} The position to scroll to.
-     * @return {void}
+     * @param duration {Number?} The time in milliseconds the scroll to should take.
      */
-    scrollTo : function(value)
+    scrollTo : function(value, duration)
     {
       var pane = this.getChildControl("scrollpane");
       if (this.getOrientation() === "horizontal") {
-        pane.scrollToX(value);
+        pane.scrollToX(value, duration);
       } else {
-        pane.scrollToY(value);
+        pane.scrollToY(value, duration);
       }
     },
 
@@ -278,14 +279,14 @@ qx.Class.define("qx.ui.container.SlideBar",
 
       // old can also be null, so we have to check both explicitly to set
       // the states correctly.
-      if (old == "vertical")
+      if (old == "vertical" && value == "horizontal")
       {
         buttonForward.removeState("vertical");
         buttonBackward.removeState("vertical");
         buttonForward.addState("horizontal");
         buttonBackward.addState("horizontal");
       }
-      else if (old == "horizontal")
+      else if (old == "horizontal" && value == "vertical")
       {
         buttonForward.removeState("horizontal");
         buttonBackward.removeState("horizontal");
@@ -324,22 +325,60 @@ qx.Class.define("qx.ui.container.SlideBar",
     */
 
     /**
-     * Scrolls pane on mousewheel events
+     * Scrolls pane on roll events
      *
-     * @param e {qx.event.type.Mouse} the mouse event
+     * @param e {qx.event.type.Roll} the roll event
      */
-    _onMouseWheel : function(e)
+    _onRoll : function(e)
     {
-      var delta = 0;
-      if (this.getOrientation() === "horizontal") {
-        delta = e.getWheelDelta("x");
-      } else {
-        delta = e.getWheelDelta("y");
+      // only wheel and touch
+      if (e.getPointerType() == "mouse") {
+        return;
       }
-      this.scrollBy(delta * this.getScrollStep());
 
-      // Stop bubbling and native event
-      e.stop();
+      var delta = 0;
+      var pane = this.getChildControl("scrollpane");
+      if (this.getOrientation() === "horizontal") {
+        delta = e.getDelta().x;
+
+        var position = pane.getScrollX();
+        var max = pane.getScrollMaxX();
+        var steps = parseInt(delta);
+
+        // pass the event to the parent if both scrollbars are at the end
+        if (!(
+          steps < 0 && position <= 0 ||
+          steps > 0 && position >= max ||
+          delta == 0)
+        ) {
+          e.stop();
+        } else {
+          e.stopMomentum();
+        }
+      } else {
+        delta = e.getDelta().y;
+
+        var position = pane.getScrollY();
+        var max = pane.getScrollMaxY();
+        var steps = parseInt(delta);
+
+        // pass the event to the parent if both scrollbars are at the end
+        if (!(
+          steps < 0 && position <= 0 ||
+          steps > 0 && position >= max ||
+          delta == 0
+        )) {
+          e.stop();
+        } else {
+          e.stopMomentum();
+        }
+      }
+      this.scrollBy(parseInt(delta, 10));
+
+      // block all momentum scrolling
+      if (e.getMomentum()) {
+        e.stop();
+      }
     },
 
 
@@ -352,12 +391,19 @@ qx.Class.define("qx.ui.container.SlideBar",
 
 
     /**
+     * Handler to fire the 'scrollAnimationEnd' event.
+     */
+    _onScrollAnimationEnd : function() {
+      this.fireEvent("scrollAnimationEnd");
+    },
+
+
+    /**
      * Listener for resize event. This event is fired after the
      * first flush of the element which leads to another queuing
      * when the changes modify the visibility of the scroll buttons.
      *
      * @param e {Event} Event object
-     * @return {void}
      */
     _onResize : function(e)
     {
@@ -385,7 +431,6 @@ qx.Class.define("qx.ui.container.SlideBar",
     /**
      * Scroll handler for left scrolling
      *
-     * @return {void}
      */
     _onExecuteBackward : function() {
       this.scrollBy(-this.getScrollStep());
@@ -395,32 +440,9 @@ qx.Class.define("qx.ui.container.SlideBar",
     /**
      * Scroll handler for right scrolling
      *
-     * @return {void}
      */
     _onExecuteForward : function() {
       this.scrollBy(this.getScrollStep());
-    },
-
-
-    /**
-     * Helper function for Gecko. Modifies the scroll offset when a child is
-     * removed.
-     */
-    _onRemoveChild : function()
-    {
-      qx.event.Timer.once(
-        function()
-        {
-          // It might happen that the child control is already disposed in very
-          // seldom cases - anyway check against that (Bug #5339)
-          var scrollpane = this.getChildControl("scrollpane");
-          if (!scrollpane.isDisposed()) {
-            this.scrollBy(scrollpane.getScrollX());
-          }
-        },
-        this,
-        50
-      );
     },
 
 
@@ -464,7 +486,6 @@ qx.Class.define("qx.ui.container.SlideBar",
     /**
      * Show the arrows (Called from resize event)
      *
-     * @return {void}
      */
     _showArrows : function()
     {
@@ -476,7 +497,6 @@ qx.Class.define("qx.ui.container.SlideBar",
     /**
      * Hide the arrows (Called from resize event)
      *
-     * @return {void}
      */
     _hideArrows : function()
     {

@@ -79,7 +79,7 @@ qx.Class.define("qx.data.marshal.Json",
      * @return {String} The hash representation of the given JavaScript object.
      */
     __jsonToHash: function(data) {
-      return qx.Bootstrap.getKeys(data).sort().join('"');
+      return Object.keys(data).sort().join('"');
     },
 
 
@@ -102,7 +102,21 @@ qx.Class.define("qx.data.marshal.Json",
      *   the bubbling of change events or not.
      */
     toClass: function(data, includeBubbleEvents) {
+      this.__toClass(data, includeBubbleEvents, null, 0);
+    },
 
+
+    /**
+     * Implementation of {@link #toClass} used for recursion.
+     *
+     * @param data {Object} The object for which classes should be created.
+     * @param includeBubbleEvents {Boolean} Whether the model should support
+     *   the bubbling of change events or not.
+     * @param parentProperty {String|null} The name of the property the
+     *   data will be stored in.
+     * @param depth {Number} The depth of the data relative to the data's root.
+     */
+    __toClass : function(data, includeBubbleEvents, parentProperty, depth) {
       // break on all primitive json types and qooxdoo objects
       if (
         !qx.lang.Type.isObject(data)
@@ -112,7 +126,7 @@ qx.Class.define("qx.data.marshal.Json",
         // check for arrays
         if (data instanceof Array || qx.Bootstrap.getClass(data) == "Array") {
           for (var i = 0; i < data.length; i++) {
-            this.toClass(data[i], includeBubbleEvents);
+            this.__toClass(data[i], includeBubbleEvents, parentProperty + "[" + i + "]", depth+1);
           }
         }
 
@@ -122,9 +136,14 @@ qx.Class.define("qx.data.marshal.Json",
 
       var hash = this.__jsonToHash(data);
 
+      // ignore rules
+      if (this.__ignore(hash, parentProperty, depth)) {
+        return;
+      }
+
       // check for the possible child classes
       for (var key in data) {
-        this.toClass(data[key], includeBubbleEvents);
+        this.__toClass(data[key], includeBubbleEvents, key, depth+1);
       }
 
       // class already exists
@@ -136,7 +155,7 @@ qx.Class.define("qx.data.marshal.Json",
       if (
         this.__delegate
         && this.__delegate.getModelClass
-        && this.__delegate.getModelClass(hash) != null
+        && this.__delegate.getModelClass(hash, data, parentProperty, depth) != null
       ) {
         return;
       }
@@ -146,8 +165,13 @@ qx.Class.define("qx.data.marshal.Json",
       // include the disposeItem for the dispose process.
       var members = {__disposeItem : this.__disposeItem};
       for (var key in data) {
+        // apply the property names mapping
+        if (this.__delegate && this.__delegate.getPropertyMapping) {
+          key = this.__delegate.getPropertyMapping(key, hash);
+        }
+
         // stip the unwanted characters
-        key = key.replace(/-/g, "");
+        key = key.replace(/-|\.|\s+/g, "");
         // check for valid JavaScript identifier (leading numbers are ok)
         if (qx.core.Environment.get("qx.debug")) {
           this.assertTrue((/^[$0-9A-Za-z_]*$/).test(key),
@@ -174,7 +198,7 @@ qx.Class.define("qx.data.marshal.Json",
       // try to get the superclass, qx.core.Object as default
       if (this.__delegate && this.__delegate.getModelSuperClass) {
         var superClass =
-          this.__delegate.getModelSuperClass(hash) || qx.core.Object;
+          this.__delegate.getModelSuperClass(hash, parentProperty, depth) || qx.core.Object;
       } else {
         var superClass = qx.core.Object;
       }
@@ -182,12 +206,14 @@ qx.Class.define("qx.data.marshal.Json",
       // try to get the mixins
       var mixins = [];
       if (this.__delegate && this.__delegate.getModelMixins) {
-        var delegateMixins = this.__delegate.getModelMixins(hash);
+        var delegateMixins = this.__delegate.getModelMixins(hash, parentProperty, depth);
         // check if its an array
         if (!qx.lang.Type.isArray(delegateMixins)) {
           if (delegateMixins != null) {
             mixins = [delegateMixins];
           }
+        } else {
+          mixins = delegateMixins;
         }
       }
 
@@ -244,20 +270,42 @@ qx.Class.define("qx.data.marshal.Json",
      *
      * @param hash {String} The hash of the data for which an instance should
      *   be created.
+     * @param parentProperty {String|null} The name of the property the data
+     *   will be stored in.
+     * @param depth {Number} The depth of the object relative to the data root.
+     * @param data {Map} The data for which an instance should be created.
      * @return {qx.core.Object} An instance of the corresponding class.
      */
-    __createInstance: function(hash) {
+    __createInstance: function(hash, data, parentProperty, depth) {
       var delegateClass;
       // get the class from the delegate
       if (this.__delegate && this.__delegate.getModelClass) {
-        delegateClass = this.__delegate.getModelClass(hash);
+        delegateClass = this.__delegate.getModelClass(hash, data, parentProperty, depth);
       }
       if (delegateClass != null) {
         return (new delegateClass());
       } else {
-        var clazz = qx.Class.getByName("qx.data.model." + hash);
+        var className = "qx.data.model." + hash;
+        var clazz = qx.Class.getByName(className);
+        if (!clazz) {
+          throw new Error("Class '" + className + "' could not be found.");
+        }
         return (new clazz());
       }
+    },
+
+
+    /**
+     * Helper to decide if the delegate decides to ignore a data set.
+     * @param hash {String} The property names.
+     * @param parentProperty {String|null} The name of the property the data
+     *   will be stored in.
+     * @param depth {Number} The depth of the object relative to the data root.
+     * @return {Boolean} <code>true</code> if the set should be ignored
+     */
+    __ignore : function(hash, parentProperty, depth) {
+      var del = this.__delegate;
+      return del && del.ignore && del.ignore(hash, parentProperty, depth);
     },
 
 
@@ -273,6 +321,20 @@ qx.Class.define("qx.data.marshal.Json",
      * @return {qx.core.Object} The created model object.
      */
     toModel: function(data) {
+      return this.__toModel(data, null, 0);
+    },
+
+
+    /**
+     * Implementation of {@link #toModel} used for recursion.
+     *
+     * @param data {Object} The object for which models should be created.
+     * @param parentProperty {String|null} The name of the property the
+     *   data will be stored in.
+     * @param depth {Number} The depth of the data relative to the data's root.
+     * @return {qx.core.Object} The created model object.
+     */
+    __toModel: function(data, parentProperty, depth) {
       var isObject = qx.lang.Type.isObject(data);
       var isArray = data instanceof Array || qx.Bootstrap.getClass(data) == "Array";
 
@@ -283,37 +345,57 @@ qx.Class.define("qx.data.marshal.Json",
       ) {
         return data;
 
+      // ignore rules
+      } else if (this.__ignore(this.__jsonToHash(data), parentProperty, depth)) {
+        return data;
+
       } else if (isArray) {
-        var array = new qx.data.Array();
+        var arrayClass = qx.data.Array;
+        if (this.__delegate && this.__delegate.getArrayClass) {
+          var customArrayClass = this.__delegate.getArrayClass(parentProperty, depth);
+          arrayClass = customArrayClass || arrayClass;
+        }
+
+        var array = new arrayClass();
         // set the auto dispose for the array
         array.setAutoDisposeItems(true);
 
         for (var i = 0; i < data.length; i++) {
-          array.push(this.toModel(data[i]));
+          array.push(this.__toModel(data[i], parentProperty + "[" + i + "]", depth+1));
         }
         return array;
 
       } else if (isObject) {
         // create an instance for the object
         var hash = this.__jsonToHash(data);
-        var model = this.__createInstance(hash);
+        var model = this.__createInstance(hash, data, parentProperty, depth);
 
         // go threw all element in the data
         for (var key in data) {
-          var propertyName = key.replace(/-/g, "");
+          // apply the property names mapping
+          var propertyName = key;
+          if (this.__delegate && this.__delegate.getPropertyMapping) {
+            propertyName = this.__delegate.getPropertyMapping(key, hash);
+          }
+          var propertyNameReplaced = propertyName.replace(/-|\.|\s+/g, "");
           // warn if there has been a replacement
           if (
             (qx.core.Environment.get("qx.debug")) &&
             qx.core.Environment.get("qx.debug.databinding")
           ) {
-            if (key != propertyName) {
+            if (propertyNameReplaced != propertyName) {
               this.warn(
                 "The model contained an illegal name: '" + key +
                 "'. Replaced it with '" + propertyName + "'."
               );
             }
           }
-          model["set" + qx.lang.String.firstUp(propertyName)](this.toModel(data[key]));
+          propertyName = propertyNameReplaced;
+          // only set the properties if they are available [BUG #5909]
+          var setterName = "set" + qx.lang.String.firstUp(propertyName);
+          if (model[setterName]) {
+            model[setterName](this.__toModel(data[key], key, depth+1));
+          }
         }
         return model;
       }

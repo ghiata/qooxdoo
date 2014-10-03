@@ -26,7 +26,7 @@
  * sizes which are available via {@link #getContentWidth} and
  * {@link #getContentHeight}.
  */
-qx.Class.define("qx.bom.element.Dimension",
+qx.Bootstrap.define("qx.bom.element.Dimension",
 {
   /*
   *****************************************************************************
@@ -47,30 +47,10 @@ qx.Class.define("qx.bom.element.Dimension",
      * @param element {Element} element to query
      * @return {Integer} width of the element
      */
-    getWidth : qx.core.Environment.select("engine.name",
-    {
-      "gecko" : function(element)
-      {
-        // offsetWidth in Firefox does not always return the rendered pixel size
-        // of an element.
-        // Starting with Firefox 3 the rendered size can be determined by using
-        // getBoundingClientRect
-        // https://bugzilla.mozilla.org/show_bug.cgi?id=450422
-        if (element.getBoundingClientRect)
-        {
-          var rect = element.getBoundingClientRect();
-          return Math.round(rect.right) - Math.round(rect.left);
-        }
-        else
-        {
-          return element.offsetWidth;
-        }
-      },
-
-      "default" : function(element) {
-        return element.offsetWidth;
-      }
-    }),
+    getWidth: function(element) {
+      var rect = this._getBoundingClientRect(element);
+      return Math.round(rect.right - rect.left);
+    },
 
 
     /**
@@ -84,25 +64,61 @@ qx.Class.define("qx.bom.element.Dimension",
      * @param element {Element} element to query
      * @return {Integer} height of the element
      */
-    getHeight : qx.core.Environment.select("engine.name",
-    {
-      "gecko" : function(element)
-      {
-        if (element.getBoundingClientRect)
-        {
-          var rect = element.getBoundingClientRect();
-          return Math.round(rect.bottom) - Math.round(rect.top);
-        }
-        else
-        {
-          return element.offsetHeight;
-        }
-      },
+    getHeight: function(element) {
+      var rect = this._getBoundingClientRect(element);
+      return Math.round(rect.bottom - rect.top);
+    },
 
-      "default" : function(element) {
-        return element.offsetHeight;
+
+    /**
+     * Helper function to return the value of native .getBoundingClientRect().
+     * As IE11 returns bogus values for .getBoundingClientRect() inside an
+     * iframe where an element is displayed full screen, we need to correct the
+     * values.
+     *
+     * @param element {Element} element to query
+     *
+     * @return {Map} Map of client rectangle properties
+     */
+    _getBoundingClientRect : function(element)
+    {
+      var rect = element.getBoundingClientRect();
+
+      // To be able to fix IE11 bug multiply all properties with 100
+      if (qx.core.Environment.get("browser.documentmode") === 11 &&
+          !!document.msFullscreenElement &&
+          window !== window.top &&
+          this.__isChildOfFullScreenElement(element)
+      ) {
+        // store corrected values in a new object, because ClientRect object
+        // of IE11 is read only
+        var tmp = {};
+        for (var property in rect) {
+          tmp[property] = rect[property] * 100;
+        }
+        rect = tmp;
       }
-    }),
+
+      return rect;
+    },
+
+
+    /**
+     * Helper function to check if element is self or child of element who is
+     * currently in full screen.
+     *
+     * @param element {Element} element to query
+     *
+     * @return {Boolean} True if element if self or child of full screen element
+     */
+    __isChildOfFullScreenElement : function(element)
+    {
+      if (document.msFullscreenElement === element) {
+        return true;
+      }
+
+      return qx.dom.Hierarchy.contains(document.msFullscreenElement, element);
+    },
 
 
     /**
@@ -120,7 +136,7 @@ qx.Class.define("qx.bom.element.Dimension",
     },
 
 
-    /** {Map} Contains all overflow values where scrollbars are invisible */
+    /** @type {Map} Contains all overflow values where scrollbars are invisible */
     __hiddenScrollbars :
     {
       visible : true,
@@ -146,7 +162,7 @@ qx.Class.define("qx.bom.element.Dimension",
     {
       var Style = qx.bom.element.Style;
 
-      var overflowX = qx.bom.element.Overflow.getX(element);
+      var overflowX = qx.bom.element.Style.get(element, "overflowX");
       var paddingLeft = parseInt(Style.get(element, "paddingLeft")||"0px", 10);
       var paddingRight = parseInt(Style.get(element, "paddingRight")||"0px", 10);
 
@@ -154,13 +170,17 @@ qx.Class.define("qx.bom.element.Dimension",
       {
         var contentWidth = element.clientWidth;
 
-        if ((qx.core.Environment.get("engine.name") == "opera")) {
+        if ((qx.core.Environment.get("engine.name") == "opera") ||
+          qx.dom.Node.isBlockNode(element))
+        {
           contentWidth = contentWidth - paddingLeft - paddingRight;
         }
-        else
-        {
-          if (qx.dom.Node.isBlockNode(element)) {
-            contentWidth = contentWidth - paddingLeft - paddingRight;
+
+        // IE seems to return 0 on clientWidth if the element is 0px
+        // in height so we use the offsetWidth instead
+        if (qx.core.Environment.get("engine.name") == "mshtml") {
+          if (contentWidth === 0 && element.offsetHeight === 0) {
+            return element.offsetWidth;
           }
         }
 
@@ -180,10 +200,7 @@ qx.Class.define("qx.bom.element.Dimension",
           var width = element.scrollWidth - paddingLeft;
 
           // IE renders the paddingRight as well with scrollbars on
-          if (
-            qx.core.Environment.get("engine.name") == "mshtml" &&
-            qx.core.Environment.get("engine.version") >= 6
-          ) {
+          if (qx.core.Environment.get("engine.name") == "mshtml") {
             width -= paddingRight;
           }
 
@@ -211,7 +228,7 @@ qx.Class.define("qx.bom.element.Dimension",
     {
       var Style = qx.bom.element.Style;
 
-      var overflowY = qx.bom.element.Overflow.getY(element);
+      var overflowY = qx.bom.element.Style.get(element, "overflowY");
       var paddingTop = parseInt(Style.get(element, "paddingTop")||"0px", 10);
       var paddingBottom = parseInt(Style.get(element, "paddingBottom")||"0px", 10);
 
@@ -230,16 +247,7 @@ qx.Class.define("qx.bom.element.Dimension",
         {
           // Scrollbars visible and needed. We just remove the top padding,
           // as the bottom padding is not respected in rendering.
-          var height = element.scrollHeight - paddingTop;
-
-          // IE renders the paddingBottom as well with scrollbars on
-          if (qx.core.Environment.get("engine.name") == "mshtml" &&
-             qx.core.Environment.get("engine.version") == 6)
-          {
-            height -= paddingBottom;
-          }
-
-          return height;
+          return element.scrollHeight - paddingTop;
         }
       }
     },

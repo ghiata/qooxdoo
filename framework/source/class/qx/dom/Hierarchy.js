@@ -61,7 +61,7 @@
  * supports to operate on one element and reorganize the content with
  * the insertion of new HTML or nodes.
  */
-qx.Class.define("qx.dom.Hierarchy",
+qx.Bootstrap.define("qx.dom.Hierarchy",
 {
   statics :
   {
@@ -169,7 +169,7 @@ qx.Class.define("qx.dom.Hierarchy",
         }
       }
       else if (qx.core.Environment.get("html.element.compareDocumentPosition")) {
-        // http://developer.mozilla.org/en/docs/DOM:Node.compareDocumentPosition
+        // https://developer.mozilla.org/en-US/docs/DOM:Node.compareDocumentPosition
         return !!(element.compareDocumentPosition(target) & 16);
       }
       else {
@@ -197,13 +197,13 @@ qx.Class.define("qx.dom.Hierarchy",
     isRendered : function(element)
     {
       var doc = element.ownerDocument || element.document;
-      
+
       if (qx.core.Environment.get("html.element.contains")) {
         // Fast check for all elements which are not in the DOM
-        if (!element.parentNode || !element.offsetParent) {
+        if (!element.parentNode) {
           return false;
         }
-        
+
         return doc.body.contains(element);
       }
       else if (qx.core.Environment.get("html.element.compareDocumentPosition")) {
@@ -252,7 +252,7 @@ qx.Class.define("qx.dom.Hierarchy",
       if (element1 === element2) {
         return element1;
       }
-      
+
       if (qx.core.Environment.get("html.element.contains")) {
         while (element1 && qx.dom.Node.isElement(element1))
         {
@@ -266,33 +266,27 @@ qx.Class.define("qx.dom.Hierarchy",
         return null;
       }
       else {
-        var known = {};
-        var obj = qx.core.ObjectRegistry;
-        var h1, h2;
+        var known = [];
 
         while (element1 || element2)
         {
           if (element1)
           {
-            h1 = obj.toHashCode(element1);
-
-            if (known[h1]) {
-              return known[h1];
+            if (qx.lang.Array.contains(known, element1)) {
+              return element1;
             }
 
-            known[h1] = element1;
+            known.push(element1);
             element1 = element1.parentNode;
           }
 
           if (element2)
           {
-            h2 = obj.toHashCode(element2);
-
-            if (known[h2]) {
-              return known[h2];
+            if (qx.lang.Array.contains(known, element2)) {
+              return element2;
             }
 
-            known[h2] = element2;
+            known.push(element2);
             element2 = element2.parentNode;
           }
         }
@@ -475,7 +469,6 @@ qx.Class.define("qx.dom.Hierarchy",
      * Removes all of element's text nodes which contain only whitespace
      *
      * @param element {Element} Element to cleanup
-     * @return {void}
      */
     cleanWhitespace : function(element)
     {

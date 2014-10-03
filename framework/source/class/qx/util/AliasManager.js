@@ -25,7 +25,7 @@
  * some pre-defined aliases, and you can register your own with {@link #add}.
  * The AliasManager is automatically invoked in various situations, e.g. when
  * resolving the icon image for a button, so it is common to register aliases for
- * <a href="http://manual.qooxdoo.org/1.4/pages/gui_toolkit/ui_resources.html">resource id's</a>.
+ * <a href="http://manual.qooxdoo.org/${qxversion}/pages/desktop/ui_resources.html">resource id's</a>.
  * You can of course call the AliasManager's {@link #resolve}
  * explicitly to get an alias resolution in any situation, but keep that
  * automatic invocation of the AliasManager in mind when defining new aliases as
@@ -125,7 +125,6 @@ qx.Class.define("qx.util.AliasManager",
      *
      * @param alias {String} alias name for the resource path/url
      * @param base {String} first part of URI for all images which use this alias
-     * @return {void}
      */
     add : function(alias, base)
     {
@@ -150,7 +149,6 @@ qx.Class.define("qx.util.AliasManager",
      * Remove a previously defined alias
      *
      * @param alias {String} alias name for the resource path/url
-     * @return {void}
      */
     remove : function(alias)
     {

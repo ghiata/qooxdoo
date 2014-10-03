@@ -47,6 +47,10 @@ qx.Class.define("qx.html.Iframe",
 
     this.setSource(url);
     this.addListener("navigate", this.__onNavigate, this);
+
+    // add yourself to the element queue to enforce the creation of DOM element
+    qx.html.Element._modified[this.$$hash] = this;
+    qx.html.Element._scheduleFlush("element");
   },
 
 
@@ -186,10 +190,12 @@ qx.Class.define("qx.html.Iframe",
      * Sets iframe's source attribute to given value
      *
      * @param source {String} URL to be set.
+     * @return {qx.html.Iframe} The current instance for chaining
      */
     setSource : function(source)
     {
-      this._setProperty("source", source);
+      // the source needs to be applied directly in case the iFrame is hidden
+      this._setProperty("source", source, true);
       return this;
     },
 
@@ -208,6 +214,7 @@ qx.Class.define("qx.html.Iframe",
      * Sets iframe's name attribute to given value
      *
      * @param name {String} Name to be set.
+     * @return {qx.html.Iframe} The current instance for chaining
      */
     setName : function(name)
     {
@@ -254,7 +261,6 @@ qx.Class.define("qx.html.Iframe",
     * Handle user navigation. Sync actual URL of iframe with source property.
     *
     * @param e {qx.event.type.Data} navigate event
-    * @return {void}
     */
     __onNavigate: function(e) {
       var actualUrl = e.getData();

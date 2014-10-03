@@ -104,18 +104,18 @@ qx.Class.define("fce.Reporter", {
 
       var jsonData = qx.lang.Json.stringify(data);
       var url = this.getServer() + this.getAddUrl();
-      var req = new qx.io.remote.Request(url, "POST");
-      req.setData(jsonData);
-      req.setCrossDomain(true);
-      req.addListener("failed", function(ev) {
+      var req = new qx.io.request.Jsonp(url, "POST");
+      req.setRequestData({data: jsonData});
+      req.addListener("fail", function(ev) {
         this.error("Request failed!");
       }, this);
       req.addListener("timeout", function(ev) {
         this.error("Request timed out!");
       }, this);
-      req.addListener("completed", function(response) {
-        if (response.getContent().id) {
-          this.info("Report saved. ID: " + response.getContent().id);
+      req.addListener("success", function(ev) {
+        var response = ev.getTarget().getResponse();
+        if (response.id) {
+          this.info("Report saved. ID: " + response.id);
         }
         else {
           this.info("Report ignored to prevent duplicate entry.");
@@ -151,13 +151,12 @@ qx.Class.define("fce.Reporter", {
       var userAgent = navigator.userAgent;
       var serverUrl = this.getServer() + this.getGetUrl();
 
-      var req = new qx.io.remote.Request(serverUrl, "GET", "application/json");
-      req.setCrossDomain(true);
-      req.setData("useragent=" + encodeURIComponent(userAgent));
+      var req = new qx.io.request.Jsonp(serverUrl, "GET");
+      req.setRequestData({useragent: userAgent});
 
-      req.addListener("completed", function(response) {
-        var serverData = response.getContent();
-        if (qx.lang.Object.getKeys(serverData).length == 0) {
+      req.addListener("success", function(ev) {
+        var serverData = ev.getTarget().getResponse();
+        if (Object.keys(serverData).length == 0) {
           // Server doesn't know about this client yet
           this.debug("Sending this client's environment data to the server");
           this._sendReport(this.__foundData);
@@ -167,7 +166,7 @@ qx.Class.define("fce.Reporter", {
         }
       }, this);
 
-      req.addListener("failed", function(ev) {
+      req.addListener("fail", function(ev) {
         this.error("Request failed with status",req.getStatus());
       }, this);
 
@@ -192,11 +191,50 @@ qx.Class.define("fce.Reporter", {
 
       var differing = [];
 
-      for (var prop in expected) {
-        if (this.__foundData[prop] && !this.isIgnored(prop)) {
-          if (expected[prop] !== this.__foundData[prop]) {
+      for (var prop in this.__foundData) {
+        if (this.isIgnored(prop)) {
+          continue;
+        }
+
+        if (!expected.hasOwnProperty(prop)) {
+          differing.push(prop);
+          continue;
+        }
+
+        var expType = typeof expected[prop];
+        var foundType = typeof this.__foundData[prop];
+        if (expType !== foundType) {
+          differing.push(prop);
+          continue;
+        }
+
+        var expectedValue = expected[prop];
+        var foundValue = this.__foundData[prop];
+
+        if (foundValue instanceof Array) {
+          if (foundValue.length !== expectedValue.length) {
             differing.push(prop);
+            continue;
           }
+          for (var i=0,l=foundValue.length; i<l; i++) {
+            if (foundValue[i] !== expectedValue[i]) {
+              differing.push(prop);
+              continue;
+            }
+          }
+        }
+        else if (expType === "object") {
+          for (var key in expectedValue) {
+            if (!foundValue.hasOwnProperty(key) ||
+              foundValue[key] !== expectedValue[key])
+            {
+              differing.push(prop);
+              continue;
+            }
+          }
+        }
+        else if (expectedValue !== foundValue) {
+          differing.push(prop);
         }
       }
 

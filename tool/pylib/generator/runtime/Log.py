@@ -23,10 +23,20 @@
 ##
 ##
 
-import sys, codecs, inspect, re
+import sys, codecs, inspect, re, cPickle as pickle
 
 from misc import textutil
 
+def after_newline_checker():
+    after_newline = [True]
+    def checker(f=-1):
+        if f in [True, False]:
+            after_newline[0] = f
+        elif f==2:
+            after_newline[0] = not after_newline[0]
+        return after_newline[0]
+    return checker
+after_newline = after_newline_checker()
 
 class Log(object):
     _indent = 0
@@ -49,16 +59,16 @@ class Log(object):
 
         self.filter_pattern = ""
         self._inProgress = False
+        self.progress_indication = True
 
+    ##
+    # Prevent from getting pickled.
+    # It's no use pickling a runtime object. E.g. log level and log file
+    # might be completely different on next run. Runtime objects are created
+    # afresh with each run, and need to be injected into other, unpickled
+    # objects that want to use them.
     def __getstate__(self):
-        d = self.__dict__.copy()
-        if d['logfile'] != False:
-            # don't pickle open file descriptors
-            d['logfile'] = d['logfile'].name
-        return d
-
-    def __setstate__(self, d):
-        self.__dict__  = d
+        raise pickle.PickleError("Never pickle generator.runtime.Log.")
 
     def setFilter(self, filterPatternsList=[]):
         if not filterPatternsList:
@@ -116,7 +126,6 @@ class Log(object):
         if self._levels[level] >= self._levels[self._level]:  # filter msg according to level
             # check necessary newline
             if self._inProgress:
-                self.nl()
                 self._inProgress = False
 
             # select stream
@@ -125,8 +134,12 @@ class Log(object):
             else:
                 stream = sys.stderr
 
+            if not after_newline():
+                stream.write('\n')
+
             if feed:
-                msg += '\n'
+                if not (msg and msg[-1]=='\n'):
+                    msg += '\n'
             stream.write(msg)
             stream.flush()
 
@@ -134,6 +147,9 @@ class Log(object):
             if self.logfile:
                 self.logfile.write(msg)
                 self.logfile.flush()
+
+            if feed:
+                after_newline(True)
 
 
     def log(self, msg, level="info", feed=True):
@@ -196,6 +212,7 @@ class Log(object):
             return
 
         self._inProgress = True
+        after_newline(False)
 
         if msg:
             totalprefix = '\r' + self.getPrefix() + msg
@@ -218,24 +235,37 @@ class Log(object):
         if pos == length:
             self._inProgress = False
             sys.stdout.write("\n")
+            after_newline(True)
             sys.stdout.flush()
 
 
-    sigils = r"|/-\|/-\\"
-    sigils1= r".o0O0o"
-    sigils_len = len(sigils)
+    sigils = {
+        1 : r"|/-\|/-\\",
+        2 : r".o0O0o"
+    }
 
-    def dot(self, char='.', i=[0]):
-        self._inProgress = True
-        stream = sys.stdout
-        i[0] = (i[0] + 1) % self.sigils_len
-        stream.write("\b"+self.sigils[i[0]])
-        stream.flush()
+    def dot(self, stype=1, i=[0]):
+        if stype not in (1,2):
+            stype = 1
+        sigils_len = len(self.sigils[stype])
+        after_newline(False)
+        if self.progress_indication:
+            self._inProgress = True
+            stream = sys.stdout
+            i[0] = (i[0] + 1) % sigils_len
+            stream.write("\b" + self.sigils[stype][i[0]])
+            stream.flush()
 
     def dotclear(self, ok=' '):
         self._inProcess = False
         stream = sys.stdout
-        stream.write("\b"+ok)
+        if self.progress_indication:
+            msg = "\b"
+            after_newline(False)
+        else:
+            msg = "\n"
+            after_newline(True)
+        stream.write(msg+ok)
         stream.flush()
 
     def dot1(self, char='.'):

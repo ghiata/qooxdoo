@@ -19,7 +19,6 @@
 
 /* ************************************************************************
 
-#asset(inspector/*)
 
 ************************************************************************ */
 
@@ -28,6 +27,8 @@
  *
  * This popup contains a table which will be filled with suggestions to enter
  * in the console.
+ *
+ * @asset(inspector/*)
  */
 qx.Class.define("inspector.console.AutoCompletePopup", {
 
@@ -77,9 +78,9 @@ qx.Class.define("inspector.console.AutoCompletePopup", {
     this._table.setRowHeight(20);
     this.add(this._table);
 
-    // add the click event listener to the table
-    this._table.addListener("click", function(e) {
-      // if it is a click on the pane
+    // add the tap event listener to the table
+    this._table.addListener("tap", function(e) {
+      // if it is a tap on the pane
       if (e.getTarget().classname == "qx.ui.table.pane.Pane") {
         this._controller.chooseAutoCompleteValue();
       }
@@ -253,7 +254,7 @@ qx.Class.define("inspector.console.AutoCompletePopup", {
 
     /**
      * Returns whether the popup is on the screen.
-     * @return True, if the AutoCompletePopup is visible and displayed.
+     * @return {Boolean} True, if the AutoCompletePopup is visible and displayed.
      */
     isOnScreen: function() {
       return this.getVisibility() == "visible";

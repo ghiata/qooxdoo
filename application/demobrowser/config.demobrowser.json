@@ -11,6 +11,9 @@
       "path" : "${QOOXDOO_PATH}/tool/data/config/application.json",
       "import" : [
         "info"
+        ,"cache"
+        ,"translation"
+        ,"lint"
       ]
     }
 
@@ -20,39 +23,53 @@
   {
     "CACHE"        : "${TMPDIR}/qx${QOOXDOO_VERSION}/cache",
     "QOOXDOO_PATH" : "../..",
+    // need to include all locales used in demos here, so 'translation' job picks them up
+    "LOCALES"      : ["en", "en_US", "de", "de_DE", "fr", "fr_FR"],
     "THEME"        : "demobrowser.Theme"
+  },
+
+  "config-warnings" :
+  {
+    "job-shadowing" : [
+      "info", 
+      "translation",
+      "lint"
+    ]
   },
 
   "jobs" :
   {
-    "db-common" :
-    {
-      "desc"    : "common settings for Demobrowser jobs",
-
-      "let" : 
-      {
-        "APPLICATION"  : "demobrowser",
-        "LOCALES"      : [ "en" ]
-      },
+    "libraries" : {
 
       "library" :
       [
         {
           "manifest" : "${QOOXDOO_PATH}/component/library/logpane/Manifest.json"
         },
-
         {
           "manifest" : "${QOOXDOO_PATH}/component/library/versionlabel/Manifest.json"
         },
-
         {
           "manifest" : "${QOOXDOO_PATH}/framework/Manifest.json"
         },
-
         {
           "manifest" : "Manifest.json"
         }
-      ],
+      ]
+    },
+
+    "application-name" : {
+      "let" :
+      {
+        "APPLICATION"  : "demobrowser"
+      }
+    },
+
+    "db-common" :
+    {
+      "desc"    : "common settings for Demobrowser jobs",
+
+      "extend"  : [ "libraries", "application-name" ],
 
       "include" :
       [
@@ -69,17 +86,25 @@
         "qx.contrib" : false,
         "qx.allowUrlSettings" : true
       },
-      
+
       // the next is in since resource copying is done here for the demos as well
       "asset-let" :
       {
         "qx.icontheme" : ["Tango", "Oxygen"],
-        "qx.theme"     : ["Modern"]
+        "qx.theme"     : ["Indigo"]
       },
 
       "cache" :
       {
         "compile" : "${CACHE}"
+      },
+
+      "compile-options" :
+      {
+        "code" :
+        {
+          "locales" : "${LOCALES}"
+        }
       }
     },
 
@@ -97,7 +122,7 @@
           "file" : "./source/script/${APPLICATION}.js",
           "app-root" : "source"
         },
-        "code"   : 
+        "code"   :
         {
           "except" : ["*"]
         }
@@ -129,12 +154,12 @@
 
 
     // Repeating this job from base.json, as the original draws in too many
-    // macros from base.json's global 'let' (!) 
-    "source-hybrid" : 
+    // macros from base.json's global 'let' (!)
+    "source-hybrid" :
     {
       "extend"  : [ "source" ],
 
-      "compile-options" : 
+      "compile-options" :
       {
         "code" : { "=except" : [ "${APPLICATION}.*" ] }
       },
@@ -149,6 +174,14 @@
 
       "extend" : ["db-common"],
 
+      "config-warnings" :
+      {
+        "environment" : [
+          "non-literal-keys",
+          "variants-and-url-settings"
+        ]
+      },
+
       "compile-options" :
       {
         "paths" :
@@ -160,7 +193,7 @@
         {
           "format" : true,
           "except" : [],
-          "optimize" : ["basecalls", "variables", "privates", "strings", "variants"]
+          "optimize" : ["basecalls", "variables", "privates", "strings", "variants", "whitespace"]
         }
       },
 
@@ -194,10 +227,10 @@
       "extend" : ["db-common"],
 
       // adding libraries that are used by demos, so resources are being picked up
-      "library" : 
+      "library" :
       [
         { "manifest"   : "${QOOXDOO_PATH}/component/library/formdemo/Manifest.json" },
-        { "manifest"   : "${QOOXDOO_PATH}/component/library/twitterdemo/Manifest.json" }
+        { "manifest"   : "${QOOXDOO_PATH}/component/library/datademo/Manifest.json" }
       ],
 
       "include" :
@@ -205,6 +238,7 @@
         "qx.theme.Classic",
         "qx.theme.Simple",
         "qx.theme.Modern",
+        "qx.theme.Indigo",
         "demobrowser.demo.*"
       ],
 
@@ -234,6 +268,32 @@
         "build-script",
         "build-demos"
       ]
+    },
+
+    "translation" :
+    {
+      "let" : {
+        "APPLICATION"  : "demobrowser"  // to not disturb varying APPLICATION of demos
+      },
+      "extend" : ["cache"],
+      "translate" : { "poentry-with-occurrences" : false  }
+    },
+
+    "info" :
+    {
+      "extend"  : [ "application-name" ]  // to not disturb varying APPLICATION of demos
+    },
+
+    "lint" :
+    {
+      "extend"  : [ "application-name" ]  // to not disturb varying APPLICATION of demos
+      ,"lint-check" : {
+        "allowed-globals" : [
+          // these are from var. demos, e.g. source/demo/showcase/Form.json
+          "qxc.application.datademo.Demo",
+          "qxc.application.formdemo.FormItems"
+        ]
+      }
     },
 
     // -- Debug jobs ----------------------------------------------------------

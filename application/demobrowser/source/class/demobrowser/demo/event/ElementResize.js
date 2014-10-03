@@ -18,9 +18,13 @@
 ************************************************************************ */
 
 /*
-#use(qx.event.handler.ElementResize)
 */
 
+/**
+ * @tag noPlayground
+ *
+ * @use(qx.event.handler.ElementResize)
+ */
 qx.Class.define("demobrowser.demo.event.ElementResize",
 {
   extend : qx.application.Native,

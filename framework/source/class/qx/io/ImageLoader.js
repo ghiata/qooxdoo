@@ -31,20 +31,22 @@ qx.Bootstrap.define("qx.io.ImageLoader",
 {
   statics :
   {
-    /** {Map} Internal data structure to cache image sizes */
+    /** @type {Map} Internal data structure to cache image sizes */
     __data : {},
 
 
-    /** {Map} Default image size */
+    /** @type {Map} Default image size */
     __defaultSize :
     {
       width : null,
       height : null
     },
 
-    /** {Array} Known image types */
+    /** @type {RegExp} Known image types */
     __knownImageTypesRegExp : /\.(png|gif|jpg|jpeg|bmp)\b/i,
 
+    /** @type {RegExp} Image types of a data URL */
+    __dataUrlRegExp : /^data:image\/(png|gif|jpg|jpeg|bmp)\b/i,
 
     /**
      * Whether the given image has previously been loaded using the
@@ -96,6 +98,32 @@ qx.Bootstrap.define("qx.io.ImageLoader",
     getFormat : function(source)
     {
       var entry = this.__data[source];
+
+      if (! entry || ! entry.format)
+      {
+        var result = this.__dataUrlRegExp.exec(source);
+        if (result != null)
+        {
+          // If width and height aren't defined, provide some defaults
+          var width =
+            (entry && qx.lang.Type.isNumber(entry.width)
+             ? entry.width
+             : this.__defaultSize.width);
+
+          var height =
+            (entry && qx.lang.Type.isNumber(entry.height)
+             ? entry.height
+             : this.__defaultSize.height);
+
+          entry =
+            {
+              loaded : true,
+              format : result[1],
+              width  : width,
+              height : height
+            };
+        }
+      }
       return entry ? entry.format : null;
     },
 
@@ -104,8 +132,8 @@ qx.Bootstrap.define("qx.io.ImageLoader",
      * Returns the size of a previously loaded image
      *
      * @param source {String} Image source to query
-     * @return {Map} The dimension of the image (<code>width</code> and 
-     *    <code>height</code> as key). If the image is not yet loaded, the 
+     * @return {Map} The dimension of the image (<code>width</code> and
+     *    <code>height</code> as key). If the image is not yet loaded, the
      *    dimensions are given as <code>null</code> for width and height.
      */
     getSize : function(source) {
@@ -227,6 +255,9 @@ qx.Bootstrap.define("qx.io.ImageLoader",
         // Cleanup listeners
         element.onload = element.onerror = null;
 
+        // prevent further loading
+        element.src = "";
+
         // Cleanup entry
         delete entry.callbacks;
         delete entry.element;
@@ -255,9 +286,15 @@ qx.Bootstrap.define("qx.io.ImageLoader",
       // Shorthand
       var entry = this.__data[source];
 
-      // Store dimensions
-      if (event.type === "load")
+      var isImageAvailable = function(imgElem) {
+        return (imgElem && imgElem.height !== 0);
+      };
+
+      // [BUG #7497]: IE11 doesn't properly emit an error event
+      // when loading fails so augment success check
+      if (event.type === "load" && isImageAvailable(element))
       {
+        // Store dimensions
         entry.loaded = true;
         entry.width = this.__getWidth(element);
         entry.height = this.__getHeight(element);
@@ -298,16 +335,11 @@ qx.Bootstrap.define("qx.io.ImageLoader",
      * @param element {Element} DOM element which represents the image
      * @return {Integer} Image width
      */
-    __getWidth : qx.core.Environment.select("engine.name",
+    __getWidth : function(element)
     {
-      "gecko" : function(element) {
-        return element.naturalWidth;
-      },
-
-      "default" : function(element) {
-        return element.width;
-      }
-    }),
+      return qx.core.Environment.get("html.image.naturaldimensions") ?
+        element.naturalWidth : element.width;
+    },
 
 
     /**
@@ -316,15 +348,18 @@ qx.Bootstrap.define("qx.io.ImageLoader",
      * @param element {Element} DOM element which represents the image
      * @return {Integer} Image height
      */
-    __getHeight : qx.core.Environment.select("engine.name",
+    __getHeight : function(element)
     {
-      "gecko" : function(element) {
-        return element.naturalHeight;
-      },
+      return qx.core.Environment.get("html.image.naturaldimensions") ?
+        element.naturalHeight : element.height;
+    },
 
-      "default" : function(element) {
-        return element.height;
-      }
-    })
+    /**
+     * Dispose stored images.
+     */
+    dispose : function()
+    {
+      this.__data = {};
+    }
   }
 });

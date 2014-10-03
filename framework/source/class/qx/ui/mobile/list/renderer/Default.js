@@ -35,7 +35,7 @@
  *     {
  *       item.setImage("path/to/image.png");
  *       item.setTitle(data.title);
- *       item.setSubTitle(data.subTitle);
+ *       item.setSubtitle(data.subtitle);
  *     }
  *   });
  * </pre>
@@ -48,35 +48,20 @@ qx.Class.define("qx.ui.mobile.list.renderer.Default",
   extend : qx.ui.mobile.list.renderer.Abstract,
 
 
- /*
-  *****************************************************************************
-     CONSTRUCTOR
-  *****************************************************************************
-  */
-
   construct : function(layout)
   {
     this.base(arguments, layout || new qx.ui.mobile.layout.HBox().set({
         alignY : "middle"
       }));
-    this.add(this._create(), {flex:1});
+    this._init();
   },
 
-
-
-
- /*
-  *****************************************************************************
-     MEMBERS
-  *****************************************************************************
-  */
 
   members :
   {
     __image : null,
     __title : null,
-    __subTitle : null,
-    __container : null,
+    __subtitle : null,
     __rightContainer : null,
 
 
@@ -105,9 +90,9 @@ qx.Class.define("qx.ui.mobile.list.renderer.Default",
      *
      * @return {qx.ui.mobile.basic.Label} The subtitle widget
      */
-    getSubTitleWidget : function()
+    getSubtitleWidget : function()
     {
-      return this.__subTitle;
+      return this.__subtitle;
     },
 
 
@@ -118,7 +103,7 @@ qx.Class.define("qx.ui.mobile.list.renderer.Default",
      */
     setImage : function(source)
     {
-      this.__image.setSource(source)
+      this.__image.setSource(source);
     },
 
 
@@ -129,56 +114,97 @@ qx.Class.define("qx.ui.mobile.list.renderer.Default",
      */
     setTitle : function(title)
     {
-      this.__title.setValue(title);
+      if (title && title.translate) {
+        this.__title.setValue(title.translate());
+      }
+      else {
+        this.__title.setValue(title);
+      }
     },
 
 
     /**
      * Sets the value of the subtitle widget.
      *
-     * @param subTitle {String} The value to set
+     * @param subtitle {String} The value to set
      */
-    setSubTitle : function(subTitle)
+    setSubtitle : function(subtitle)
     {
-      this.__subTitle.setValue(subTitle);
+      if (subtitle && subtitle.translate) {
+        this.__subtitle.setValue(subtitle.translate());
+      }
+      else {
+        this.__subtitle.setValue(subtitle);
+      }
     },
 
 
     /**
-     * Creates the widgets for the renderer.
+     * Inits the widgets for the renderer.
      *
-     * @return {qx.ui.mobile.container.Composite} The container which contains the
-     *     created widgets.
      */
-    _create : function()
+    _init : function()
     {
-      var Composite = qx.ui.mobile.container.Composite;
+      this.__image = this._createImage();
+      this.add(this.__image);
 
-      this.__container = new Composite(new qx.ui.mobile.layout.HBox().set({
-        alignY : "middle"
-      }));
+      this.__rightContainer = this._createRightContainer();
+      this.add(this.__rightContainer, {flex:1});
 
-      this.__image = new qx.ui.mobile.basic.Image();
-      this.__image.setAnonymous(true);
-      this.__image.addCssClass("list-itemimage");
-
-      this.__container.add(this.__image);
-
-      this.__rightContainer = new Composite(new qx.ui.mobile.layout.VBox());
-      this.__container.add(this.__rightContainer, {flex:1});
-
-      this.__title = new qx.ui.mobile.basic.Label();
-      this.__title.setWrap(false);
-      this.__title.addCssClass("list-itemlabel");
+      this.__title = this._createTitle();
       this.__rightContainer.add(this.__title);
 
-      this.__subTitle = new qx.ui.mobile.basic.Label();
-      this.__subTitle.setWrap(false);
-      this.__subTitle.addCssClass("subtitle");
+      this.__subtitle = this._createSubtitle();
+      this.__rightContainer.add(this.__subtitle);
+    },
 
-      this.__rightContainer.add(this.__subTitle);
 
-      return this.__container;
+    /**
+     * Creates and returns the right container composite. Override this to adapt the widget code.
+     *
+     * @return {qx.ui.mobile.container.Composite} the right container.
+     */
+    _createRightContainer : function() {
+      return new qx.ui.mobile.container.Composite(new qx.ui.mobile.layout.VBox());
+    },
+
+
+    /**
+     * Creates and returns the image widget. Override this to adapt the widget code.
+     *
+     * @return {qx.ui.mobile.basic.Image} the image widget.
+     */
+    _createImage : function() {
+      var image = new qx.ui.mobile.basic.Image();
+      image.setAnonymous(true);
+      image.addCssClass("list-item-image");
+      return image;
+    },
+
+
+    /**
+     * Creates and returns the title widget. Override this to adapt the widget code.
+     *
+     * @return {qx.ui.mobile.basic.Label} the title widget.
+     */
+    _createTitle : function() {
+      var title = new qx.ui.mobile.basic.Label();
+      title.setWrap(false);
+      title.addCssClass("list-item-title");
+      return title;
+    },
+
+
+    /**
+     * Creates and returns the subtitle widget. Override this to adapt the widget code.
+     *
+     * @return {qx.ui.mobile.basic.Label} the subtitle widget.
+     */
+    _createSubtitle : function() {
+      var subtitle = new qx.ui.mobile.basic.Label();
+      subtitle.setWrap(false);
+      subtitle.addCssClass("list-item-subtitle");
+      return subtitle;
     },
 
 
@@ -187,27 +213,13 @@ qx.Class.define("qx.ui.mobile.list.renderer.Default",
     {
       this.__image.setSource(null);
       this.__title.setValue("");
-      this.__subTitle.setValue("");
+      this.__subtitle.setValue("");
     }
   },
-  
- /*
-  *****************************************************************************
-     DESTRUCTOR
-  *****************************************************************************
-  */
+
 
   destruct : function()
   {
-    this.__image.dispose();
-    this.__image = null;
-    this.__title.dispose();
-    this.__title = null;
-    this.__subTitle.dispose();
-    this.__subTitle = null;
-    this.__container.dispose();
-    this.__container = null;
-    this.__rightContainer.dispose();
-    this.__rightContainer = null;
+    this._disposeObjects("__image", "__title", "__subtitle", "__rightContainer");
   }
 });

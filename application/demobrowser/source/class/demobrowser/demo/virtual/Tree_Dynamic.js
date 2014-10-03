@@ -19,12 +19,15 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/22/places/folder.png)
-#asset(qx/icon/${qx.icontheme}/22/mimetypes/office-document.png)
-#asset(demobrowser/demo/icons/loading22.gif)
 
 ************************************************************************ */
-
+/**
+ * @tag noPlayground
+ *
+ * @asset(qx/icon/${qx.icontheme}/22/places/folder.png)
+ * @asset(qx/icon/${qx.icontheme}/22/mimetypes/office-document.png)
+ * @asset(demobrowser/demo/icons/loading22.gif)
+ */
 qx.Class.define("demobrowser.demo.virtual.Tree_Dynamic",
 {
   extend : qx.application.Standalone,
@@ -82,8 +85,10 @@ qx.Class.define("demobrowser.demo.virtual.Tree_Dynamic",
 
                 qx.event.Timer.once(function()
                 {
+                  tree.setAutoScrollIntoView(false);
                   value.getChildren().removeAll();
                   this.createRandomData(value);
+                  tree.setAutoScrollIntoView(true);
                 }, that, 1000);
               }
 

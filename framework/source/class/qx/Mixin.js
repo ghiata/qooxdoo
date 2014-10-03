@@ -25,6 +25,8 @@
  * other classes. They are similar to classes but don't support inheritance.
  *
  * See the description of the {@link #define} method how a mixin is defined.
+ *
+ * @require(qx.lang.normalize.Array)
  */
 qx.Bootstrap.define("qx.Mixin",
 {
@@ -43,7 +45,7 @@ qx.Bootstrap.define("qx.Mixin",
      * <pre class='javascript'>
      * qx.Mixin.define("name",
      * {
-     *   includes: [SuperMixins],
+     *   include: [SuperMixins],
      *
      *   properties: {
      *     tabIndex: {type: "number", init: -1}
@@ -78,6 +80,8 @@ qx.Bootstrap.define("qx.Mixin",
      *         corresponding event type classes.
      *     </td></tr>
      *   </table>
+     *
+     * @return {qx.Mixin} The configured mixin
      */
     define : function(name, config)
     {
@@ -169,7 +173,8 @@ qx.Bootstrap.define("qx.Mixin",
      * Check compatibility between mixins (including their includes)
      *
      * @param mixins {Mixin[]} an array of mixins
-     * @throws an exception when there is a conflict between the mixins
+     * @throws {Error} when there is a conflict between the mixins
+     * @return {Boolean} <code>true</code> if the mixin passed the compatibilty check
      */
     checkCompatibility : function(mixins)
     {
@@ -226,12 +231,12 @@ qx.Bootstrap.define("qx.Mixin",
      *
      * @param mixin {Mixin} mixin to check
      * @param clazz {Class} class to check
-     * @throws an exception when the given mixin is incompatible to the class
+     * @throws {Error} when the given mixin is incompatible to the class
      * @return {Boolean} true if the mixin is compatible to the given class
      */
     isCompatible : function(mixin, clazz)
     {
-      var list = qx.Bootstrap.getMixins(clazz);
+      var list = qx.util.OOUtil.getMixins(clazz);
       list.push(mixin);
       return qx.Mixin.checkCompatibility(list);
     },
@@ -251,7 +256,6 @@ qx.Bootstrap.define("qx.Mixin",
     /**
      * Determine if mixin exists
      *
-     * @name isDefined
      * @param name {String} mixin name to check
      * @return {Boolean} true if mixin exists
      */
@@ -322,7 +326,7 @@ qx.Bootstrap.define("qx.Mixin",
     $$registry : {},
 
 
-    /** {Map} allowed keys in mixin definition */
+    /** @type {Map} allowed keys in mixin definition */
     __allowedKeys : qx.core.Environment.select("qx.debug",
     {
       "true":
@@ -404,7 +408,7 @@ qx.Bootstrap.define("qx.Mixin",
         }
       },
 
-      "default" : function() {}
+      "default" : function(name, config) {}
     })
   }
 });

@@ -14,12 +14,11 @@
 
    Authors:
      * Tino Butz (tbtz)
+     * Christopher Zuendorf (czuendorf)
 
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * A toggle Button widget
  *
  * If the user tap the button, the button toggles between the <code>ON</code>
@@ -28,7 +27,7 @@
  * Here is a little example of how to use the widget.
  *
  * <pre class='javascript'>
- *   var button = new qx.ui.mobile.form.ToggleButton(false);
+ *   var button = new qx.ui.mobile.form.ToggleButton(false,"YES","NO");
  *
  *   button.addListener("changeValue", function(e) {
  *     alert(e.getData());
@@ -54,20 +53,26 @@ qx.Class.define("qx.ui.mobile.form.ToggleButton",
     qx.ui.form.IModel
   ],
 
-  /*
-  *****************************************************************************
-     CONSTRUCTOR
-  *****************************************************************************
-  */
 
   /**
    * @param value {Boolean?null} The value of the button
+   * @param labelChecked {Boolean?"ON"} The value of the text display when toggleButton is active
+   * @param labelUnchecked {Boolean?"OFF"} The value of the text display when toggleButton is inactive
    */
-  construct : function(value)
+  construct : function(value, labelChecked, labelUnchecked)
   {
     this.base(arguments);
-    this.__child = this._createChild();
-    this._add(this.__child);
+
+    if(labelChecked && labelUnchecked) {
+       this.__labelUnchecked = labelUnchecked;
+       this.__labelChecked = labelChecked;
+    }
+
+    this._setAttribute("data-label-checked", this.__labelChecked);
+    this._setAttribute("data-label-unchecked", this.__labelUnchecked);
+
+    this.__switch = this._createSwitch();
+    this._add(this.__switch);
 
     if (value) {
       this.setValue(value);
@@ -76,14 +81,9 @@ qx.Class.define("qx.ui.mobile.form.ToggleButton",
     this.addListener("tap", this._onTap, this);
     this.addListener("swipe", this._onSwipe, this);
 
+    this.addCssClass("gap");
   },
 
-
-  /*
-  *****************************************************************************
-     PROPERTIES
-  *****************************************************************************
-  */
 
   properties :
   {
@@ -91,24 +91,18 @@ qx.Class.define("qx.ui.mobile.form.ToggleButton",
     defaultCssClass :
     {
       refine : true,
-      init : "toggleButton"
+      init : "togglebutton"
     }
-
   },
 
 
-
-
-  /*
-  *****************************************************************************
-     MEMBERS
-  *****************************************************************************
-  */
-
   members :
   {
-    __child : null,
-    __value : null,
+    __switch : null,
+    __value : false,
+    __labelUnchecked : "OFF",
+    __labelChecked : "ON",
+    __lastToggleTimestamp : 0,
 
 
     /**
@@ -117,16 +111,18 @@ qx.Class.define("qx.ui.mobile.form.ToggleButton",
      * @return {qx.ui.mobile.container.Composite} the child control.
      */
     _getChild : function() {
-      return this.__child;
+      return this.__switch;
     },
 
 
     /**
-     * Creates the child control of the widget. Needed to display the toggle
-     * button.
+     * Creates the switch control of the widget.
+     * @return {qx.ui.mobile.container.Composite} The switch control.
      */
-    _createChild : function() {
-      return new qx.ui.mobile.container.Composite();
+    _createSwitch : function() {
+      var toggleButtonSwitch = new qx.ui.mobile.container.Composite();
+      toggleButtonSwitch.addCssClass("togglebutton-switch");
+      return toggleButtonSwitch;
     },
 
 
@@ -141,9 +137,9 @@ qx.Class.define("qx.ui.mobile.form.ToggleButton",
         throw new Error("value for "+this+" should be boolean");
       }
       if (value) {
-        this._getChild().addCssClass("checked");
+        this.addCssClass("checked");
       } else {
-        this._getChild().removeCssClass("checked");
+        this.removeCssClass("checked");
       }
        this.__value = value;
     },
@@ -151,17 +147,18 @@ qx.Class.define("qx.ui.mobile.form.ToggleButton",
     /**
      * Gets the value [true/false] of this toggle button.
      * It is called by getValue method of qx.ui.mobile.form.MValue mixin
-     * @return value {Boolean} the value of the toggle button
+     * @return {Boolean} the value of the toggle button
      */
     _getValue : function() {
       return this.__value;
     },
 
+
     /**
      * Toggles the value of the button.
      */
     toggle : function() {
-      this.setValue(!this.getValue());
+        this.setValue(!this.getValue());
     },
 
 
@@ -173,38 +170,53 @@ qx.Class.define("qx.ui.mobile.form.ToggleButton",
      */
     _onTap : function(evt)
     {
-      this.toggle();
+      if(this._checkLastPointerTime()) {
+        this.toggle();
+      }
     },
-
 
 
     /**
      * Event handler. Called when the swipe event occurs.
-     * Toggles the button.
+     * Toggles the button, when.
      *
      * @param evt {qx.event.type.Swipe} The swipe event.
      */
     _onSwipe : function(evt)
     {
-      this.toggle();
-    }
+      if (this._checkLastPointerTime()) {
+        var direction = evt.getDirection();
+        if (direction == "left") {
+          if (this.__value == true) {
+            this.toggle();
+          }
+        } else {
+          if (this.__value == false) {
+            this.toggle();
+          }
+        }
+      }
+    },
 
+
+    /**
+     * Checks if last touch event (swipe,tap) is more than 500ms ago.
+     * Bugfix for several simulator/emulator, when tap is immediately followed by a swipe.
+     * @return {Boolean} <code>true</code> if the last event was more than 500ms ago
+     */
+    _checkLastPointerTime : function() {
+      var elapsedTime = new Date().getTime() - this.__lastToggleTimestamp;
+      this.__lastToggleTimestamp = new Date().getTime();
+      return elapsedTime>500;
+    }
   },
 
-
-
-
- /*
-  *****************************************************************************
-     DESTRUCTOR
-  *****************************************************************************
-  */
 
   destruct : function()
   {
     this.removeListener("tap", this._onTap, this);
     this.removeListener("swipe", this._onSwipe, this);
-    this.__child.dispose();
-    this.__child = null;
+
+    this._disposeObjects("__switch","__labelUnchecked","__labelChecked");
   }
 });

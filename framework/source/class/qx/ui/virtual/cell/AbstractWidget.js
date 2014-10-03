@@ -30,6 +30,7 @@ qx.Class.define("qx.ui.virtual.cell.AbstractWidget",
     /**
      * Creates the widget instance.
      *
+     * @abstract
      * @return {qx.ui.core.LayoutItem} The widget used to render a cell
      */
     _createWidget : function() {
@@ -115,7 +116,7 @@ qx.Class.define("qx.ui.virtual.cell.AbstractWidget",
      */
     __getWidgetFromPool : function()
     {
-      var widget = this.__pool.pop();
+      var widget = this.__pool.shift();
 
       if (widget == null)
       {
@@ -138,4 +139,4 @@ qx.Class.define("qx.ui.virtual.cell.AbstractWidget",
     this._cleanupPool();
     this.__pool = null;
   }
-})
+});

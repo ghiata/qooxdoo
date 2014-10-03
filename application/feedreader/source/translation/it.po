@@ -14,82 +14,65 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Generator: KBabel 1.11.4\n"
 
-#: feedreader/Application.js:500
-msgid "FeedReader (qooxdoo powered)"
-msgstr "FeedReader (realizzato con qooxdoo)"
-
-#: feedreader/mobile/FeedPage.js:32 feedreader/mobile/ArticlePage.js:32
-msgid "Back"
-msgstr ""
-
-#: feedreader/model/Model.js:81
-msgid "Static Feeds"
-msgstr "Feed statici"
-
-#: feedreader/model/Model.js:111
-msgid "User Feeds"
-msgstr "Feed utente"
-
-#: feedreader/view/AddFeedWindow.js:49
-msgid "Add a feed"
-msgstr "Aggiungi un feed"
-
-#: feedreader/view/AddFeedWindow.js:94
-msgid "Feed Information"
-msgstr "Informazioni sul Feed"
-
-#: feedreader/view/AddFeedWindow.js:101
-msgid "Title"
-msgstr "Titolo"
-
-#: feedreader/view/AddFeedWindow.js:105
-msgid "URL"
-msgstr "URL"
-
-#: feedreader/view/AddFeedWindow.js:108
 msgid "Add"
 msgstr "Aggiungi"
 
-#: feedreader/view/List.js:50
-msgid "Posts"
-msgstr "Messaggi"
+msgid "Add a feed"
+msgstr "Aggiungi un feed"
 
-#: feedreader/view/PreferenceWindow.js:48 feedreader/view/ToolBar.js:85
-msgid "Preferences"
-msgstr "Preferenze"
-
-#: feedreader/view/PreferenceWindow.js:85
-msgid "Language"
-msgstr "Lingua"
-
-#: feedreader/view/PreferenceWindow.js:141
-msgid "Cancel"
-msgstr "Annulla"
-
-#: feedreader/view/PreferenceWindow.js:147
-msgid "OK"
-msgstr "OK"
-
-#: feedreader/view/ToolBar.js:58
 msgid "Add feed"
 msgstr "Aggiungi un feed"
 
-#: feedreader/view/ToolBar.js:62
-msgid "Remove feed"
-msgstr "Rimuovi il feed"
+msgid "Back"
+msgstr ""
 
-#: feedreader/view/ToolBar.js:73
-msgid "Reload"
-msgstr "Ricarica"
+msgid "Cancel"
+msgstr "Annulla"
 
-#: feedreader/view/ToolBar.js:76
-msgid "Reload the feeds. (%1)"
-msgstr "Ricarica i feed. (%1)"
+msgid "Feed Information"
+msgstr "Informazioni sul Feed"
 
-#: feedreader/view/ToolBar.js:87
+msgid "FeedReader (qooxdoo powered)"
+msgstr "FeedReader (realizzato con qooxdoo)"
+
+msgid "Help"
+msgstr "Aiuto"
+
+msgid "Language"
+msgstr "Lingua"
+
+msgid "OK"
+msgstr "OK"
+
 msgid "Open preferences window."
 msgstr "Apri la finestra delle preferenze."
 
-#: feedreader/view/ToolBar.js:96
-msgid "Help"
-msgstr "Aiuto"
+msgid "Posts"
+msgstr "Messaggi"
+
+msgid "Preferences"
+msgstr "Preferenze"
+
+msgid "Reload"
+msgstr "Ricarica"
+
+msgid "Reload the feeds. (%1)"
+msgstr "Ricarica i feed. (%1)"
+
+msgid "Remove feed"
+msgstr "Rimuovi il feed"
+
+msgid "Static Feeds"
+msgstr "Feed statici"
+
+msgid "Theme"
+msgstr ""
+
+msgid "Title"
+msgstr "Titolo"
+
+msgid "URL"
+msgstr "URL"
+
+msgid "User Feeds"
+msgstr "Feed utente"

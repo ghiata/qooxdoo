@@ -69,22 +69,23 @@ qx.Class.define("qx.ui.virtual.core.Pane",
     this.addListener("resize", this._onResize, this);
     this.addListenerOnce("appear", this._onAppear, this);
 
-    this.addListener("click", this._onClick, this);
-    this.addListener("dblclick", this._onDblclick, this);
+    this.addListener("pointerdown", this._onPointerDown, this);
+    this.addListener("tap", this._onTap, this);
+    this.addListener("dbltap", this._onDbltap, this);
     this.addListener("contextmenu", this._onContextmenu, this);
   },
 
 
   events :
   {
-    /** Fired if a cell is clicked. */
-    cellClick : "qx.ui.virtual.core.CellEvent",
+    /** Fired if a cell is tapped. */
+    cellTap : "qx.ui.virtual.core.CellEvent",
 
     /** Fired if a cell is right-clicked. */
     cellContextmenu : "qx.ui.virtual.core.CellEvent",
 
-    /** Fired if a cell is double-clicked. */
-    cellDblclick : "qx.ui.virtual.core.CellEvent",
+    /** Fired if a cell is double-tapped. */
+    cellDbltap : "qx.ui.virtual.core.CellEvent",
 
     /** Fired on resize of either the container or the (virtual) content. */
     update : "qx.event.type.Event",
@@ -131,6 +132,7 @@ qx.Class.define("qx.ui.virtual.core.Pane",
     __dontFireUpdate : null,
     __columnSizes : null,
     __rowSizes : null,
+    __pointerDownCoords : null,
 
 
     /*
@@ -456,9 +458,9 @@ qx.Class.define("qx.ui.virtual.core.Pane",
 
     /**
      * Get the grid cell at the given absolute document coordinates. This method
-     * can be used to convert the mouse position returned by
-     * {@link qx.event.type.Mouse#getDocumentLeft} and
-     * {@link qx.event.type.Mouse#getDocumentLeft} into cell coordinates.
+     * can be used to convert the pointer position returned by
+     * {@link qx.event.type.Pointer#getDocumentLeft} and
+     * {@link qx.event.type.Pointer#getDocumentLeft} into cell coordinates.
      *
      * @param documentX {Integer} The x coordinate relative to the viewport
      *    origin.
@@ -617,7 +619,7 @@ qx.Class.define("qx.ui.virtual.core.Pane",
      */
     _onResize : function()
     {
-      if (this.getContainerElement().getDomElement())
+      if (this.getContentElement().getDomElement())
       {
         this.__dontFireUpdate = true;
         this._updateScrollPosition();
@@ -634,48 +636,61 @@ qx.Class.define("qx.ui.virtual.core.Pane",
       this.fullUpdate();
     },
 
+    /**
+     * Event listener for pointer down. Remembers cell position to prevent pointer event when cell position change.
+     *
+     * @param e {qx.event.type.Pointer} The incoming pointer event.
+     */
+    _onPointerDown : function(e) {
+      this.__pointerDownCoords = this.getCellAtPosition(e.getDocumentLeft(), e.getDocumentTop());
+    },
 
     /**
-     * Event listener for mouse clicks. Fires an cellClick event.
+     * Event listener for pointer taps. Fires an cellTap event.
      *
-     * @param e {qx.event.type.Mouse} The incoming mouse event.
+     * @param e {qx.event.type.Pointer} The incoming pointer event.
      */
-    _onClick : function(e) {
-      this.__handleMouseCellEvent(e, "cellClick");
+    _onTap : function(e) {
+      this.__handlePointerCellEvent(e, "cellTap");
     },
 
 
     /**
-     * Event listener for context menu clicks. Fires an cellContextmenu event.
+     * Event listener for context menu taps. Fires an cellContextmenu event.
      *
-     * @param e {qx.event.type.Mouse} The incoming mouse event.
+     * @param e {qx.event.type.Pointer} The incoming pointer event.
      */
     _onContextmenu : function(e) {
-      this.__handleMouseCellEvent(e, "cellContextmenu");
+      this.__handlePointerCellEvent(e, "cellContextmenu");
     },
 
 
     /**
-     * Event listener for double clicks. Fires an cellDblclick event.
+     * Event listener for double taps. Fires an cellDbltap event.
      *
-     * @param e {qx.event.type.Mouse} The incoming mouse event.
+     * @param e {qx.event.type.Pointer} The incoming pointer event.
      */
-    _onDblclick : function(e) {
-       this.__handleMouseCellEvent(e, "cellDblclick");
+    _onDbltap : function(e) {
+       this.__handlePointerCellEvent(e, "cellDbltap");
     },
 
 
     /**
-     * Converts a mouse event into a cell event and fires the cell event if the
-     * mouse is over a cell.
+     * Converts a pointer event into a cell event and fires the cell event if the
+     * pointer is over a cell.
      *
-     * @param e {qx.event.type.Mouse} The mouse event.
+     * @param e {qx.event.type.Pointer} The pointer event.
      * @param cellEventType {String} The name of the cell event to fire.
      */
-    __handleMouseCellEvent : function(e, cellEventType)
+    __handlePointerCellEvent : function(e, cellEventType)
     {
       var coords = this.getCellAtPosition(e.getDocumentLeft(), e.getDocumentTop());
       if (!coords) {
+        return;
+      }
+
+      var pointerDownCoords = this.__pointerDownCoords;
+      if (pointerDownCoords == null || pointerDownCoords.row !== coords.row || pointerDownCoords.column !== coords.column) {
         return;
       }
 
@@ -695,7 +710,7 @@ qx.Class.define("qx.ui.virtual.core.Pane",
 
 
     // overridden
-    syncWidget : function()
+    syncWidget : function(jobs)
     {
       if (this.__jobs._fullUpdate) {
         this._fullUpdate();
@@ -768,8 +783,8 @@ qx.Class.define("qx.ui.virtual.core.Pane",
       }
 
       this.__layerContainer.setUserBounds(
-        this.__layerWindow.left - this.__scrollLeft,
-        this.__layerWindow.top - this.__scrollTop,
+        (this.getPaddingLeft() || 0) + (this.__layerWindow.left - this.__scrollLeft),
+        (this.getPaddingTop() || 0) + (this.__layerWindow.top - this.__scrollTop),
         layerWidth, layerHeight
       );
 
@@ -848,7 +863,7 @@ qx.Class.define("qx.ui.virtual.core.Pane",
       }
 
       var bounds = this.getBounds();
-      
+
       if (!bounds) {
         return; // the pane has not yet been rendered -> wait for the appear event
       }
@@ -912,8 +927,8 @@ qx.Class.define("qx.ui.virtual.core.Pane",
       {
         // only update layer container offset
         this.__layerContainer.setUserBounds(
-          this.__layerWindow.left - paneWindow.left,
-          this.__layerWindow.top - paneWindow.top,
+          (this.getPaddingLeft() || 0) + (this.__layerWindow.left - paneWindow.left),
+          (this.getPaddingTop() || 0) + (this.__layerWindow.top - paneWindow.top),
           this.__layerWindow.right - this.__layerWindow.left,
           this.__layerWindow.bottom - this.__layerWindow.top
         );

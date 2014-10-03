@@ -46,7 +46,7 @@ privatesCacheId = "privates"  # use a site-wide privates db
 #    return names
 
 
-def debug():
+def debug(used):
     for name in used:
         ids = used[name]
         if len(ids) > 1:
@@ -84,24 +84,29 @@ def crypt(id, name, privmap):
     return repl
         
     
+##
+# collect privates and associate a replacement in <privates>
+#
 def lookup(id, node, privates, globalPrivs):
     # privates = { "<private>" : "<repl>", ... }
     name = None
     
     if node.type == "definition":
-        name = node.get("identifier", False)
+        if node.getChild("identifier", False):
+            name = node.getChild("identifier").get("value", '')
+        # treat node.getChild("assignment", False) later on its own
 
     elif node.type == "keyvalue":
-        name = node.get("key", False)
+        name = node.get("key", '')
         
     elif node.type == "assignment":
-        left = node.getChild("left", False)
-        if left:
-            var = left.getChild("variable", False)
-            if var:
-                last = var.getLastChild()
-                if last.type == "identifier":
-                    name = last.get("name")
+        lval = node.children[0]
+        if lval.isVar():
+            if lval.type == "identifier":
+                name = lval.get("value")
+            elif lval.type == "dotaccessor":
+                last = lval.getRightmostOperand()
+                name = last.get("value")
         
     if name and name.startswith("__") and not name in privates:
         privates[name] = crypt(id, name, globalPrivs)
@@ -118,6 +123,9 @@ def lookup(id, node, privates, globalPrivs):
     return privates
 
 
+##
+# replace privates occurrences with replacement
+#
 def update(node, privates):
     if node.hasChildren():
         for child in node.children:
@@ -125,17 +133,14 @@ def update(node, privates):
             
     name = None
             
-    if node.type == "definition":
-        name = node.get("identifier", False)
-
-    elif node.type == "identifier":
-        name = node.get("name", False)
+    if node.type == "identifier":
+        name = node.get("value", '')
         
     elif node.type == "keyvalue":
-        name = node.get("key", False)    
+        name = node.get("key", '')    
     
     elif node.type == "constant" and node.get("constantType") == "string":
-        name = node.get("value", False)
+        name = node.get("value", '')
     
         # Replace occurrences of privates in larger strings:
         #if not name in privates:
@@ -155,14 +160,10 @@ def update(node, privates):
         
     repl = privates[name]
 
-    if node.type == "definition":
-        name = node.set("identifier", repl)
-
-    elif node.type == "identifier":
-        name = node.set("name", repl)
+    if node.type in ("identifier", "constant"):
+        name = node.set("value", repl)
         
     elif node.type == "keyvalue":
         name = node.set("key", repl)    
-    
-    elif node.type == "constant":
-        name = node.set("value", repl)    
+
+

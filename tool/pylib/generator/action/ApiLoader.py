@@ -32,75 +32,101 @@ import sys, os, re
 from misc import filetool
 from misc import json
 from ecmascript.backend import api
-from ecmascript.frontend import tree
-
+from ecmascript.frontend import tree, treegenerator, lang
+from generator import Context
 
 
 class ApiLoader(object):
-    def __init__(self, classesObj, docs, cache, console, ):
+    def __init__(self, classesObj, docs, cache, console, job):
         self._classesObj = classesObj
         self._docs = docs
         self._cache = cache
         self._console = console
+        self._job = job
 
 
+    ##
+    # The API doctree of a specific file/class.
+    #
     def getApi(self, fileId, variantSet):
         filePath = self._classesObj[fileId].path
 
         cacheId = "api-%s" % filePath
-        data, _ = self._cache.read(cacheId, filePath)
-        if data != None:
-            return data
+        tdata, _ = self._cache.read(cacheId, filePath)
+        if tdata != None:
+            return tdata
 
         self._console.debug("Extracting API data: %s..." % fileId)
 
         self._console.indent()
-        #tree = self._treeLoader.getTree(fileId)
-        tree = self._classesObj[fileId].tree(variantSet)
-        (data, hasError) = api.createDoc(tree)
+        tree_ = self._classesObj[fileId].tree(treegenerator)
+        optimize = self._job.get("compile-options/code/optimize", [])
+        if "variants" in optimize:
+            tree_ = self._classesObj[fileId].optimize(tree_, ["variants"], variantSet)
+        (data, hasError, attachMap) = api.createDoc(tree_)
         self._console.outdent()
-        
+
         if hasError:
             self._console.error("Error in API data of class: %s" % fileId)
             data = None
-        
-        self._cache.write(cacheId, data)
-        return data
+
+        self._cache.write(cacheId, (data, attachMap))
+        return data, attachMap
 
 
     def getPackageApi(self, packageId):
         if not packageId in self._docs:
-            self._console.debug("Missing package docs: %s" % packageId)
+            if packageId:  # don't complain empty root namespace
+                self._console.warn("Missing package docs: %s" % packageId)
             return None
-            
+
         packageEntry = self._docs[packageId]
-        
+
         text = filetool.read(packageEntry["path"])
         node = api.createPackageDoc(text, packageId)
-        
-        return node
-        
 
-    def storeApi(self, include, apiPath, variantSet):
+        return node
+
+
+    def storeApi(self, include, apiPath, variantSet, jobConf):
         self._console.info("Generating API data...")
         self._console.indent()
 
         docTree = tree.Node("doctree")
+        docTree.set("fullName", "")
+        docTree.set("name", "")
+        docTree.set("packageName", "")
         length = len(include)
 
         self._console.info("Loading class docs...", False)
         self._console.indent()
 
         packages = []
+        AttachMap = {}
         hasErrors = False
         for pos, fileId in enumerate(include):
             self._console.progress(pos+1, length)
-            fileApi = self.getApi(fileId, variantSet)
+            fileApi, attachMap = self.getApi(fileId, variantSet)
             if fileApi == None:
                 hasErrors = True
-            
+
             # Only continue merging if there were no errors
             if not hasErrors:
+                # update AttachMap
+                for cls in attachMap: # 'qx.Class', 'qx.core.Object', 'q', ...
+                    if cls not in AttachMap:
+                        AttachMap[cls] = attachMap[cls]
+                    else:
+                        for section in attachMap[cls]:  # 'statics', 'members'
+                            if section not in AttachMap[cls]:
+                                AttachMap[cls][section] = attachMap[cls][section]
+                            else:
+                                for method in attachMap[cls][section]:  # 'define', 'showToolTip', ...
+                                    if method not in AttachMap[cls][section]:
+                                        AttachMap[cls][section][method] = attachMap[cls][section][method]
+                                    else:
+                                        self._console.warn("Multiple @attach for same target '%s::%s#%s'." % (cls, section, method))
+
                 self._mergeApiNodes(docTree, fileApi)
                 pkgId = self._classesObj[fileId].package
                 # make sure all parent packages are included
@@ -115,46 +141,94 @@ class ApiLoader(object):
         if hasErrors:
             self._console.error("Found erroneous API information. Please see above. Stopping!")
             return
-                
+
         self._console.info("Loading package docs...")
         self._console.indent()
-        
+
         packages.sort()
         for pkgId in packages:
             self._mergeApiNodes(docTree, self.getPackageApi(pkgId))
 
         self._console.outdent()
 
-        self._console.info("Connecting classes...")
+        self._console.info("Connecting classes...  ", feed=False)
         api.connectPackage(docTree, docTree)
+        self._console.dotclear()
 
         self._console.info("Generating search index...")
-        indexContent = self.docTreeToSearchIndex(docTree, "", "", "")
-        
+        index = self.docTreeToSearchIndex(docTree, "", "", "")
+
+        if "verify" in jobConf:
+            if "links" in jobConf["verify"]:
+                api.verifyLinks(docTree, index)
+            if "types" in jobConf["verify"]:
+                api.verifyTypes(docTree, index)
+
+        if "warnings" in jobConf and "output" in jobConf["warnings"]:
+            api.logErrors(docTree, jobConf["warnings"]["output"])
+
+        if "verify" in jobConf:
+            if "statistics" in jobConf["verify"]:
+                api.verifyDocPercentage(docTree)
+
         self._console.info("Saving data...", False)
         self._console.indent()
 
         packageData = api.getPackageData(docTree)
         packageJson = json.dumps(packageData)
         filetool.save(os.path.join(apiPath, "apidata.json"), packageJson)
-        
+
+        # apply the @attach information
+        for classData in api.classNodeIterator(docTree):
+            className = classData.get("fullName")
+            if className in AttachMap:
+                self._applyAttachInfo(className, classData, AttachMap[className])
+
+        # write per-class .json to disk
         length = 0
         for classData in api.classNodeIterator(docTree):
             length += 1
-            
+
+        links = []
+
         pos = 0
         for classData in api.classNodeIterator(docTree):
             pos += 1
             self._console.progress(pos, length)
             nodeData = tree.getNodeData(classData)
             nodeJson = json.dumps(nodeData)
-            fileName = os.path.join(apiPath, classData.get("fullName") + ".json")
+            className = classData.get("fullName")
+            fileName = os.path.join(apiPath, className + ".json")
             filetool.save(fileName, nodeJson)
-            
+
+            sitemap = False
+            if "sitemap" in jobConf:
+                sitemap = jobConf["sitemap"]
+                if "link-uri" in sitemap:
+                    links.append(sitemap["link-uri"] % className)
+
+            #import pdb; pdb.set_trace()
+            #for type in ["method", "method-static", "event", "property", "constant"]:
+            #  for item in classData.getAllChildrenOfType(type):
+            #      itemName = className + "~" + item.attributes["name"]
+            #      link = linkPrefix + itemName
+
         self._console.outdent()
-            
+
+        # write apiindex.json
         self._console.info("Saving index...")
-        filetool.save(os.path.join(apiPath, "apiindex.json"), indexContent)            
+        indexContent = json.dumps(index, separators=(', ', ':'), sort_keys=True)  # compact encoding
+        filetool.save(os.path.join(apiPath, "apiindex.json"), indexContent)
+
+        # save sitemap
+        if sitemap and len(links) > 0:
+            self._console.info("Saving XML sitemap...")
+            sitemapData = self.getSitemap(links)
+            if "file" in sitemap:
+                sitemapFile = sitemap["file"]
+            else:
+                sitemapFile = os.path.join(apiPath, "sitemap.xml")
+            filetool.save(sitemapFile, sitemapData)
 
         self._console.outdent()
         self._console.info("Done")
@@ -164,12 +238,12 @@ class ApiLoader(object):
     def _mergeApiNodes(self, target, source):
         if not target or not source:
             return
-        
+
         if source.hasAttributes():
             attr = source.attributes
             for key in attr:
                 # Special handling for attributes which stores a list (this is BTW quite ugly)
-                if key in ["childClasses", "includer", "mixins", "implementations"] and target.get(key, False) != None:
+                if key in ["childClasses", "includer", "mixins", "implementations"] and target.get(key, False) != False:
                     target.set(key, "%s,%s" % (target.get(key), attr[key]))
                 else:
                     target.set(key, attr[key])
@@ -304,162 +378,87 @@ class ApiLoader(object):
         index = { "__types__" : types,
                   "__fullNames__" : fullNames,
                   "__index__" : indexs }
-        asString = json.dumps(index, separators=(',',':'), sort_keys=True) # compact encoding
 
-        return asString
+        return index
 
+    ##
+    # Apply collected @attach info to a specific class doc
+    #
+    def _applyAttachInfo(self, className, classDoc, classAttachInfo):
+        node_types = {"statics" : "methods-static", "members" : "methods"}
 
-
-    def verifyLinks(self, include, apiPath):
-        self._console.info("Verifying links...")
-        import re
-        self._linkRegExp = re.compile("\{\s*@link\s*([\w#-_\.]*)[\W\w\d\s]*?\}")
-        
-        self._console.indent()
-        self._console.info("Loading class docs...")
-        targets = []
-        links = []
-        mixinUsage = {}
-        
-        # Open APIdata files and get the needed information
-        dirwalker   = os.walk(apiPath)
-        files = []
-        for (path, dirlist, filelist) in dirwalker:
-            for file in filelist:
-                if file[-5:] == ".json" and not "apiindex" in file:
-                    files.append(os.path.join(path,file))
-        
-        for file in files:
-            classDocFile = open(file)
-            doc = json.load(classDocFile)
-
-            try:
-                fullName = doc["attributes"]["fullName"]
-            except KeyError:
-                fullName = "doctree"
-            (classTargets,classLinks,classMixinUsage) = self._getDocNodes(doc, fullName)
-            targets += classTargets
-            links += classLinks
-            mixinUsage.update(classMixinUsage)
-        
-        # Get mixin members and add them to the classes that use them
-        newTargets = []
-        for clazz in mixinUsage:
-            mixinList = mixinUsage[clazz]
-            for mixin in mixinList:
-                for target in targets:
-                    if mixin + "#" in target:
-                        memberName = target[target.find("#"):]
-                        newTargets.append(clazz + memberName)
-        targets += newTargets            
-        
-        self._console.outdent()
-        self._console.info("Checking links...")
-        self._console.indent()  
-        
-        self._checkLinks(links,targets)
-        
-        self._console.outdent()
-        self._console.info("Finished checking links")
-        
-
-    def _getDocNodes(self,node, packageName = "", className = "", itemName = "", paramName = "", parentNodeType = ""):
-        targets = []
-        links = []
-        mixinUsage = {}
-        
-        nodeType = node["type"]
-          
-        if nodeType == "package":
-            packageName = node["attributes"]["fullName"]
-            if packageName not in targets:
-                targets.append(packageName)
-        
-        elif nodeType == "class":
-            packageName = node["attributes"]["packageName"]
-            className = node["attributes"]["name"]            
-            fullName = "%s.%s" %(packageName,className)
-            targets.append(fullName)
-            if packageName not in targets:
-                targets.append(packageName)
-            
-            if "mixins" in node["attributes"]:
-                mixinUsage[fullName] = node["attributes"]["mixins"].split(",")
-        
-        elif nodeType in ["event", "property", "method", "constant"]:
-            itemName = node["attributes"]["name"]        
-            targets.append("%s.%s#%s" %(packageName,className,itemName))
-        
-        elif nodeType in ["param"]:
-            paramName = node["attributes"]["name"]
-            pass
-          
-        elif nodeType == "desc":
-            if "@link" in node["attributes"]["text"]:
-                match = self._linkRegExp.findall(node["attributes"]["text"])
-                if match:
-                    internalLinks = []
-                    for link in match:
-                        if not "<a" in link:
-                            internalLinks.append(link)
-                    
-                    if len(internalLinks) > 0:
-                      link = {
-                          "nodeType" : parentNodeType,
-                          "packageName" : packageName,
-                          "className" : className,
-                          "itemName" : itemName,
-                          "paramName" : paramName,
-                          "links" : internalLinks
-                      }
-      
-                      links.append(link)
-        
-        if "children" in node:
-            for child in node["children"]:
-                (childTargets,childLinks,childMixinUsage) = self._getDocNodes(child, packageName, className, itemName, paramName, nodeType)
-                targets += childTargets
-                links += childLinks
-                mixinUsage.update(childMixinUsage)
-        
-        return(targets,links,mixinUsage)
+        ##
+        # get or create a section node
+        def get_section_node(classDoc, section):
+            section_node = None
+            for node in api.docTreeIterator(classDoc, node_types[section]):
+                section_node = node  # first should be only
+                break
+            if not section_node:
+                section_node = tree.Node(node_types[section])
+                classDoc.addChild(section_node)
+            return section_node
 
 
-    def _checkLinks(self,links,targets):    
-        namespaceReg = re.compile("(.*?)\.[\w\d_\-]+$")
-        
-        for link in links:
-            for ref in link["links"]:              
-                # Remove parentheses from method references
-                if ref[-2:] == "()":
-                    ref = ref[:-2]
-                # Get the target's full name for members (starting with '#')
-                if ref[0] == "#":
-                    ref = "%s.%s%s" %(link["packageName"],link["className"],ref)
-                
-                # Class references with no namespace point to the current namespace
-                elif not "." in ref:
-                    ref = link["packageName"] + "." + ref                     
-                            
-                if ref not in targets:
-                    nodeType = link["nodeType"]
-                    if nodeType == "package":
-                        #TODO: Fix this
-                        linkNode = link["packageName"]
-                    elif nodeType == "class":
-                        linkNode = "%s.%s" %(link["packageName"],link["className"]) 
-                    elif nodeType == "param":
-                        if link["itemName"] == "ctor":
-                            nodeType = ""
-                            linkNode = "the constructor parameter %s of %s.%s" %(link["paramName"],link["packageName"],link["className"])
-                        else:
-                            nodeType = "parameter"
-                            linkNode = "%s.%s#%s %s" %(link["packageName"],link["className"],link["itemName"],link["paramName"])
-                    elif link["itemName"] == "ctor":
-                        nodeType = "constructor"
-                        linkNode = "%s.%s" %(link["packageName"],link["className"]) 
-                    else:
-                        linkNode = "%s.%s#%s" %(link["packageName"],link["className"],link["itemName"])
-                    
-                    self._console.info("The %s documentation for %s contains a broken link to %s" %(nodeType,linkNode,ref))
-            
+        def has_method(section_node, method):
+            for method in api.methodNodeIterator(section_node):
+                if method.get("name") == method_name:
+                    return True
+            return False
+
+        def add_meth_doc(methDoc, section_node):
+            section_node.addChild(methDoc)
+
+        # -----------------------------------------------------------------
+
+        for section in ('statics', 'members'):
+            if not classAttachInfo[section]:
+                continue
+            section_node = get_section_node(classDoc, section)
+            for method_name in classAttachInfo[section]:
+                if has_method(section_node, method_name):
+                    self._console.warn("Attempt to attach already existing method '%s::%s#%s'" % (className, section, method_name))
+                else:
+                    add_meth_doc(classAttachInfo[section][method_name], section_node)
+
+
+    def getSitemap(self, links):
+        sitemapTemplate = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  %s
+</urlset>
+"""
+
+        urlTemplate = """  <url>
+    <loc>%s</loc>
+  </url>"""
+
+        for i, link in enumerate(links):
+            links[i] = urlTemplate %link
+
+        return sitemapTemplate %"\n".join(links)
+
+
+
+def runApiData(jobconf, configObj, script, docs):
+    apiPath = jobconf.get("api/path")
+    if not apiPath:
+        return
+
+    console = Context.console
+    cache = Context.cache
+    apiPath   = configObj.absPath(apiPath)
+    apiLoader = ApiLoader(script.classesAll, docs, cache, console, jobconf)
+
+    classList = jobconf.get("let/ARGS", [])
+    if not classList:
+        classList = script.classes
+
+    apiLoader.storeApi(classList,
+                             apiPath,
+                             script.variants,
+                             jobconf.get("api", []))
+
+    return
+
+

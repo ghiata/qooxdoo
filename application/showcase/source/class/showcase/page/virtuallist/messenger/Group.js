@@ -17,6 +17,16 @@
 
 ************************************************************************ */
 
+/* ************************************************************************
+
+
+************************************************************************ */
+/**
+ *
+ * @asset(showcase/virtuallist/down.png)
+ * @asset(showcase/virtuallist/right.png)
+ */
+
 qx.Class.define("showcase.page.virtuallist.messenger.Group",
 {
   extend : qx.ui.core.Widget,
@@ -27,7 +37,7 @@ qx.Class.define("showcase.page.virtuallist.messenger.Group",
     this.base(arguments);
 
     this.set({
-      backgroundColor: "rgb(60, 97, 226)",
+      backgroundColor: "dark-blue",
       padding: [0, 3]
     });
 
@@ -85,10 +95,8 @@ qx.Class.define("showcase.page.virtuallist.messenger.Group",
           });
           break;
         case "icon" :
-          control = new qx.ui.basic.Image().set({
-            source: "decoration/arrows/down-invert.png"
-          });
-          control.addListener("click", this._onClick, this);
+          control = new qx.ui.basic.Image("showcase/virtuallist/down.png");
+          control.addListener("tap", this._onTap, this);
           break;
         case "count" :
           control = new qx.ui.basic.Label().set({
@@ -102,10 +110,11 @@ qx.Class.define("showcase.page.virtuallist.messenger.Group",
 
 
     // apply method
-    _applyOpen : function(value, old) {
-      var source = "decoration/arrows/down-invert.png";
+    _applyOpen : function(value, old)
+    {
+      var source = "showcase/virtuallist/down.png";
       if (value == false) {
-        source = "decoration/arrows/right-invert.png";
+        source = "showcase/virtuallist/right.png";
       }
 
       this.getChildControl("icon").setSource(source);
@@ -123,7 +132,7 @@ qx.Class.define("showcase.page.virtuallist.messenger.Group",
       this.getChildControl("count").setValue("(" + value + ")");
     },
 
-    _onClick : function(event) {
+    _onTap : function(event) {
       this.toggleOpen();
     }
   }

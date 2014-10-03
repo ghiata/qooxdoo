@@ -254,7 +254,6 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
      *   An object of class qx.util.fsm.State representing a state which is to
      *   be a part of this finite state machine.
      *
-     * @return {void}
      *
      * @throws {Error} If the given state is not an instanceof of qx.util.fsm.State.
      * @throws {Error} If the given state already exists.
@@ -354,7 +353,6 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
      * @param groupNames {Array}
      *   An optional list of group names of which this object is a member.
      *
-     * @return {void}
      */
     addObject : function(friendlyName, obj, groupNames)
     {
@@ -401,8 +399,7 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
 
         // Append this group name to the list of groups this friendly name is
         // in
-        this.__friendlyToGroups[friendlyName] =
-          this.__friendlyToGroups[friendlyName].concat(groupNames);
+        this.__friendlyToGroups[friendlyName].push(groupName);
       }
     },
 
@@ -415,18 +412,39 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
      *   The friendly name associated with an object, specifying which object
      *   is to be removed.
      *
-     * @return {void}
      */
     removeObject : function(friendlyName)
     {
-      var hash = this.__friendlyToHash[friendlyName];
+      var             hash;
+      var             groupName;
+      var             objName;
+      var             bGroupEmpty;
+
+      hash = this.__friendlyToHash[friendlyName];
 
       // Delete references to any groupos this friendly name was in
       if (this.__friendlyToGroups[friendlyName])
       {
-        for (var groupName in this.__friendlyToGroups[friendlyName])
+        for (var i = 0; i < this.__friendlyToGroups[friendlyName].length; i++)
         {
-          delete this.__groupToFriendly[groupName];
+          groupName = this.__friendlyToGroups[friendlyName][i];
+          delete this.__groupToFriendly[groupName][friendlyName];
+
+          // Is the group empty now?
+          bGroupEmpty = true;
+          for (objName in this.__groupToFriendly[groupName])
+          {
+            // The group is not empty. That's all we wanted to know.
+            bGroupEmpty = false;
+            break;
+          }
+
+          // If the group is empty...
+          if (bGroupEmpty)
+          {
+            // ... then we can delete the entire entry
+            delete this.__groupToFriendly[groupName];
+          }
         }
 
         delete this.__friendlyToGroups[friendlyName];
@@ -476,8 +494,8 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
 
 
     /**
-     * Retrieve the list of objects which have registered, via {@link
-     * #addObject} as being members of the specified group.
+     * Retrieve the list of objects which have registered, via {@link #addObject}
+     * as being members of the specified group.
      *
      *
      * @param groupName {String}
@@ -503,7 +521,6 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
     /**
      * Display all of the saved objects and their reverse mappings.
      *
-     * @return {void}
      */
     displayAllObjects : function()
     {
@@ -523,11 +540,44 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
 
 
     /**
+     * Get internal data for debugging
+     *
+     * @return {Map}
+     *   A map containing the following:
+     *     __states
+     *     __startState
+     *     __eventQueue
+     *     __blockedEvents
+     *     __savedStates
+     *     __friendlyToObject
+     *     __friendlyToHash
+     *     __hashToFriendly
+     *     __groupToFriendly
+     *     __friendlyToGroups
+     *     __bEventProcessingInProgress
+     */
+    _getInternalData : function()
+    {
+      return (
+        {
+          "states"           : this.__states,
+          "startState"       : this.__startState,
+          "eventQueue"       : this.__eventQueue,
+          "blockedEvents"    : this.__blockedEvents,
+          "savedStates"      : this.__savedStates,
+          "friendlyToObject" : this.__friendlyToObject,
+          "friendlyToHash"   : this.__friendlyToHash,
+          "hashToFriendly"   : this.__hashToFriendly,
+          "groupToFriendly"  : this.__groupToFriendly,
+          "friendlyToGroups" : this.__friendlyToGroups
+        });
+    },
+
+    /**
      * Start (or restart, after it has terminated) the finite state machine
      * from the starting state.  The starting state is defined as the first
      * state added to the finite state machine.
      *
-     * @return {void}
      * @throws {Error} If the machine stared with not available state.
      */
     start : function()
@@ -597,7 +647,6 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
      *   return to.  If this parameter is a string, it is taken to be the
      *   name of the state to transition to.
      *
-     * @return {void}
      *
      * @throws {Error} If the saved-state stack is full.
      */
@@ -654,7 +703,6 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
      * @param event {qx.event.type.Event}
      *   The event to add to the event queue for processing after state change.
      *
-     * @return {void}
      */
     postponeEvent : function(event)
     {
@@ -676,7 +724,6 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
      *   processing.  If <i>false</i>, place the event at the tail of the
      *   queue so that it receives in-order processing.
      *
-     * @return {void}
      */
     enqueueEvent : function(event, bAddAtHead)
     {
@@ -716,7 +763,6 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
      * Event listener for all event types in the finite state machine
      *
      * @param event {qx.event.type.Event} The event that was dispatched.
-     * @return {void}
      */
     eventListener : function(event)
     {
@@ -750,7 +796,6 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
      *   type qx.event.type.Data is instantiated and this data is applied to
      *   it.
      *
-     * @return {void}
      */
     fireImmediateEvent : function(type, target, data)
     {
@@ -792,7 +837,6 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
      *   the event.  If not provided, a default short interval (on the order
      *   of 20 milliseconds) is used.
      *
-     * @return {void}
      */
     scheduleEvent : function(type, target, data, timeout)
     {
@@ -809,7 +853,6 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
     /**
      * Process all of the events on the event queue.
      *
-     * @return {void}
      */
     __processEvents : function()
     {
@@ -1079,7 +1122,6 @@ qx.Class.define("qx.util.fsm.FiniteStateMachine",
 
             default:
               throw new Error("Internal error: invalid nextState");
-              break;
           }
         }
 

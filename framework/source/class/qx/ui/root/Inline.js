@@ -19,16 +19,6 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#use(qx.event.handler.ElementResize)
-#ignore(qx.ui)
-#ignore(qx.ui.popup.Manager)
-#ignore(qx.ui.menu.Manager)
-
-************************************************************************ */
-
-
 /**
  * This classes could be used to insert qooxdoo islands into existing
  * web pages. You can use the isles to place any qooxdoo powered widgets
@@ -43,6 +33,10 @@
  * can be changed using the {@link #setLayout} method.
  *
  * To position popups and tooltips please have a look at {@link qx.ui.root.Page}.
+ *
+ * @use(qx.event.handler.ElementResize)
+ * @ignore(qx.ui.popup, qx.ui.popup.Manager.*)
+ * @ignore(qx.ui.menu, qx.ui.menu.Manager.*)
  */
 qx.Class.define("qx.ui.root.Inline",
 {
@@ -97,13 +91,6 @@ qx.Class.define("qx.ui.root.Inline",
     // Register as root
     qx.ui.core.FocusHandler.getInstance().connectTo(this);
 
-
-    // Input type file does only work, when the root element is selectable.
-    // See http://bugzilla.qooxdoo.org/show_bug.cgi?id=3408 for details.
-    if ((qx.core.Environment.get("engine.name") == "opera")) {
-      this.setSelectable(true);
-    }
-
     // Avoid the automatically scroll in to view.
     // See http://bugzilla.qooxdoo.org/show_bug.cgi?id=3236 for details.
     if ((qx.core.Environment.get("engine.name") == "mshtml")) {
@@ -113,6 +100,9 @@ qx.Class.define("qx.ui.root.Inline",
     // Resize handling for the window
     var window = qx.dom.Node.getWindow(el);
     qx.event.Registration.addListener(window, "resize", this._onWindowResize, this);
+
+    // quick fix for [BUG #7680]
+    this.getContentElement().setStyle("-webkit-backface-visibility", "hidden");
   },
 
 
@@ -165,7 +155,7 @@ qx.Class.define("qx.ui.root.Inline",
 
 
     // overridden
-    _createContainerElement : function()
+    _createContentElement : function()
     {
       var el = this.__elem;
 
@@ -173,39 +163,6 @@ qx.Class.define("qx.ui.root.Inline",
       {
         var rootEl = document.createElement("div");
         el.appendChild(rootEl);
-
-        // If any of the ancestor elements has a position "relative" it is
-        // necessary for IE6 to apply this style also to the root element to
-        // avoid any problems when resizing the browser window (see Bug #2035)
-        if ((qx.core.Environment.get("engine.name") == "mshtml") &&
-            qx.core.Environment.get("engine.version") == 6)
-        {
-          var bodyElement = qx.dom.Node.getBodyElement(el);
-          var ancestorElement;
-          var position;
-          var isPositionRelative = false;
-
-          var ancestors = qx.dom.Hierarchy.getAncestors(el);
-          for (var i=0, j=ancestors.length; i<j; i++)
-          {
-            ancestorElement = ancestors[i];
-            if (ancestorElement != bodyElement)
-            {
-              position = qx.bom.element.Style.get(ancestorElement, "position");
-              if (position == "relative")
-              {
-                isPositionRelative = true;
-                break;
-              }
-            } else {
-              break;
-            }
-          }
-
-          if (isPositionRelative) {
-            el.style.position = "relative";
-          }
-        }
       } else {
         rootEl = el;
       }

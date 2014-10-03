@@ -4,34 +4,76 @@
   "include" :
   [
     {
-      "path" : "testrunner.json"  
+      "path" : "testrunner.json"
+    },
+    {
+      "path" : "portable.json",
+      "as"   : "portable"
     },
     {
       "path" : "${QOOXDOO_PATH}/tool/data/config/application.json",
-      "block"   : 
-      [ 
-        "common",
+      "block"   :
+      [
         "source",
         "source-script",
         "build",
         "build-script",
         "build-resources",
         "build-files",
-        "clean" 
+        "clean"
       ]
     }
   ],
-  
+
+  "export" :
+  [
+    "api",
+    "api-data",
+    "build",
+    "build-basic",
+    "build-basic-portable",
+    "build-mobile",
+    "build-widget",
+    "clean-cache",
+    "distclean",
+    "fix",
+    "info",
+    "lint",
+    "portable-source",
+    "portable-build",
+    "pretty",
+    "source",
+    "source-all",
+    "source-basic",
+    "source-mobile",
+    "source-widget",
+    "translation",
+    "validate-config",
+    "validate-manifest"
+  ],
+
   "default-job" : "source",
-  
+
   "config-warnings": {
     "job-shadowing": [
+      "api",
       "source-tests-script",
       "build-basic",
       "source-basic",
       "testrunner::source-tests-script",
       "testrunner::build-basic",
-      "testrunner::source-basic"
+      "testrunner::source-basic",
+      "portable::build-script",
+      "libraries",
+      "translation"
+    ],
+
+    "exclude" : [
+      "testrunner.view.widget.*",
+      "testrunner.TestLoader",
+      "testrunner.TestLoaderInline",
+      "testrunner.TestLoaderNative",
+      "qx.dev.unit.TestLoaderInline"
     ]
   },
 
@@ -43,16 +85,21 @@
     "LOCALES"      : [ "en" ],
     "CACHE"        : "${TMPDIR}/qx${QOOXDOO_VERSION}/cache",
     "ROOT"         : ".",
-    "TEST_NAMESPACE" : "${APPLICATION}.test",
-    "TEST_INCLUDE" : "${TEST_NAMESPACE}.*"
+    "TESTRUNNER_ROOT": "${ROOT}",
+    "BUILD_PATH" : "build"
   },
-
-  // You only need to edit the remainder of this file, if you want to customize
-  // specific jobs, or add own job definitions.
 
   "jobs" :
   {
-    "source-tests-script" : 
+    "api" :
+    {
+      "let" :
+      {
+        "BUILD_PATH"     : "${ROOT}/api"
+      }
+    },
+
+    "source-tests-script" :
     {
       "compile-options" :
       {
@@ -78,12 +125,14 @@
       {
         "TEST_NAMESPACE" : "${APPLICATION}.test.basic"
       }
-    }
+    },
+
+
     /*
     "source-script-packages" :
     {
       "extend" : ["source-script"],
-      
+
       "packages" :
       {
         "parts"  :
@@ -102,12 +151,36 @@
           }
         }
       },
-      
+
       "environment" :
       {
         "testrunner.testParts" : ["${TEST_NAMESPACE}.ui", "${TEST_NAMESPACE}.data"]
       }
     },
     */
+
+    // -------------------------------------------------------------------------
+    // Portable Testrunner Jobs
+    // -------------------------------------------------------------------------
+
+    "portable-source" :
+    {
+      "extend" : ["portable::source-script"]
+    },
+
+    "portable-build" :
+    {
+      "extend" : ["portable::build"]
+    },
+
+    // -------------------------------------------------------------------------
+    // Misc
+    // -------------------------------------------------------------------------
+
+    "translation" :
+    {
+      "translate" : { "poentry-with-occurrences" : false  }
+    }
+
   }
 }

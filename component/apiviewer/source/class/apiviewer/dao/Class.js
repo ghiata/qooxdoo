@@ -48,8 +48,12 @@ qx.Class.define("apiviewer.dao.Class",
      */
     registerClass : function(cls)
     {
-      if (!cls.getFullName())
+      if (typeof cls.getFullName() !== "string")
       {
+        return;
+      }
+      // The tree root package "" is needed as the parent for top-level classes
+      if (cls.getFullName() === "" && this._class_registry[""]) {
         return;
       }
       this._class_registry[cls.getFullName()] = cls;
@@ -309,6 +313,10 @@ qx.Class.define("apiviewer.dao.Class",
         var superClass = this.getSuperClass();
         while (superClass)
         {
+          // superClass might be a built-in type
+          if (typeof superClass.getConstructor == "undefined") {
+            break;
+          }
           var superConstructor = superClass.getConstructor();
           if (superConstructor)
           {
@@ -499,8 +507,9 @@ qx.Class.define("apiviewer.dao.Class",
       var result = [currentClass];
       var superInterfaces = currentClass.getSuperInterfaces();
       while (superInterfaces && superInterfaces.length > 0) {
-        for (var i=0,l=superInterfaces.length; i<l; i++) {
-          var superInterface = apiviewer.dao.Class.getClassByName(superInterfaces[i].getName());
+        var superInterfacesClone = superInterfaces.concat();
+        for (var i=0,l=superInterfacesClone.length; i<l; i++) {
+          var superInterface = apiviewer.dao.Class.getClassByName(superInterfacesClone[i].getName());
           result.push(superInterface);
           superInterfaces = superInterface.getSuperInterfaces();
         }
@@ -686,7 +695,12 @@ qx.Class.define("apiviewer.dao.Class",
           for (var i=0; i<superClasses.length; i++) {
             mixinRecurser(apiviewer.dao.Class.getClassByName(superClasses[i].getName()));
           }
-        }
+
+          // mixins can include other mixins
+          mixinNode.getMixins().forEach(function(includedMixin) {
+            mixinRecurser(apiviewer.dao.Class.getClassByName(includedMixin));
+          });
+        };
 
         var mixinNode = apiviewer.dao.Class.getClassByName(mixins[mixinIndex]);
         mixinRecurser(mixinNode);
@@ -694,7 +708,7 @@ qx.Class.define("apiviewer.dao.Class",
       }
       return classItems;
     },
-    
+
 
     /**
      * Return a class item matching the given name.
@@ -722,6 +736,9 @@ qx.Class.define("apiviewer.dao.Class",
       {
         var mixinNode = apiviewer.dao.Class.getClassByName(mixins[mixinIndex]);
         mixinRecurser(mixinNode);
+        if (itemNode) {
+          break;
+        }
       }
       return itemNode;
     },
@@ -784,6 +801,7 @@ qx.Class.define("apiviewer.dao.Class",
         }
       }
 
+
       var interfaces = clazz.getInterfaces();
       for (var i=0; i<interfaces.length; i++)
       {
@@ -798,7 +816,7 @@ qx.Class.define("apiviewer.dao.Class",
       var superInterfaces = clazz.getSuperInterfaces();
       for (var i=0; i<superInterfaces.length; i++)
       {
-        var superInterface = apiviewer.dao.Class.getClassByName(superInterfaces[i]);
+        var superInterface = apiviewer.dao.Class.getClassByName(superInterfaces[i].getName());
         if (superInterface) {
           this._findClasses(superInterface, foundClasses);
         } else {

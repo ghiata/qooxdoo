@@ -66,9 +66,9 @@ qx.Class.define("qx.html.Canvas",
 
 
     /**
-     * Get the canvas element [<a href="http://www.whatwg.org/specs/web-apps/current-work/multipage/the-canvas.html#canvas">W3C-HMTL5</a>]
+     * Get the canvas element [<a href="http://www.whatwg.org/specs/web-apps/current-work/multipage/the-canvas-element.html#canvas">W3C-HMTL5</a>]
      *
-     * @return {HTMLCanvasElement} The canvas DOM element.
+     * @return {Element} The canvas DOM element.
      */
     getCanvas : function() {
       return this.__canvas;
@@ -119,7 +119,7 @@ qx.Class.define("qx.html.Canvas",
 
     /**
      * Get the canvas' 2D rendering context
-     * [<a href="http://www.whatwg.org/specs/web-apps/current-work/multipage/the-canvas.html#canvasrenderingcontext2d">W3C-HTML5</a>].
+     * [<a href="http://www.whatwg.org/specs/web-apps/current-work/multipage/the-canvas-element.html#canvasrenderingcontext2d">W3C-HTML5</a>].
      * All drawing operations are performed on this context.
      *
      * @return {CanvasRenderingContext2D} The 2D rendering context.

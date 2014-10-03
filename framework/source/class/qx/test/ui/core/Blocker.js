@@ -108,85 +108,26 @@ qx.Class.define("qx.test.ui.core.Blocker",
       this.assertFalse(blockerElement.isIncluded(), "isIncluded()");
     },
 
-    testContentBlocker : function()
+    testBlockedEvent : function()
     {
-      var blockerElement = this.__blocker.getContentBlockerElement();
+      this.__blockedEventFired = false;
+      this.__unblockedEventFired = false;
 
-      this.__blocker.blockContent(100);
-      this.flush();
-      this.assertTrue(this.__blocker.isContentBlocked(), "isContentBlocked()");
-      this.assertTrue(blockerElement.isIncluded(), "isIncluded()");
-      this.assertEquals(100, blockerElement.getStyle("zIndex"));
+      this.__blocker.addListenerOnce("blocked", function(e){
+        this.__blockedEventFired = true;
+      }, this);
 
-      this.__blocker.unblockContent();
-      this.flush();
-      this.assertFalse(this.__blocker.isContentBlocked(), "isContentBlocked()");
-      this.assertFalse(blockerElement.isIncluded(), "isIncluded()");
-      this.assertUndefined(blockerElement.getStyle("zIndex"));
-    },
+      this.__blocker.addListenerOnce("unblocked", function(e){
+        this.__unblockedEventFired = true;
+      }, this);
 
-    testContentBlockerThrice : function()
-    {
-      var blockerElement = this.__blocker.getContentBlockerElement();
+      this.__blocker.block();
+      this.__blocker.unblock();
 
-      this.__blocker.blockContent(100);
-      this.flush();
-      this.assertTrue(this.__blocker.isContentBlocked(), "isContentBlocked()");
-      this.assertTrue(blockerElement.isIncluded(), "isIncluded()");
-      this.assertEquals(100, blockerElement.getStyle("zIndex"));
-
-      this.__blocker.blockContent(200);
-      this.flush();
-      this.assertTrue(this.__blocker.isContentBlocked(), "isContentBlocked()");
-      this.assertTrue(blockerElement.isIncluded(), "isIncluded()");
-      this.assertEquals(200, blockerElement.getStyle("zIndex"));
-
-      this.__blocker.blockContent(300);
-      this.flush();
-      this.assertTrue(this.__blocker.isContentBlocked(), "isContentBlocked()");
-      this.assertTrue(blockerElement.isIncluded(), "isIncluded()");
-      this.assertEquals(300, blockerElement.getStyle("zIndex"));
-
-      this.__blocker.unblockContent();
-      this.flush();
-      this.assertTrue(this.__blocker.isContentBlocked(), "isContentBlocked()");
-      this.assertTrue(blockerElement.isIncluded(), "isIncluded()");
-      this.assertEquals(200, blockerElement.getStyle("zIndex"));
-
-      this.__blocker.unblockContent();
-      this.flush();
-      this.assertTrue(this.__blocker.isContentBlocked(), "isContentBlocked()");
-      this.assertTrue(blockerElement.isIncluded(), "isIncluded()");
-      this.assertEquals(100, blockerElement.getStyle("zIndex"));
-
-      this.__blocker.unblockContent();
-      this.flush();
-      this.assertFalse(this.__blocker.isContentBlocked(), "isContentBlocked()");
-      this.assertFalse(blockerElement.isIncluded(), "isIncluded()");
-      this.assertUndefined(blockerElement.getStyle("zIndex"));
-    },
-
-    testForceUnblockContent : function()
-    {
-      var blockerElement = this.__blocker.getContentBlockerElement();
-
-      this.__blocker.blockContent(100);
-      this.flush();
-      this.assertTrue(this.__blocker.isContentBlocked(), "isContentBlocked()");
-      this.assertTrue(blockerElement.isIncluded(), "isIncluded()");
-      this.assertEquals(100, blockerElement.getStyle("zIndex"));
-
-      this.__blocker.blockContent(200);
-      this.flush();
-      this.assertTrue(this.__blocker.isContentBlocked(), "isContentBlocked()");
-      this.assertTrue(blockerElement.isIncluded(), "isIncluded()");
-      this.assertEquals(200, blockerElement.getStyle("zIndex"));
-
-      this.__blocker.forceUnblockContent();
-      this.flush();
-      this.assertFalse(this.__blocker.isContentBlocked(), "isContentBlocked()");
-      this.assertFalse(blockerElement.isIncluded(), "isIncluded()");
-      this.assertUndefined(blockerElement.getStyle("zIndex"));
+      this.wait(100, function() {
+        this.assertTrue(this.__blockedEventFired, "'blocked' event was not fired, after block() was executed!");
+        this.assertTrue(this.__unblockedEventFired, "'unblocked' event was not fired, after unblock() was executed!");
+      }, this);
     }
   }
 });

@@ -42,6 +42,10 @@ qx.Class.define("demobrowser.demo.table.Table_Cell_Editor",
       this._container.setResizable(false);
     },
 
+    /**
+     * @lint ignoreDeprecated(alert)
+     * @return {qx.ui.table.Table} table
+     */
     createTable : function()
     {
       // create some example data
@@ -291,7 +295,7 @@ qx.Class.define("demobrowser.demo.table.Table_Cell_Editor",
         [
           'Property',
           'Property',
-          'Doubleclick on cell to edit value'
+          'Doubletap on cell to edit value'
         ]);
       var propertyEditor_resizeBehaviour =
         {

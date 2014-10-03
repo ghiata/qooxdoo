@@ -92,7 +92,7 @@ class MClassResources(object):
                     nres = nres.replace('${'+themekey+'}','') # just remove '${...}'
                     nres = nres.replace('//', '/')    # get rid of '...//...'
                     result.append(nres)
-                    console.warn("Warning: (%s): Cannot replace macro '%s' in #asset hint" % (self.id, themekey))
+                    console.warn("Warning: (%s): Cannot replace macro '%s' in @asset hint" % (self.id, themekey))
             else:
                 raise SyntaxError, "Non-terminated macro in string: %s" % rsc
             return result
@@ -115,9 +115,7 @@ class MClassResources(object):
             resources.extend(libObj.getResources()) # weightedness of same res id through order of script.libraries
         # remove unwanted files
         exclpatt = re.compile("\.(?:meta|py)$", re.I)
-        for res in resources[:]:
-            if exclpatt.search(res.id):
-                resources.remove(res)
+        resources = [res for res in resources if not exclpatt.search(res.id)]
         
         # Asset pattern list  -- this is basically an optimization, to condense
         # asset patterns
@@ -144,7 +142,7 @@ class MClassResources(object):
         # Now that the resource mapping is done, check if we have unfullfilled hints
         for hint in assetHints:
             if not hint.seen:
-                Context.console.warn("No resource matched #asset(%s) (%s)" % (hint.source, hint.clazz.id))
+                Context.console.warn("No resource matched @asset(%s) (%s)" % (hint.source, hint.clazz.id))
         
         return classes
 

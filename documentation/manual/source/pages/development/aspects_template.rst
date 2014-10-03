@@ -25,12 +25,11 @@ Here is a code template which you may copy to your application namespace and ada
      *
      */
 
-    /* ************************************************************************
-
-    #require(qx.core.Aspect)
-    #ignore(auto-require)
-
-    ************************************************************************ */
+    /**
+     *
+     * @require(qx.core.Aspect)
+     * @ignore(auto-require)
+     */
 
     /** Adapt the name of the class */
     qx.Bootstrap.define("your.namespace.YourAspectClass", {
@@ -106,4 +105,4 @@ A job in your configuration could look something like this:
             }
           }
 
-If you need some more information on configuring the generator, take a look at the :doc:`/pages/tool/generator_config_ref`.
+If you need some more information on configuring the generator, take a look at the :doc:`/pages/tool/generator/generator_config_ref`.

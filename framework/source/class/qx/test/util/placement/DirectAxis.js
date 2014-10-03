@@ -14,6 +14,7 @@
 
    Authors:
      * Fabian Jakobs (fjakobs)
+     * Christian Hagendorn (chris_schmidt)
 
 ************************************************************************ */
 
@@ -24,11 +25,11 @@ qx.Class.define("qx.test.util.placement.DirectAxis",
   members :
   {
     setUp : function() {
-      this.axis = new qx.util.placement.DirectAxis();
+      this.axis = qx.util.placement.DirectAxis;
     },
 
     tearDown : function() {
-      this.axis.dispose();
+      delete this.axis;
     },
 
     testEnoughSpace : function()
@@ -51,6 +52,11 @@ qx.Class.define("qx.test.util.placement.DirectAxis",
       this.assertEquals(
         510,
         this.axis.computeStart(size, target, offsets, areaSize, "align-start")
+      );
+
+      this.assertEquals(
+        535,
+        this.axis.computeStart(size, target, offsets, areaSize, "align-center")
       );
 
       this.assertEquals(

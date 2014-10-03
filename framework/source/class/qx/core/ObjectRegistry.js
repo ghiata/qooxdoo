@@ -13,13 +13,7 @@
      See the LICENSE file in the project's top-level directory for details.
 
    Authors:
-     * Sebastian Werner (swerner)
-
-************************************************************************ */
-
-/* ************************************************************************
-
-#ignore(qx.dev.Debug)
+     * Sebastian Werner (wpbasti)
 
 ************************************************************************ */
 
@@ -27,8 +21,10 @@
  * Registration for all instances of qooxdoo classes. Mainly
  * used to manage them for the final shutdown sequence and to
  * use weak references when connecting widgets to DOM nodes etc.
+ *
+ * @ignore(qx.dev, qx.dev.Debug.*)
  */
-qx.Class.define("qx.core.ObjectRegistry",
+qx.Bootstrap.define("qx.core.ObjectRegistry",
 {
   /*
   *****************************************************************************
@@ -38,22 +34,22 @@ qx.Class.define("qx.core.ObjectRegistry",
 
   statics :
   {
-    /** {Boolean} Whether the application is in the shutdown phase */
+    /** @type {Boolean} Whether the application is in the shutdown phase */
     inShutDown : false,
 
-    /** {Map} Internal data structure to store objects */
+    /** @type {Map} Internal data structure to store objects */
     __registry : {},
 
-    /** {Integer} Next new hash code. */
+    /** @type {Integer} Next new hash code. */
     __nextHash : 0,
 
-    /** {Array} List of all free hash codes */
+    /** @type {Array} List of all free hash codes */
     __freeHashes : [],
 
-    /** {String} Post id for hash code creation. */
+    /** @type {String} Post id for hash code creation. */
     __postId : "",
 
-    /** {Map} Object hashes to stack traces (for dispose profiling only) */
+    /** @type {Map} Object hashes to stack traces (for dispose profiling only) */
     __stackTraces : {},
 
     /**
@@ -67,7 +63,6 @@ qx.Class.define("qx.core.ObjectRegistry",
      * called <code>dispose</code>.
      *
      * @param obj {Object} Any object with a dispose() method
-     * @return {void}
      */
     register : function(obj)
     {
@@ -112,7 +107,6 @@ qx.Class.define("qx.core.ObjectRegistry",
      * Removes the given object from the database.
      *
      * @param obj {Object} Any previously registered object
-     * @return {void}
      */
     unregister : function(obj)
     {
@@ -231,7 +225,6 @@ qx.Class.define("qx.core.ObjectRegistry",
      * Disposing all registered object and cleaning up registry. This is
      * automatically executed at application shutdown.
      *
-     * @return {void}
      */
     shutdown : function()
     {

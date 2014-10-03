@@ -16,17 +16,12 @@
      * Tino Butz (tbtz)
 
 ************************************************************************ */
-/* ************************************************************************
-
-#require(qx.event.handler.Input)
-
-************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * The mixin contains all functionality to provide a value property for input
  * widgets.
+ *
+ * @require(qx.event.handler.Input)
  */
 qx.Mixin.define("qx.ui.mobile.form.MValue",
 {
@@ -46,8 +41,13 @@ qx.Mixin.define("qx.ui.mobile.form.MValue",
       this.setValue(value);
     }
 
-    qx.event.Registration.addListener(this.getContentElement(), "change", this._onChangeContent, this);
-    qx.event.Registration.addListener(this.getContentElement(), "input", this._onInput, this);
+    if (this._getTagName() == "input" || this._getTagName() == "textarea") {
+      qx.event.Registration.addListener(this.getContentElement(), "change", this._onChangeContent, this);
+      qx.event.Registration.addListener(this.getContentElement(), "input", this._onInput, this);
+    }
+
+    this.addListener("focus", this._onFocus,this);
+    this.addListener("blur", this._onBlur,this);
   },
 
 
@@ -120,12 +120,15 @@ qx.Mixin.define("qx.ui.mobile.form.MValue",
   members :
   {
     __oldValue : null,
+    __inputTimeoutHandle : null,
+    __hasFocus : null,
 
 
     /**
      * Converts the incoming value.
      *
      * @param value {var} The value to convert
+     * @return {var} The converted value
      */
     _convertValue : function(value)
     {
@@ -141,6 +144,31 @@ qx.Mixin.define("qx.ui.mobile.form.MValue",
       {
         return value || "";
       }
+    },
+
+
+    /**
+    * Handler for <code>focus</code> event.
+    */
+    _onFocus : function() {
+      this.__hasFocus = true;
+    },
+
+
+    /**
+    * Handler for <code>blur</code> event.
+    */
+    _onBlur : function() {
+      this.__hasFocus = false;
+    },
+
+
+    /**
+    * Returns whether this widget has focus or not.
+    * @return {Boolean} <code>true</code> or <code>false</code>
+    */
+    hasFocus : function() {
+      return this.__hasFocus;
     },
 
 
@@ -176,8 +204,6 @@ qx.Mixin.define("qx.ui.mobile.form.MValue",
 
     /**
      * Resets the value.
-     *
-     * @return {var} The set value
      */
     resetValue : function()
     {
@@ -186,7 +212,7 @@ qx.Mixin.define("qx.ui.mobile.form.MValue",
 
 
     /**
-     * Event handler. Called when the {@link qx.ui.mobile.form.Input#changeValue} event occurs.
+     * Event handler. Called when the {@link #changeValue} event occurs.
      *
      * @param evt {qx.event.type.Data} The event, containing the changed content.
      */
@@ -197,16 +223,47 @@ qx.Mixin.define("qx.ui.mobile.form.MValue",
 
 
     /**
-     * Event handler. Called when the {@link qx.ui.mobile.form.Input#input} event occurs.
+     * Event handler. Called when the {@link #input} event occurs.
      *
      * @param evt {qx.event.type.Data} The event, containing the changed content.
      */
     _onInput : function(evt)
     {
-      this.fireDataEvent("input", evt.getData(), true);
-      if (this.getLiveUpdate())
-      {
-        this.setValue(evt.getData());
+      var data = evt.getData();
+      this.fireDataEvent("input", data, true);
+      if (this.getLiveUpdate()) {
+        if (this._setValue) {
+          this._setValue(data);
+        } else {
+          this.__fireChangeValue(this._convertValue(data));
+        }
+      }
+    },
+
+
+    /**
+    * Returns the caret position of this widget.
+    * @return {Integer} the caret position.
+    */
+    _getCaretPosition : function() {
+      var val = this.getContentElement().value;
+      if(val && this._getAttribute("type") !== "number") {
+        return val.slice(0, this.getContentElement().selectionStart).length;
+      } else {
+        return val.length;
+      }
+    },
+
+
+    /**
+     * Sets the caret position on this widget.
+     * @param position {Integer} the caret position.
+     */
+    _setCaretPosition: function(position) {
+      if (position != null && this.hasFocus()) {
+        if (this._getAttribute("type") !== "number" && this.getContentElement().setSelectionRange) {
+          this.getContentElement().setSelectionRange(position, position);
+        }
       }
     },
 
@@ -221,8 +278,14 @@ qx.Mixin.define("qx.ui.mobile.form.MValue",
       if (this.__oldValue != value)
       {
         this.__oldValue = value;
-        this.fireDataEvent("changeValue", value)
+        this.fireDataEvent("changeValue", value);
       }
     }
+  },
+
+
+  destruct : function() {
+    this.removeListener("focus", this._onFocus,this);
+    this.removeListener("blur", this._onBlur,this);
   }
 });

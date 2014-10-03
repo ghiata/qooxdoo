@@ -22,22 +22,26 @@
  * in different environments. This contains e.g. the browser name, engine
  * version but also qooxdoo or application specific settings.
  *
- * It's public API can be found in its four main methods. One pair of methods
- * are used to check the synchronous values of the environment. The other pair
- * is used for asynchronous checks.
+ * Its public API can be found in its four main methods. One pair of methods
+ * is used to check the synchronous values of the environment. The other pair
+ * of methods is used for asynchronous checks.
  *
- * The most used method should be {@link #get} which is used to return the
+ * The most often used method should be {@link #get}, which returns the
  * current value for a given environment check.
  *
- * All qx settings can be changed via the generator's config. See the manual
+ * All qooxdoo settings can be changed via the generator's config. See the manual
  * for more details about the environment key in the config. As you can see
  * from the methods API, there is no way to override an existing key. So if you
- * need to change a qx setting, you have to use the generator to do so.
+ * need to change a qooxdoo setting, you have to use the generator to do so.
  *
- * The following table shows all checks which could be used. If you are
- * interessted in more details, check the reference to the implementation of
- * each check. Plese do not use these check implementation directly due to the
- * missing caching feature the Environment class offers.
+ * The generator is also responsible for requiring the necessary implementation
+ * classes for each check. When using a check of a new category, make sure to
+ * rebuild you application and let the generator include the necessary files.
+ *
+ * The following table shows the available checks. If you are
+ * interested in more details, check the reference to the implementation of
+ * each check. Please do not use those check implementations directly, as the
+ * Environment class comes with a smart caching feature.
  *
  * <table border="0" cellspacing="10">
  *   <tbody>
@@ -89,6 +93,10 @@
  *       <td>{@link qx.bom.client.Css#getBorderImage}</td>
  *     </tr>
  *     <tr>
+ *       <td>css.borderimage.standardsyntax</td><td><i>Boolean</i> or <i>null</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Css#getBorderImageSyntax}</td>
+ *     </tr>
+ *     <tr>
  *       <td>css.boxmodel</td><td><i>String</i></td><td><code>content</code></td>
  *       <td>{@link qx.bom.client.Css#getBoxModel}</td>
  *     </tr>
@@ -97,8 +105,20 @@
  *       <td>{@link qx.bom.client.Css#getBoxShadow}</td>
  *     </tr>
  *     <tr>
- *       <td>css.gradients</td><td><i>Boolean</i></td><td><code>true</code></td>
- *       <td>{@link qx.bom.client.Css#getGradients}</td>
+ *       <td>css.gradient.linear</td><td><i>String</i> or <i>null</i></td><td><code>-moz-linear-gradient</code></td>
+ *       <td>{@link qx.bom.client.Css#getLinearGradient}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.gradient.filter</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Css#getFilterGradient}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.gradient.radial</td><td><i>String</i> or <i>null</i></td><td><code>-moz-radial-gradient</code></td>
+ *       <td>{@link qx.bom.client.Css#getRadialGradient}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.gradient.legacywebkit</td><td><i>Boolean</i></td><td><code>false</code></td>
+ *       <td>{@link qx.bom.client.Css#getLegacyWebkitGradient}</td>
  *     </tr>
  *     <tr>
  *       <td>css.placeholder</td><td><i>Boolean</i></td><td><code>true</code></td>
@@ -107,10 +127,6 @@
  *     <tr>
  *       <td>css.textoverflow</td><td><i>String</i> or <i>null</i></td><td><code>textOverflow</code></td>
  *       <td>{@link qx.bom.client.Css#getTextOverflow}</td>
- *     </tr>
- *     <tr>
- *       <td>css.translate3d</td><td><i>Boolean</i></td><td><code>true</code></td>
- *       <td>{@link qx.bom.client.Css#getTranslate3d}</td>
  *     </tr>
  *     <tr>
  *       <td>css.rgba</td><td><i>Boolean</i></td><td><code>true</code></td>
@@ -125,16 +141,64 @@
  *       <td>{@link qx.bom.client.Css#getAppearance}</td>
  *     </tr>
  *     <tr>
- *       <td>css.float</td><td><i>String</i> or <i>null</i></td><td><code>cssFloat</code></td>
- *       <td>{@link qx.bom.client.Css#getFloat}</td>
- *     </tr>
- *     <tr>
  *       <td>css.userselect</td><td><i>String</i> or <i>null</i></td><td><code>WebkitUserSelect</code></td>
  *       <td>{@link qx.bom.client.Css#getUserSelect}</td>
  *     </tr>
  *     <tr>
+ *       <td>css.userselect.none</td><td><i>String</i> or <i>null</i></td><td><code>-moz-none</code></td>
+ *       <td>{@link qx.bom.client.Css#getUserSelectNone}</td>
+ *     </tr>
+ *     <tr>
  *       <td>css.boxsizing</td><td><i>String</i> or <i>null</i></td><td><code>boxSizing</code></td>
  *       <td>{@link qx.bom.client.Css#getBoxSizing}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.animation</td><td><i>Object</i> or <i>null</i></td><td><code>{end-event: "webkitAnimationEnd", keyframes: "@-webkit-keyframes", play-state: null, name: "WebkitAnimation"}</code></td>
+ *       <td>{@link qx.bom.client.CssAnimation#getSupport}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.animation.requestframe</td><td><i>String</i> or <i>null</i></td><td><code>mozRequestAnimationFrame</code></td>
+ *       <td>{@link qx.bom.client.CssAnimation#getRequestAnimationFrame}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.transform</td><td><i>Object</i> or <i>null</i></td><td><code>{3d: true, origin: "WebkitTransformOrigin", name: "WebkitTransform", style: "WebkitTransformStyle", perspective: "WebkitPerspective", perspective-origin: "WebkitPerspectiveOrigin", backface-visibility: "WebkitBackfaceVisibility"}</code></td>
+ *       <td>{@link qx.bom.client.CssTransform#getSupport}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.transform.3d</td><td><i>Boolean</i></td><td><code>false</code></td>
+ *       <td>{@link qx.bom.client.CssTransform#get3D}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.transition</td><td><i>Object</i> or <i>null</i></td><td><code>{end-event: "webkitTransitionEnd", name: "WebkitTransition"}</code></td>
+ *       <td>{@link qx.bom.client.CssTransition#getSupport}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.inlineblock</td><td><i>String</i> or <i>null</i></td><td><code>inline-block</code></td>
+ *       <td>{@link qx.bom.client.Css#getInlineBlock}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.opacity</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Css#getOpacity}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.textShadow</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Css#getTextShadow}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.textShadow.filter</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Css#getFilterTextShadow}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.alphaimageloaderneeded</td><td><i>Boolean</i></td><td><code>false</code></td>
+ *       <td>{@link qx.bom.client.Css#getAlphaImageLoaderNeeded}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.pointerevents</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Css#getPointerEvents}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>css.flexboxSyntax</td><td><i>String</i> or <i>null</i></td><td><code>"flex"</code></td>
+ *       <td>{@link qx.bom.client.Css#getFlexboxSyntax}</td>
  *     </tr>
  *     <tr>
  *       <td colspan="4"><b>device</b></td>
@@ -143,15 +207,81 @@
  *       <td>device.name</td><td><i>String</i></td><td><code>pc</code></td>
  *       <td>{@link qx.bom.client.Device#getName}</td>
  *     </tr>
-
+ *     <tr>
+ *       <td>device.type</td><td><i>String</i></td><td><code>mobile</code></td>
+ *       <td>{@link qx.bom.client.Device#getType}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>device.pixelRatio</td><td><i>Number</i></td><td><code>2</code></td>
+ *       <td>{@link qx.bom.client.Device#getDevicePixelRatio}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>device.touch</td><td><i>String</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Device#getTouch}</td>
+ *     </tr>
  *     <tr>
  *       <td colspan="4"><b>ecmascript</b></td>
  *     </tr>
  *     <tr>
- *       <td>ecmascript.objectcount</td><td><i>Boolean</i></td><td><code>false</code></td>
- *       <td>{@link qx.bom.client.EcmaScript#getObjectCount}</td>
+ *       <td>ecmascript.error.stacktrace</td><td><i>String</i> or <i>null</i></td><td><code>stack</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getStackTrace}</td>
  *     </tr>
-
+ *     <tr>
+ *       <td>ecmascript.array.indexof<td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getArrayIndexOf}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.array.lastindexof<td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getArrayLastIndexOf}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.array.foreach<td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getArrayForEach}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.array.filter<td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getArrayFilter}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.array.map<td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getArrayMap}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.array.some<td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getArraySome}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.array.every<td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getArrayEvery}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.array.reduce<td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getArrayReduce}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.array.reduceright<td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getArrayReduceRight}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.function.bind<td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getFunctionBind}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.object.keys<td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getObjectKeys}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.date.now<td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getDateNow}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.error.toString</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getErrorToString}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>ecmascript.string.trim</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.EcmaScript#getStringTrim}</td>
+ *     </tr>
  *     <tr>
  *       <td colspan="4"><b>engine</b></td>
  *     </tr>
@@ -167,9 +297,9 @@
  *     <tr>
  *       <td colspan="4"><b>event</b></td>
  *     </tr>
- *     <tr>
- *       <td>event.pointer</td><td><i>Boolean</i></td><td><code>true</code></td>
- *       <td>{@link qx.bom.client.Event#getPointer}</td>
+ *      <tr>
+ *       <td>event.mspointer</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Event#getMsPointer}</td>
  *     </tr>
  *     <tr>
  *       <td>event.touch</td><td><i>Boolean</i></td><td><code>false</code></td>
@@ -179,7 +309,27 @@
  *       <td>event.help</td><td><i>Boolean</i></td><td><code>false</code></td>
  *       <td>{@link qx.bom.client.Event#getHelp}</td>
  *     </tr>
-
+ *     <tr>
+ *       <td>event.hashchange</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Event#getHashChange}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>event.dispatchevent</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Event#getDispatchEvent}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>event.customevent</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Event#getCustomEvent}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>event.mouseevent</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Event#getMouseEvent}</td>
+ *     </tr>
+*     <tr>
+*       <td>event.mousewheel</td><td><i>Map</i></td><td><code>{type: "wheel", target: window}</code></td>
+*       <td>{@link qx.bom.client.Event#getMouseWheel}</td>
+*     </tr>
+ *
  *     <tr>
  *       <td colspan="4"><b>html</b></td>
  *     </tr>
@@ -226,6 +376,10 @@
  *     <tr>
  *       <td>html.storage.session</td><td><i>Boolean</i></td><td><code>true</code></td>
  *       <td>{@link qx.bom.client.Html#getSessionStorage}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>html.storage.userdata</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Html#getUserDataStorage}</td>
  *     </tr>
  *     <tr>
  *       <td>html.svg</td><td><i>Boolean</i></td><td><code>true</code></td>
@@ -282,7 +436,22 @@
  *       <td>html.element.textContent</td><td><i>Boolean</i></td><td><code>true</code></td>
  *       <td>{@link qx.bom.client.Html#getTextContent}</td>
  *     </tr>
-
+ *     <tr>
+ *       <td>html.image.naturaldimensions</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Html#getNaturalDimensions}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>html.history.state</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Html#getHistoryState}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>html.selection</td><td><i>String</i></td><td><code>getSelection</code></td>
+ *       <td>{@link qx.bom.client.Html#getSelection}</td>
+ *     </tr>
+ *     <tr>
+ *       <td>html.node.isequalnode</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>{@link qx.bom.client.Html#getIsEqualNode}</td>
+ *     </tr>
  *     <tr>
  *       <td colspan="4"><b>XML</b></td>
  *     </tr>
@@ -443,6 +612,10 @@
  *       <td>{@link qx.bom.client.Plugin#getActiveX}</td>
  *     </tr>
  *     <tr>
+ *       <td>plugin.skype</td><td><i>Boolean</i></td><td><code>false</code></td>
+ *       <td>{@link qx.bom.client.Plugin#getSkype}</td>
+ *     </tr>
+ *     <tr>
  *       <td>plugin.pdf</td><td><i>Boolean</i></td><td><code>false</code></td>
  *       <td>{@link qx.bom.client.Plugin#getPdf}</td>
  *     </tr>
@@ -507,11 +680,29 @@
  *       <td><i>default:</i> <code>false</code></td>
  *     </tr>
  *     <tr>
- *       <td>qx.disposerDebugLevel</td><td><i>Integer</i></td><td><code>0</code></td>
+ *       <td>qx.debug.dispose.level</td><td><i>Integer</i></td><td><code>0</code></td>
  *       <td><i>default:</i> <code>0</code></td>
  *     </tr>
  *     <tr>
- *       <td>qx.dynamicmousewheel</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td>qx.debug.io</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td><i>default:</i> <code>false</code></td>
+ *     </tr>
+ *     <tr>
+ *     <tr>
+ *       <td>qx.debug.io.remote</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td><i>default:</i> <code>false</code></td>
+ *     </tr>
+ *     <tr>
+ *     <tr>
+ *       <td>qx.debug.io.remote.data</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td><i>default:</i> <code>false</code></td>
+ *     </tr>
+ *     <tr>
+ *       <td>qx.debug.property.level</td><td><i>Integer</i></td><td><code>0</code></td>
+ *       <td><i>default:</i> <code>0</code></td>
+ *     </tr>
+ *     <tr>
+ *       <td>qx.debug.ui.queue</td><td><i>Boolean</i></td><td><code>true</code></td>
  *       <td><i>default:</i> <code>true</code></td>
  *     </tr>
  *     <tr>
@@ -519,16 +710,16 @@
  *       <td><i>default:</i> <code>true</code></td>
  *     </tr>
  *     <tr>
- *       <td>qx.globalErrorHandling</td><td><i>Boolean</i></td><td><code>true</code></td>
- *       <td><i>default:</i> <code>false</code></td>
+ *       <td>qx.dyntheme</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td><i>default:</i> <code>true</code></td>
  *     </tr>
  *     <tr>
- *       <td>qx.mobile.emulatetouch</td><td><i>Boolean</i></td><td><code>false</code></td>
- *       <td><i>default:</i> <code>false</code></td>
+ *       <td>qx.globalErrorHandling</td><td><i>Boolean</i></td><td><code>true</code></td>
+ *       <td><i>default:</i> <code>true</code></td>
  *     </tr>
  *     <tr>
  *       <td>qx.mobile.nativescroll</td><td><i>Boolean</i></td><td><code>false</code></td>
- *       <td><i>default:</i> <code>false</code></td>
+ *       <td>{@link qx.bom.client.Scroll#getNativeScroll}</td>
  *     </tr>
  *     <tr>
  *       <td>qx.optimization.basecalls</td><td><i>Boolean</i></td><td><code>true</code></td>
@@ -555,18 +746,17 @@
  *       <td>true if the corresp. <i>optimize</i> key is set in the config</td>
  *     </tr>
  *     <tr>
- *       <td>qx.propertyDebugLevel</td><td><i>Integer</i></td><td><code>0</code></td>
- *       <td><i>default:</i> <code>0</code></td>
- *     </tr>
- *     <tr>
  *       <td>qx.revision</td><td><i>String</i></td><td><code>27348</code></td>
  *     </tr>
  *     <tr>
  *       <td>qx.theme</td><td><i>String</i></td><td><code>qx.theme.Modern</code></td>
- *       <td><i>default:</i> <code>&lt;&lt;theme name&gt;&gt;</code></td>
+ *       <td><i>default:</i> <code>&lt;&lt;initial theme name&gt;&gt;</code></td>
  *     </tr>
  *     <tr>
- *       <td>qx.version</td><td><i>String</i></td><td><code>1.5</code></td>
+ *       <td>qx.version</td><td><i>String</i></td><td><code>${qxversion}</code></td>
+ *     </tr>
+ *     <tr>
+ *       <td>qx.blankpage</td><td><i>String</i></td><td><code>URI to blank.html page</code></td>
  *     </tr>
 
  *     <tr>
@@ -596,6 +786,10 @@
  *       <td>html.dataurl</td><td><i>Boolean</i></td><td><code>true</code></td>
  *       <td>{@link qx.bom.client.Html#getDataUrl}</td>
  *     </tr>
+ *     <tr>
+ *       <td>plugin.pdfjs</td><td><i>Boolean</i></td><td><code>false</code></td>
+ *       <td>{@link qx.bom.client.Pdfjs#getPdfjs}</td>
+ *     </tr>
  *   </tbody>
  * </table>
  *
@@ -612,106 +806,45 @@ qx.Bootstrap.define("qx.core.Environment",
     /** Internal cache for all checks. */
     __cache : {},
 
-    /** Internal map for environment keys to check methods. */
-    _checksMap:
-      {
-        "engine.version"              : "qx.bom.client.Engine.getVersion",
-        "engine.name"                 : "qx.bom.client.Engine.getName",
-        "browser.name"                : "qx.bom.client.Browser.getName",
-        "browser.version"             : "qx.bom.client.Browser.getVersion",
-        "browser.documentmode"        : "qx.bom.client.Browser.getDocumentMode",
-        "browser.quirksmode"          : "qx.bom.client.Browser.getQuirksMode",
-        "runtime.name"                : "qx.bom.client.Runtime.getName",
-        "device.name"                 : "qx.bom.client.Device.getName",
-        "locale"                      : "qx.bom.client.Locale.getLocale",
-        "locale.variant"              : "qx.bom.client.Locale.getVariant",
-        "os.name"                     : "qx.bom.client.OperatingSystem.getName",
-        "os.version"                  : "qx.bom.client.OperatingSystem.getVersion",
-        "os.scrollBarOverlayed"       : "qx.bom.client.Scroll.scrollBarOverlayed",
-        "plugin.gears"                : "qx.bom.client.Plugin.getGears",
-        "plugin.activex"              : "qx.bom.client.Plugin.getActiveX",
-        "plugin.quicktime"            : "qx.bom.client.Plugin.getQuicktime",
-        "plugin.quicktime.version"    : "qx.bom.client.Plugin.getQuicktimeVersion",
-        "plugin.windowsmedia"         : "qx.bom.client.Plugin.getWindowsMedia",
-        "plugin.windowsmedia.version" : "qx.bom.client.Plugin.getWindowsMediaVersion",
-        "plugin.divx"                 : "qx.bom.client.Plugin.getDivX",
-        "plugin.divx.version"         : "qx.bom.client.Plugin.getDivXVersion",
-        "plugin.silverlight"          : "qx.bom.client.Plugin.getSilverlight",
-        "plugin.silverlight.version"  : "qx.bom.client.Plugin.getSilverlightVersion",
-        "plugin.flash"                : "qx.bom.client.Flash.isAvailable",
-        "plugin.flash.version"        : "qx.bom.client.Flash.getVersion",
-        "plugin.flash.express"        : "qx.bom.client.Flash.getExpressInstall",
-        "plugin.flash.strictsecurity" : "qx.bom.client.Flash.getStrictSecurityModel",
-        "plugin.pdf"                  : "qx.bom.client.Plugin.getPdf",
-        "plugin.pdf.version"          : "qx.bom.client.Plugin.getPdfVersion",
-        "io.maxrequests"              : "qx.bom.client.Transport.getMaxConcurrentRequestCount",
-        "io.ssl"                      : "qx.bom.client.Transport.getSsl",
-        "io.xhr"                      : "qx.bom.client.Transport.getXmlHttpRequest",
-        "event.touch"                 : "qx.bom.client.Event.getTouch",
-        "event.pointer"               : "qx.bom.client.Event.getPointer",
-        "event.help"                  : "qx.bom.client.Event.getHelp",
-        "ecmascript.objectcount"      : "qx.bom.client.EcmaScript.getObjectCount",
-        "html.webworker"              : "qx.bom.client.Html.getWebWorker",
-        "html.filereader"             : "qx.bom.client.Html.getFileReader",
-        "html.geolocation"            : "qx.bom.client.Html.getGeoLocation",
-        "html.audio"                  : "qx.bom.client.Html.getAudio",
-        "html.audio.ogg"              : "qx.bom.client.Html.getAudioOgg",
-        "html.audio.mp3"              : "qx.bom.client.Html.getAudioMp3",
-        "html.audio.wav"              : "qx.bom.client.Html.getAudioWav",
-        "html.audio.au"               : "qx.bom.client.Html.getAudioAu",
-        "html.audio.aif"              : "qx.bom.client.Html.getAudioAif",
-        "html.video"                  : "qx.bom.client.Html.getVideo",
-        "html.video.ogg"              : "qx.bom.client.Html.getVideoOgg",
-        "html.video.h264"             : "qx.bom.client.Html.getVideoH264",
-        "html.video.webm"             : "qx.bom.client.Html.getVideoWebm",
-        "html.storage.local"          : "qx.bom.client.Html.getLocalStorage",
-        "html.storage.session"        : "qx.bom.client.Html.getSessionStorage",
-        "html.classlist"              : "qx.bom.client.Html.getClassList",
-        "html.xpath"                  : "qx.bom.client.Html.getXPath",
-        "html.xul"                    : "qx.bom.client.Html.getXul",
-        "html.canvas"                 : "qx.bom.client.Html.getCanvas",
-        "html.svg"                    : "qx.bom.client.Html.getSvg",
-        "html.vml"                    : "qx.bom.client.Html.getVml",
-        "html.dataset"                : "qx.bom.client.Html.getDataset",
-        "html.dataurl"                : "qx.bom.client.Html.getDataUrl",
-        "html.console"                : "qx.bom.client.Html.getConsole",
-        "html.stylesheet.createstylesheet" : "qx.bom.client.Stylesheet.getCreateStyleSheet",
-        "html.stylesheet.insertrule"  : "qx.bom.client.Stylesheet.getInsertRule",
-        "html.stylesheet.deleterule"  : "qx.bom.client.Stylesheet.getDeleteRule",
-        "html.stylesheet.addimport"   : "qx.bom.client.Stylesheet.getAddImport",
-        "html.stylesheet.removeimport": "qx.bom.client.Stylesheet.getRemoveImport",
-        "html.element.contains"       : "qx.bom.client.Html.getContains",
-        "html.element.compareDocumentPosition" : "qx.bom.client.Html.getCompareDocumentPosition",
-        "html.element.textcontent"    : "qx.bom.client.Html.getTextContent",
-        "json"                        : "qx.bom.client.Json.getJson",
-        "css.textoverflow"            : "qx.bom.client.Css.getTextOverflow",
-        "css.placeholder"             : "qx.bom.client.Css.getPlaceholder",
-        "css.borderradius"            : "qx.bom.client.Css.getBorderRadius",
-        "css.borderimage"             : "qx.bom.client.Css.getBorderImage",
-        "css.boxshadow"               : "qx.bom.client.Css.getBoxShadow",
-        "css.gradients"               : "qx.bom.client.Css.getGradients",
-        "css.boxmodel"                : "qx.bom.client.Css.getBoxModel",
-        "css.translate3d"             : "qx.bom.client.Css.getTranslate3d",
-        "css.rgba"                    : "qx.bom.client.Css.getRgba",
-        "css.userselect"              : "qx.bom.client.Css.getUserSelect",
-        "css.usermodify"              : "qx.bom.client.Css.getUserModify",
-        "css.appearance"              : "qx.bom.client.Css.getAppearance",
-        "css.float"                   : "qx.bom.client.Css.getFloat",
-        "css.boxsizing"               : "qx.bom.client.Css.getBoxSizing",
-        "phonegap"                    : "qx.bom.client.PhoneGap.getPhoneGap",
-        "phonegap.notification"       : "qx.bom.client.PhoneGap.getNotification",
-        "xml.implementation"          : "qx.bom.client.Xml.getImplementation",
-        "xml.domparser"               : "qx.bom.client.Xml.getDomParser",
-        "xml.selectsinglenode"        : "qx.bom.client.Xml.getSelectSingleNode",
-        "xml.selectnodes"             : "qx.bom.client.Xml.getSelectNodes",
-        "xml.getelementsbytagnamens"  : "qx.bom.client.Xml.getElementsByTagNameNS",
-        "xml.domproperties"           : "qx.bom.client.Xml.getDomProperties",
-        "xml.attributens"             : "qx.bom.client.Xml.getAttributeNS",
-        "xml.createnode"              : "qx.bom.client.Xml.getCreateNode",
-        "xml.getqualifieditem"        : "qx.bom.client.Xml.getQualifiedItem",
-        "xml.createelementns"         : "qx.bom.client.Xml.getCreateElementNS"
-      },
+    /**
+     * Internal map for environment keys to check methods.
+     * Gets populated dynamically at runtime.
+     */
+    _checksMap: {},
 
+    _defaults: {
+      // an always-true key (e.g. for use in qx.core.Environment.filter() calls)
+      "true": true,
+      // old settings retTrue
+      "qx.allowUrlSettings": false,
+      "qx.allowUrlVariants": false,
+      "qx.debug.property.level": 0,
+      // old variants
+      // make sure to reflect all changes to qx.debug here in the bootstrap class!
+      "qx.mobile.emulatetouch": false, // @deprecated {4.0}
+      "qx.emulatemouse": false, // @deprecated {4.0}
+      "qx.debug": true,
+      "qx.debug.ui.queue": true,
+      "qx.aspects": false,
+      "qx.dynlocale": true,
+      "qx.dyntheme": true,
+      "qx.blankpage": "qx/static/blank.html",
+      "qx.debug.databinding": false,
+      "qx.debug.dispose": false,
+      // generator optimization vectors
+      "qx.optimization.basecalls": false,
+      "qx.optimization.comments": false,
+      "qx.optimization.privates": false,
+      "qx.optimization.strings": false,
+      "qx.optimization.variables": false,
+      "qx.optimization.variants": false,
+      // qooxdoo modules
+      "module.databinding": true,
+      "module.logger": true,
+      "module.property": true,
+      "module.events": true,
+      "qx.nativeScrollBars": false
+    },
 
     /**
      * The default accessor for the checks. It returns the value the current
@@ -724,8 +857,28 @@ qx.Bootstrap.define("qx.core.Environment",
      * look at the {@link #invalidateCacheKey} function.
      *
      * @param key {String} The name of the check you want to query.
+     * @return {var} The stored value depending on the given key.
+     *   (Details in the class doc)
      */
     get : function(key) {
+      if (qx.Bootstrap.DEBUG) {
+        // @deprecated {3.5}
+        if (key === "json") {
+          qx.Bootstrap.warn("The environment key 'json' is deprecated " +
+            "and will eventually be removed.");
+        }
+        // @deprecated {4.0}
+        if (key === "qx.emulatemouse") {
+          qx.Bootstrap.warn("The environment key 'qx.emulatemouse' has been removed. " +
+            "See the release notes for more details.");
+        }
+
+        // @deprecated {4.0}
+        if (key === "qx.mobile.emulatetouch") {
+          qx.Bootstrap.warn("The environment key 'qx.mobile.emulatetouch' has been removed. " +
+            "See the release notes for more details.");
+        }
+      }
       // check the cache
       if (this.__cache[key] != undefined) {
         return this.__cache[key];
@@ -769,7 +922,7 @@ qx.Bootstrap.define("qx.core.Environment",
      *  the corresponding implementation.
      */
     _getClassNameFromEnvKey : function (key) {
-      
+
       var envmappings = this._checksMap;
       if (envmappings[key] != undefined) {
         var implementation = envmappings[key];
@@ -787,7 +940,7 @@ qx.Bootstrap.define("qx.core.Environment",
       return [undefined, undefined];
     },
 
-    
+
     /**
      * Invokes the callback as soon as the check has been done. If no check
      * could be found, a warning will be printed.
@@ -910,16 +1063,16 @@ qx.Bootstrap.define("qx.core.Environment",
       {
         throw new Error('No match for variant "' + key +
           '" (' + (typeof key) + ' type)' +
-          ' in variants [' + qx.Bootstrap.getKeysAsString(values) +
+          ' in variants [' + qx.Bootstrap.keys(values) +
           '] found, and no default ("default") given');
       }
     },
 
 
     /**
-     * Takes a given map containing the check names as keys and converts 
-     * the map to an array only containing the values for check evaluating 
-     * to <code>true</code>. This is especailly handy for conditional 
+     * Takes a given map containing the check names as keys and converts
+     * the map to an array only containing the values for check evaluating
+     * to <code>true</code>. This is especially handy for conditional
      * includes of mixins.
      * @param map {Map} A map containing check names as keys and values.
      * @return {Array} An array containing the values.
@@ -961,6 +1114,9 @@ qx.Bootstrap.define("qx.core.Environment",
       if (this._checks[key] == undefined) {
         // add functions directly
         if (check instanceof Function) {
+          if (!this._checksMap[key] && check.displayName) {
+            this._checksMap[key] = check.displayName.substr(0, check.displayName.length - 2);
+          }
           this._checks[key] = check;
         // otherwise, create a check function and use that
         } else {
@@ -986,41 +1142,41 @@ qx.Bootstrap.define("qx.core.Environment",
     },
 
 
+    /**
+     * Returns all currently defined synchronous checks.
+     *
+     * @internal
+     * @return {Map} The map of synchronous checks
+     */
+    getChecks : function()
+    {
+      return this._checks;
+    },
+
+
+    /**
+     * Returns all currently defined asynchronous checks.
+     *
+     * @internal
+     * @return {Map} The map of asynchronous checks
+     */
+    getAsyncChecks : function()
+    {
+      return this._asyncChecks;
+    },
+
 
     /**
      * Initializer for the default values of the framework settings.
      */
     _initDefaultQxValues : function() {
-      // old settings
-      this.add("qx.allowUrlSettings", function() {return false;});
-      this.add("qx.allowUrlVariants", function() {return false;});
-      this.add("qx.propertyDebugLevel", function() {return 0;});
+      var createFuncReturning = function(val) {
+        return function() { return val; };
+      };
 
-      // old variants
-      // make sure to reflect all changes to qx.debug here in the bootstrap class!
-      this.add("qx.debug", function() {return true;});
-      this.add("qx.aspects", function() {return false;});
-      this.add("qx.dynlocale", function() {return true;});
-      this.add("qx.mobile.emulatetouch", function() {return false;});
-      this.add("qx.mobile.nativescroll", function() {return false;});
-
-      this.add("qx.dynamicmousewheel", function() {return true;});
-      this.add("qx.debug.databinding", function() {return false;});
-      this.add("qx.debug.dispose", function() {return false;});
-
-      // generator optimization vectors
-      this.add("qx.optimization.basecalls", function() {return false;});
-      this.add("qx.optimization.comments", function() {return false;});
-      this.add("qx.optimization.privates", function() {return false;});
-      this.add("qx.optimization.strings", function() {return false;});
-      this.add("qx.optimization.variables", function() {return false;});
-      this.add("qx.optimization.variants", function() {return false;});
-
-      // qooxdoo modules
-      this.add("module.databinding", function() {return true;});
-      this.add("module.logger", function() {return true;});
-      this.add("module.property", function() {return true;});
-      this.add("module.events", function() {return true;});
+      for (var prop in this._defaults) {
+        this.add(prop, createFuncReturning(this._defaults[prop]));
+      }
     },
 
 
@@ -1075,7 +1231,7 @@ qx.Bootstrap.define("qx.core.Environment",
 
 
     /**
-     * Internal helper which creates a function retuning the given value.
+     * Internal helper which creates a function returning the given value.
      *
      * @param value {var} The value which should be returned.
      * @return {Function} A function which could be used by a test.

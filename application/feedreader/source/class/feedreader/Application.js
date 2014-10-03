@@ -19,18 +19,14 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#asset(feedreader/*)
-#asset(qx/icon/Tango/22/apps/internet-feed-reader.png)
-#asset(qx/icon/Tango/22/actions/process-stop.png)
-#asset(qx/icon/Tango/22/apps/preferences-clock.png)
-#asset(qx/icon/Tango/22/places/folder.png)
-
-************************************************************************ */
-
 /**
  * The feed reader's main application class.
+ *
+ * @asset(feedreader/*)
+ * @asset(qx/icon/${qx.icontheme}/22/apps/internet-feed-reader.png)
+ * @asset(qx/icon/${qx.icontheme}/22/actions/process-stop.png)
+ * @asset(qx/icon/${qx.icontheme}/22/apps/preferences-clock.png)
+ * @asset(qx/icon/${qx.icontheme}/22/places/folder.png)
  */
 qx.Class.define("feedreader.Application",
 {
@@ -231,6 +227,7 @@ qx.Class.define("feedreader.Application",
     /**
      * Converter function which converts the state of a feed to a icon url.
      * @param value {String} The loading state of the request.
+     * @lint ignoreNoLoopBlock()
      */
     _state2iconConverter : function(value) {
       if (value == "new" || value == "loading") {
@@ -343,6 +340,7 @@ qx.Class.define("feedreader.Application",
       this.__verticalSplitPane = new qx.ui.splitpane.Pane("vertical");
       this.__verticalSplitPane.setDecorator(null);
       this.__horizontalSplitPane.add(this.__verticalSplitPane, 1);
+      this.__horizontalSplitPane.setAppearance("app-splitpane");
 
       // Create the list view
       this.__listView = new feedreader.view.desktop.List(this.__feedFolder);
@@ -372,19 +370,19 @@ qx.Class.define("feedreader.Application",
     {
       var commands = {};
 
-      commands.reload = new qx.ui.core.Command("Control+R");
+      commands.reload = new qx.ui.command.Command("Control+R");
       commands.reload.addListener("execute", this.reload, this);
 
-      commands.about = new qx.ui.core.Command("F1");
+      commands.about = new qx.ui.command.Command("F1");
       commands.about.addListener("execute", this.showAbout, this);
 
-      commands.preferences = new qx.ui.core.Command("Control+P");
+      commands.preferences = new qx.ui.command.Command("Control+P");
       commands.preferences.addListener("execute", this.showPreferences, this);
 
-      commands.addFeed = new qx.ui.core.Command("Control+A");
+      commands.addFeed = new qx.ui.command.Command("Control+A");
       commands.addFeed.addListener("execute", this.showAddFeed, this);
 
-      commands.removeFeed = new qx.ui.core.Command("Control+D");
+      commands.removeFeed = new qx.ui.command.Command("Control+D");
       commands.removeFeed.addListener("execute", this.removeFeed, this);
 
       this.__commands = commands;
@@ -395,7 +393,7 @@ qx.Class.define("feedreader.Application",
      * Get the command with the given command id
      *
      * @param commandId {String} the command's command id
-     * @return {qx.ui.core.Command} The command
+     * @return {qx.ui.command.Command} The command
      */
     getCommand : function(commandId) {
       return this.__commands[commandId];

@@ -20,12 +20,13 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/16/places/folder.png)
 
 ************************************************************************ */
 
 /**
  * @tag showcase
+ *
+ * @asset(qx/icon/${qx.icontheme}/16/places/folder.png)
  */
 qx.Class.define("demobrowser.demo.ui.DragDrop",
 {
@@ -62,7 +63,7 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
       var labelSource = new qx.ui.basic.Label("Source");
       container.add(labelSource, { left : 20, top: 20 });
 
-      var source = new qx.ui.form.List;
+      var source = new qx.ui.form.List();
       source.setDraggable(true);
       source.setSelectionMode("multi");
       container.add(source, { left : 20, top : 40 });
@@ -74,7 +75,6 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
       var check = new qx.ui.form.CheckBox("Enable drag");
       check.setValue(true);
       container.add(check, { left : 20, top : 260 });
-
 
       source.addListener("dragstart", function(e)
       {
@@ -93,7 +93,6 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
         e.addAction("move");
       });
 
-
       source.addListener("droprequest", function(e)
       {
         this.debug("Related of droprequest: " + e.getRelatedTarget());
@@ -101,11 +100,18 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
         var action = e.getCurrentAction();
         var type = e.getCurrentType();
         var result;
+        var selection = this.getSelection();
+        var dragTarget = e.getDragTarget();
+        if (selection.length === 0) {
+          selection.push(dragTarget);
+        } else if (selection.indexOf(dragTarget) == -1) {
+          selection = [dragTarget];
+        }
 
         switch(type)
         {
           case "items":
-            result = this.getSelection();
+            result = selection;
 
             if (action == "copy")
             {
@@ -118,14 +124,13 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
             break;
 
           case "value":
-            result = this.getSelection()[0].getLabel();
+            result = selection[0].getLabel();
             break;
         }
 
         // Remove selected items on move
         if (action == "move")
         {
-          var selection = this.getSelection();
           for (var i=0, l=selection.length; i<l; i++) {
             this.remove(selection[i]);
           }
@@ -147,7 +152,7 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
       var labelSimple = new qx.ui.basic.Label("Simple Target");
       container.add(labelSimple, { left : 140, top: 20 });
 
-      var targetSimple = new qx.ui.form.List;
+      var targetSimple = new qx.ui.form.List();
       targetSimple.setDroppable(true);
       targetSimple.setSelectionMode("multi");
       container.add(targetSimple, { left : 140, top: 40 });
@@ -172,20 +177,62 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
 
 
 
+      // ****************************************************************
+
+
+      // Create target for copies of even elements
+
+      var labelEven = new qx.ui.basic.Label("Copy Even Items");
+      container.add(labelEven, { left : 260, top: 20 });
+
+      var targetEven = new qx.ui.form.List();
+      targetEven.setDroppable(true);
+      container.add(targetEven, { left : 260, top: 40 });
+
+      targetEven.addListener("drop", function(e)
+      {
+        this.debug("Related of drop: " + e.getRelatedTarget());
+
+        // Move items from source to target
+        var items = e.getData("items");
+        for (var i=0, l=items.length; i<l; i++) {
+          this.add(items[i]);
+        }
+      });
+
+      targetEven.addListener("dragover", function(e)
+      {
+        if (!e.supportsType("items")) {
+          e.preventDefault();
+        }
+        // accept only even items
+        var item = e.getRelatedTarget().getSelection()[0] || e.getDragTarget();
+        if (item.getLabel().substr(5) % 2 == 1) {
+          e.preventDefault();
+        }
+      });
+
+      targetEven.addListener("dragchange", function(e) {
+        // only accept the copy action
+        if (e.getCurrentAction() != "copy") {
+          e.preventDefault();
+        }
+      });
+
 
       // ****************************************************************
 
 
 
+
       // Text Field uses value
+      labelSimple = new qx.ui.basic.Label("TextArea Target");
+      container.add(labelSimple, { left : 380, top: 20 });
 
-      var labelSimple = new qx.ui.basic.Label("TextArea Target");
-      container.add(labelSimple, { left : 260, top: 20 });
-
-      var textareaTarget = new qx.ui.form.TextArea;
+      var textareaTarget = new qx.ui.form.TextArea();
       textareaTarget.setDroppable(true);
       textareaTarget.setHeight(100);
-      container.add(textareaTarget, { left : 260, top: 40 });
+      container.add(textareaTarget, { left : 380, top: 40 });
 
       // Serialize content to text, items are left in the list
       textareaTarget.addListener("drop", function(e)
@@ -204,18 +251,16 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
 
 
 
-
-
       // ****************************************************************
 
       var labelBoth = new qx.ui.basic.Label("Reorderable");
-      container.add(labelBoth, { left : 500, top: 20 });
+      container.add(labelBoth, { left : 600, top: 20 });
 
-      var both = this.__list = new qx.ui.form.List;
+      var both = this.__list = new qx.ui.form.List();
       both.setDraggable(true);
       both.setDroppable(true);
       both.setSelectionMode("multi");
-      container.add(both, { left : 500, top : 40 });
+      container.add(both, { left : 600, top : 40 });
 
       for (var i=0; i<20; i++) {
         both.add(new qx.ui.form.ListItem("Item " + i, "icon/16/places/folder.png"));
@@ -223,9 +268,11 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
 
 
       // Create drag indicator
-      var indicator = new qx.ui.core.Widget;
-      indicator.setDecorator(new qx.ui.decoration.Single().set({
-        top : [ 1, "solid", "#33508D" ]
+      var indicator = new qx.ui.core.Widget();
+      indicator.setDecorator(new qx.ui.decoration.Decorator().set({
+        widthTop: 1,
+        styleTop: "solid",
+        colorTop: "black"
       }));
       indicator.setHeight(0);
       indicator.setOpacity(0.5);
@@ -261,7 +308,7 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
           return;
         }
 
-        var origCoords = orig.getContainerLocation();
+        var origCoords = orig.getContentLocation();
 
         indicator.setWidth(orig.getBounds().width);
         indicator.setDomPosition(origCoords.left, origCoords.top);
@@ -276,7 +323,7 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
       });
 
       both.addListener("drop", function(e) {
-        this.__reorderList(e.getOriginalTarget());
+        this.__reorderList(e.getOriginalTarget(), e.getDragTarget());
       }, this);
 
       indicator.addListener("drop", function(e) {
@@ -285,7 +332,7 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
     },
 
 
-    __reorderList : function(listItem)
+    __reorderList : function(listItem, reorderItem)
     {
 
       // Only continue if the target is a list item.
@@ -294,13 +341,14 @@ qx.Class.define("demobrowser.demo.ui.DragDrop",
       }
 
       var sel = this.__list.getSortedSelection();
+      if (sel.length === 0) {
+        sel = [reorderItem];
+      } else if (sel.indexOf(reorderItem) == -1) {
+        sel = [reorderItem];
+      }
 
-      for (var i=0, l=sel.length; i<l; i++)
-      {
+      for (var i = 0, l = sel.length; i < l; i++) {
         this.__list.addBefore(sel[i], listItem);
-
-        // recover selection as it get lost during child move
-        this.__list.addToSelection(sel[i]);
       }
     }
   },

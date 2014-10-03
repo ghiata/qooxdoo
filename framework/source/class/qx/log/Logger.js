@@ -29,11 +29,10 @@
  * * Supports buffering of the last 50 messages (configurable)
  * * Supports different debug levels ("debug", "info", "warn" or "error")
  * * Simple data serialization for incoming messages
+ *
+ * @require(qx.dev.StackTrace)
  */
-/*
- #require(qx.dev.StackTrace)
- */
-qx.Class.define("qx.log.Logger",
+qx.Bootstrap.define("qx.log.Logger",
 {
   statics :
   {
@@ -50,7 +49,6 @@ qx.Class.define("qx.log.Logger",
      * Configures the minimum log level required for new messages.
      *
      * @param value {String} One of "debug", "info", "warn" or "error".
-     * @return {void}
      */
     setLevel : function(value) {
       this.__level = value;
@@ -72,7 +70,6 @@ qx.Class.define("qx.log.Logger",
      * Configures the number of messages to be kept in the buffer.
      *
      * @param value {Integer} Any positive integer
-     * @return {void}
      */
     setTreshold : function(value) {
       this.__buffer.setMaxMessages(value);
@@ -99,11 +96,11 @@ qx.Class.define("qx.log.Logger",
     ---------------------------------------------------------------------------
     */
 
-    /** {Map} Map of all known appenders by ID */
+    /** @type {Map} Map of all known appenders by ID */
     __appender : {},
 
 
-    /** {Integer} Last free appender ID */
+    /** @type {Integer} Last free appender ID */
     __id : 0,
 
 
@@ -112,7 +109,6 @@ qx.Class.define("qx.log.Logger",
      *
      * @param appender {Class} A static appender class supporting at
      *   least a <code>process()</code> method to handle incoming messages.
-     * @return {void}
      */
     register : function(appender)
     {
@@ -140,7 +136,6 @@ qx.Class.define("qx.log.Logger",
      * Unregisters the given appender
      *
      * @param appender {Class} A static appender class
-     * @return {void}
      */
     unregister : function(appender)
     {
@@ -170,7 +165,6 @@ qx.Class.define("qx.log.Logger",
      * @param message {var} Any number of arguments supported. An argument may
      *   have any JavaScript data type. All data is serialized immediately and
      *   does not keep references to other objects.
-     * @return {void}
      */
     debug : function(object, message) {
       qx.log.Logger.__log("debug", arguments);
@@ -184,7 +178,6 @@ qx.Class.define("qx.log.Logger",
      * @param message {var} Any number of arguments supported. An argument may
      *   have any JavaScript data type. All data is serialized immediately and
      *   does not keep references to other objects.
-     * @return {void}
      */
     info : function(object, message) {
       qx.log.Logger.__log("info", arguments);
@@ -198,7 +191,6 @@ qx.Class.define("qx.log.Logger",
      * @param message {var} Any number of arguments supported. An argument may
      *   have any JavaScript data type. All data is serialized immediately and
      *   does not keep references to other objects.
-     * @return {void}
      */
     warn : function(object, message) {
       qx.log.Logger.__log("warn", arguments);
@@ -212,7 +204,6 @@ qx.Class.define("qx.log.Logger",
      * @param message {var} Any number of arguments supported. An argument may
      *   have any JavaScript data type. All data is serialized immediately and
      *   does not keep references to other objects.
-     * @return {void}
      */
     error : function(object, message) {
       qx.log.Logger.__log("error", arguments);
@@ -222,17 +213,18 @@ qx.Class.define("qx.log.Logger",
     /**
      * Prints the current stack trace at level "info"
      *
-     * @param object {Object} Contextual object (either instance or static class)
-     * @return {void}
+     * @param object {Object?} Contextual object (either instance or static class)
      */
     trace : function(object) {
-      qx.log.Logger.__log("info", [object, qx.dev.StackTrace.getStackTrace().join("\n")]);
+      var trace = qx.dev.StackTrace.getStackTrace();
+      qx.log.Logger.__log("info",
+      [(typeof object !== "undefined" ? [object].concat(trace) : trace).join("\n")]);
     },
 
 
     /**
      * Prints a method deprecation warning and a stack trace if the setting
-     * <code>qx.debug</code> is set to <code>on</code>.
+     * <code>qx.debug</code> is set to <code>true</code>.
      *
      * @param fcn {Function} reference to the deprecated function. This is
      *     arguments.callee if the calling method is to be deprecated.
@@ -254,7 +246,7 @@ qx.Class.define("qx.log.Logger",
 
     /**
      * Prints a class deprecation warning and a stack trace if the setting
-     * <code>qx.debug</code> is set to <code>on</code>.
+     * <code>qx.debug</code> is set to <code>true</code>.
      *
      * @param clazz {Class} reference to the deprecated class.
      * @param msg {String?} Optional message to be printed.
@@ -275,7 +267,7 @@ qx.Class.define("qx.log.Logger",
 
     /**
      * Prints an event deprecation warning and a stack trace if the setting
-     * <code>qx.debug</code> is set to <code>on</code>.
+     * <code>qx.debug</code> is set to <code>true</code>.
      *
      * @param clazz {Class} reference to the deprecated class.
      * @param event {String} deprecated event name.
@@ -297,7 +289,7 @@ qx.Class.define("qx.log.Logger",
 
     /**
      * Prints a mixin deprecation warning and a stack trace if the setting
-     * <code>qx.debug</code> is set to <code>on</code>.
+     * <code>qx.debug</code> is set to <code>true</code>.
      *
      * @param clazz {Class} reference to the deprecated mixin.
      * @param msg {String?} Optional message to be printed.
@@ -318,7 +310,7 @@ qx.Class.define("qx.log.Logger",
 
     /**
      * Prints a constant deprecation warning and a stacktrace if the setting
-     * <code>qx.debug</code> is set to <code>on</code> AND the browser supports
+     * <code>qx.debug</code> is set to <code>true</code> AND the browser supports
      * __defineGetter__!
      *
      * @param clazz {Class} The class the constant is attached to.
@@ -349,13 +341,13 @@ qx.Class.define("qx.log.Logger",
     /**
      * Prints a deprecation waring and a stacktrace when a subclass overrides
      * the passed method name. The deprecation is only printed if the setting
-     * <code>qx.debug</code> is set to <code>on</code>.
+     * <code>qx.debug</code> is set to <code>true</code>.
      *
      *
      * @param object {qx.core.Object} Instance to check for overriding.
      * @param baseclass {Class} The baseclass as starting point.
      * @param methodName {String} The method name which is deprecated for overriding.
-     * @param msg {String|?} Optional message to be printed.
+     * @param msg {String?} Optional message to be printed.
      */
     deprecateMethodOverriding : function(object, baseclass, methodName, msg)
     {
@@ -385,7 +377,6 @@ qx.Class.define("qx.log.Logger",
      * Deletes the current buffer. Does not influence message handling of the
      * connected appenders.
      *
-     * @return {void}
      */
     clear : function() {
       this.__buffer.clearHistory();
@@ -400,11 +391,11 @@ qx.Class.define("qx.log.Logger",
     ---------------------------------------------------------------------------
     */
 
-    /** {qx.log.appender.RingBuffer} Message buffer of previously fired messages. */
+    /** @type {qx.log.appender.RingBuffer} Message buffer of previously fired messages. */
     __buffer : new qx.log.appender.RingBuffer(50),
 
 
-    /** {Map} Numeric translation of log levels */
+    /** @type {Map} Numeric translation of log levels */
     __levels :
     {
       debug : 0,
@@ -420,7 +411,6 @@ qx.Class.define("qx.log.Logger",
      * @param level {String} One of "debug", "info", "warn" or "error"
      * @param args {Array} List of other arguments, where the first is
      *   taken as the context object.
-     * @return {void}
      */
     __log : function(level, args)
     {
@@ -459,6 +449,8 @@ qx.Class.define("qx.log.Logger",
           entry.object = object.$$hash;
         } else if (object.$$type) {
           entry.clazz = object;
+        } else if (object.constructor) {
+          entry.clazz = object.constructor;
         }
       }
 
@@ -503,12 +495,13 @@ qx.Class.define("qx.log.Logger",
       {
         if (value.nodeType) {
           return "node";
+          // In Gecko, DOMException doesn't inherit from Error
+        } else if (value instanceof Error || (value.name && value.message)) {
+          return "error";
         } else if (value.classname) {
           return "instance";
         } else if (value instanceof Array) {
           return "array";
-        } else if (value instanceof Error) {
-          return "error";
         } else if (value instanceof Date) {
           return "date";
         } else {
@@ -592,7 +585,8 @@ qx.Class.define("qx.log.Logger",
 
         case "error":
           trace = qx.dev.StackTrace.getStackTraceFromError(value);
-          text = value.toString();
+          text = (value.basename ? value.basename + ": " : "") +
+                 value.toString();
           break;
 
         case "array":

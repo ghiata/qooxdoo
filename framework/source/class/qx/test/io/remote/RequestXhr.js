@@ -18,8 +18,11 @@ Authors:
 ************************************************************************ */
 
 /*
-#asset(qx/test/*)
 */
+/**
+ *
+ * @asset(qx/test/*)
+ */
 
 qx.Class.define("qx.test.io.remote.RequestXhr",
 {
@@ -38,11 +41,6 @@ qx.Class.define("qx.test.io.remote.RequestXhr",
     {
       if (this.isLocal()) {
         this.needsPHPWarning();
-        return;
-      }
-
-      if (this.buggyBrowser) {
-        this.warn("Tests skipped in Safari 3/FF 1.5, see bug #2529");
         return;
       }
 
@@ -75,11 +73,6 @@ qx.Class.define("qx.test.io.remote.RequestXhr",
     {
       if (this.isLocal()) {
         this.needsPHPWarning();
-        return;
-      }
-
-      if (this.buggyBrowser) {
-        this.warn("Tests skipped in Safari 3/FF 1.5, see bug #2529");
         return;
       }
 
@@ -124,6 +117,30 @@ qx.Class.define("qx.test.io.remote.RequestXhr",
         that.assertTrue(asynchronousRequestFinished);
         that.assertTrue(synchronousRequestFinished);
       });
+    },
+
+    testGetResponseHeader : function()
+    {
+      if (this.isLocal()) {
+        this.needsPHPWarning();
+        return;
+      }
+
+      var request = new qx.io.remote.Request();
+
+      // Response header is "juhu"
+      request.setUrl(this.getUrl("qx/test/xmlhttp/send_known_header.php"));
+
+      request.addListener("completed", function(e) { this.resume(function() {
+        this.assertEquals("kinners", e.getResponseHeader("juhu"), "Exact case match");
+        this.assertEquals("kinners", e.getResponseHeader("Juhu"), "Case insensitive match");
+      }, this); }, this);
+
+      var that = this;
+      window.setTimeout(function() {
+        request.send();
+      }, 1000);
+      this.wait(5000);
     }
   }
 });

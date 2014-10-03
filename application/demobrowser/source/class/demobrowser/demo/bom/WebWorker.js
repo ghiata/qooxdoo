@@ -19,10 +19,14 @@
 
 /* ************************************************************************
 
-#asset(demobrowser/demo/webworker/webworker.js)
 
 ************************************************************************ */
 
+/**
+ *
+ * @asset(demobrowser/demo/webworker/webworker.js)
+ * @tag noPlayground
+ */
 qx.Class.define("demobrowser.demo.bom.WebWorker",
 {
   extend : qx.application.Standalone,

@@ -122,6 +122,9 @@ qx.Class.define("qx.ui.toolbar.Part",
           control = new qx.ui.toolbar.PartContainer();
           control.addListener("syncAppearance", this.__onSyncAppearance, this);
           this._add(control);
+          control.addListener("changeChildren", function() {
+            this.__onSyncAppearance();
+          }, this);
           break;
       }
 
@@ -162,6 +165,9 @@ qx.Class.define("qx.ui.toolbar.Part",
     __onSyncAppearance : function() {
       // check every child
       var children = this.getChildrenContainer().getChildren();
+      children = children.filter(function(child) {
+        return child.getVisibility() == "visible";
+      });
       for (var i = 0; i < children.length; i++) {
         // if its the first child
         if (i == 0 && i != children.length - 1) {

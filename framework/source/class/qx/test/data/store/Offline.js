@@ -16,7 +16,7 @@
      * Martin Wittemann (martinwittemann)
 
 ************************************************************************ */
-qx.Class.define("qx.test.data.store.Offline", 
+qx.Class.define("qx.test.data.store.Offline",
 {
   extend : qx.dev.unit.TestCase,
   include : [qx.dev.unit.MRequirements, qx.dev.unit.MMock],
@@ -31,20 +31,18 @@ qx.Class.define("qx.test.data.store.Offline",
     {
       return qx.core.Environment.get("html.storage.local");
     },
-    
+
     hasQxDebug : function()
     {
       return qx.core.Environment.get("qx.debug");
     },
-    
-    setUp : function() 
-    {
-      //this.require(["html.storage.local"]);
+
+    setUp : function() {
       this.require(["localStorage"]);
     },
 
 
-    tearDown : function() 
+    tearDown : function()
     {
       this.getSandbox().restore();
 
@@ -52,7 +50,7 @@ qx.Class.define("qx.test.data.store.Offline",
         this.__store.dispose();
       }
       // erase the data from the storages
-      qx.bom.storage.Local.getInstance().removeItem(this.__testKey);
+      qx.bom.Storage.getLocal().removeItem(this.__testKey);
     },
 
 
@@ -67,7 +65,6 @@ qx.Class.define("qx.test.data.store.Offline",
 
 
     testCreate : function() {
-      //this.require(["qx.debug"]);
       this.require(["qxDebug"]);
 
       var store;
@@ -77,7 +74,7 @@ qx.Class.define("qx.test.data.store.Offline",
 
       // fallback for the storage is local
       store = new qx.data.store.Offline(this.__testKey);
-      this.assertEquals(store._storage, qx.bom.storage.Local.getInstance());
+      this.assertEquals(store._storage, qx.bom.Storage.getLocal());
       store.dispose();
 
       // assert no exception
@@ -86,9 +83,26 @@ qx.Class.define("qx.test.data.store.Offline",
     },
 
 
+    testCreateWithDelegate : function() {
+      var del = {};
+      var spy = this.spy(qx.data.marshal, "Json");
+      var store = new qx.data.store.Offline(this.__testKey, "local", del);
+      this.assertCalledWith(spy, del);
+
+      store.dispose();
+    },
+
+
     testCheckEmptyModel : function() {
       this.__initDefaultStore();
       this.assertNull(this.__store.getModel());
+
+      var model = this.__createDefaultModel();
+      this.__store.setModel(model);
+      this.__store.setModel(null);
+      this.assertNull(qx.bom.Storage.getLocal().getItem(this.__testKey));
+
+      model.dispose();
     },
 
 
@@ -135,7 +149,7 @@ qx.Class.define("qx.test.data.store.Offline",
 
 
     testModelRead : function() {
-      this.stub(qx.bom.storage.Local.getInstance(), "getItem").returns({b : "b"});
+      this.stub(qx.bom.Storage.getLocal(), "getItem").returns({b : "b"});
       this.__initDefaultStore();
 
       this.assertNotUndefined(this.__store.getModel());
@@ -185,7 +199,7 @@ qx.Class.define("qx.test.data.store.Offline",
 
       this.__initDefaultStore();
       this.assertNotNull(this.__store.getModel());
-      this.assertFunction(this.__store.getModel().getX)
+      this.assertFunction(this.__store.getModel().getX);
       this.assertEquals("x", this.__store.getModel().getX());
     },
 

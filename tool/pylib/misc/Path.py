@@ -26,25 +26,24 @@ import os, sys, re, types
 import urllib, urlparse
 from misc.NameSpace import NameSpace
 
-def getCommonSuffix(p1, p2):
-    #p1, p2 = map(os.path.normcase, (p1, p2)) # this helps on win32 for comparison, but breaks bug#1507
-    return getCommonSuffixS(p1, p2)  # dispatch to real implementation
+def getCommonSuffix(p1, p2, normcase=True):
+    return getCommonSuffixS(p1, p2, normcase)  # dispatch to real implementation
 
 
-def getCommonPrefix(p1, p2):
-    #p1, p2 = map(os.path.normcase, (p1, p2)) # this helps on win32 for comparison, but breaks bug#1507
-    return getCommonPrefixS(p1, p2)  # dispatch to real implementation
+def getCommonPrefix(p1, p2, normcase=True):
+    return getCommonPrefixS(p1, p2, normcase)  # dispatch to real implementation
 
 # -- string-based versions ----------------------------------------------------
 
-def _getCommonPrefixS(p1, p2):  # String-based
+def _getCommonPrefixS(p1_, p2_, normcase):  # String-based
     '''computes the common prefix of p1, p2, and returns the common prefix and the two
        different suffixes'''
     pre = sfx1 = sfx2 = ""
+    p1, p2 = map(os.path.normcase, (p1_, p2_)) if normcase else (p1_,p2_) # this helps on win32 for comparison
 
     # catch corner cases
-    if (len(p1) == 0 or len(p2) == 0): return "",p1,p2
-    if p1 == p2: return p1,"",""
+    if (len(p1) == 0 or len(p2) == 0): return "",p1_,p2_
+    if p1 == p2: return p1_,"",""
 
     # treat the others
     len_p1 = len(p1)
@@ -88,20 +87,20 @@ def _getCommonPrefixS(p1, p2):  # String-based
                 k = j  # this complies with the suffix "[k+1:]" slice later
     # assert: 'k' points to dir boundary (os.sep or EOS)
 
-    # assign results
-    pre  = p1[0:k+1]
-    sfx1 = p1[k+1:]
-    sfx2 = p2[k+1:]
+    # return fragments of original strings to retain capitalization
+    pre  = p1_[0:k+1]
+    sfx1 = p1_[k+1:]
+    sfx2 = p2_[k+1:]
 
     return pre,sfx1,sfx2
 
 
-def getCommonPrefixS(p1, p2):  # String-based
+def getCommonPrefixS(p1, p2, normcase):  # String-based
     p1, p2 = map(os.path.normpath, (p1, p2))
     # undo normpath abnormalities
     if p1=='.': p1=''
     if p2=='.': p2=''
-    pre,sfx1,sfx2 = _getCommonPrefixS(p1, p2)
+    pre,sfx1,sfx2 = _getCommonPrefixS(p1, p2, normcase)
 
     # fix surrounding os.sep's
     # the intention here is to clear unnecessary trailing separators, and 
@@ -121,7 +120,7 @@ def getCommonPrefixS(p1, p2):  # String-based
     return pre,sfx1,sfx2
 
 
-def getCommonSuffixS(p1, p2):  # String-based
+def getCommonSuffixS(p1, p2, normcase):  # String-based
     'use getCommonPrefixS, but with reversed arguments and return values'
     p1, p2 = map(os.path.normpath, (p1, p2))
     # undo normpath abnormalities
@@ -130,7 +129,7 @@ def getCommonSuffixS(p1, p2):  # String-based
 
     p1r = p1[::-1]  # this is string reverse in Python
     p2r = p2[::-1]
-    sfx, pre1, pre2 = _getCommonPrefixS(p1r, p2r)
+    sfx, pre1, pre2 = _getCommonPrefixS(p1r, p2r, normcase)
     sfx  = sfx[::-1]
     pre1 = pre1[::-1]
     pre2 = pre2[::-1]
@@ -370,6 +369,8 @@ class Uri(BasePath):
             nuri = uri
         self._data = nuri
 
+    thisdirs = ['.', './', './.']  # ways of saying "this directory"
+
     def join(self, other):
         some_encoded = False
         if self._is_encoded or other._is_encoded:
@@ -386,7 +387,12 @@ class Uri(BasePath):
                 val2 = other.value()
             else:
                 val2 = other.encodedValue()
-        nuri = Uri(urlparse.urljoin(val1, val2))
+        if (val1 in self.thisdirs
+            and val2 in self.thisdirs):
+            # urlparse.urljoin collapses e.g. "./" and "." into ""!
+            nuri = Uri(".")
+        else:
+            nuri = Uri(urlparse.urljoin(val1, val2))
         if some_encoded:
             nuri._is_encoded = True
         return nuri

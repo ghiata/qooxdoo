@@ -32,17 +32,44 @@ With that code every change of the value property of ``label1`` will automatical
 
 Binding a data event to property
 --------------------------------
-In some cases in the framework, there is only a change event and no property. For that case, you can bind a data event to a property. One common case is the ``TextField`` widget, which does not have a property containing the value of the ``TextField``. Therefor you can use the input event and bind that to a target property as you can see in the example snippet.
-The API is almost the same as in the property binding case.
+
+Some properties of objects used as models can only be accessed through a
+method or an event. Those properties cannot be bound directly, but they can
+be bound through a method or an event that references them. One common case
+is the TextField widget, which does not have a direct ``value`` property,
+unlike the Label of the previous example, which does have a ``value``
+property. The ``value`` of a TextField is only addressed through getter /
+setter methods and change events. Indirectly therefore Textfield does indeed
+have a property for binding, though it is not implemented as a direct
+property. Using the ``changeValue``` event, the value can be bound as is shown in
+the example snippet. The API is essentially the same as the property binding
+case.
 
 ::
 
-    var textField = new qx.ui.form.TextField();
-    var label = new qx.ui.basic.Label();
+   var textField = new qx.ui.form.TextField();
+   var label = new qx.ui.basic.Label();
 
-    textField.bind("input", label, "value");
+   textField.bind("changeValue", label, "value");
 
-As you can see, the same method has been used. The difference is, that the first argument is a data event name and not a property name.
+As you can see, the same method has been used. The difference is that the
+first argument is a data event name and not a property name.
+
+In a similar fashion, a controller can bind to the implicit ``value`` property
+of the TextField:
+
+::
+
+     var textField = new qx.ui.form.TextField();
+
+     // create the controller
+     var controller = new qx.data.controller.Object(model);
+
+     // connect the name
+     controller.addTarget(textfield, "value", "name", true);
+
+In this case the binding code translates the "value" property into
+getValue() and setValue() methods.
 
 .. _pages/data_binding/single_value_binding#bind_a_property_chain_to_another_property:
 
@@ -86,8 +113,8 @@ Options: Conversion and Validation
 ----------------------------------
 The method for binding introduced so far has the same set of arguments. The first three arguments are mostly the same. There is a forth argument called options. This should be a map containing the options itself. In that you can specify three things currently:
   * **converter**: A own converter which is a function with four arguments returning the converted value. (See the API for more details)
-  * **onSetOk**: A key in the options map under which you can add a method. This method will be called on a validation case if the validation was successful.
-  * **onSetFail**: The counterpart to onSetOk which will be called if the validation fails.
+  * **onUpdate**: A key in the options map under which you can add a method. This method will be called on a validation case if the validation was successful.
+  * **onSetFail**: The counterpart to onUpdate which will be called if the validation fails.
 
 In addition there is a built in default conversion which takes care of the default conversion cases automatically. Default cases are, for example, string to number conversion. To get that working it is necessary to know the desired target type. This information is taken from the check key in the property definition of the target property.  
 

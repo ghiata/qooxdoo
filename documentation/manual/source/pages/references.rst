@@ -1,5 +1,9 @@
+.. _pages/references#references:
+
 References
 **********
+
+.. _pages/references#core:
 
 Core
 ====
@@ -14,6 +18,8 @@ Core
    core/array
    core/framework_jobs
 
+.. _pages/references#desktop:
+
 GUI Toolkit
 ===========
 
@@ -23,17 +29,23 @@ GUI Toolkit
    widget/widget_ref
    layout
 
+.. _pages/references#tooling:
+
 Tooling
 =======
 
 .. toctree::
    :maxdepth: 1
 
-   tool/generator_default_jobs
-   tool/generator_config_ref
-   tool/generator_config_macros
+   tool/generator/default_jobs_actions
+   tool/generator/default_jobs_includers
+   tool/generator/generator_config_ref
+   tool/generator/generator_config_macros
+   tool/generator/cheat_sheet
    tool/ebnf_like
-   tool/astlets
+   tool/translation/po_format
+
+.. _pages/references#miscellaneous:
 
 Miscellaneous
 =============
@@ -44,6 +56,8 @@ Miscellaneous
    introduction/third_party_components
 
 
+.. _pages/references#glossary:
+
 Glossary
 ========
 
@@ -51,6 +65,8 @@ Glossary
    :maxdepth: 1
 
    glossary
+
+.. _pages/references#license:
 
 License
 =======

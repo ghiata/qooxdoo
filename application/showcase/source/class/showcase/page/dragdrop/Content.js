@@ -19,10 +19,13 @@
 ************************************************************************ */
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/64/devices/*)
-#asset(qx/icon/${qx.icontheme}/64/actions/object-flip-horizontal.png)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/icon/${qx.icontheme}/64/devices/*)
+ * @asset(qx/icon/${qx.icontheme}/64/actions/object-flip-horizontal.png)
+ */
 qx.Class.define("showcase.page.dragdrop.Content",
 {
   extend : showcase.AbstractContent,
@@ -155,9 +158,7 @@ qx.Class.define("showcase.page.dragdrop.Content",
 
     __onDropRequest : function(e)
     {
-      var list = e.getTarget();
-      var selection = list.getSelection().concat();
-      e.addData("items", selection);
+      e.addData("items", [e.getDragTarget()]);
     },
 
 
@@ -165,7 +166,7 @@ qx.Class.define("showcase.page.dragdrop.Content",
       e.addType("items");
       e.addAction("move");
 
-      var item = e.getTarget().getSelection()[0];
+      var item = e.getDragTarget();
       this.__dragFeedback.set({
         label: item.getLabel(),
         icon: item.getIcon(),

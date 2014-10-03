@@ -186,10 +186,10 @@ qx.Class.define("qx.ui.virtual.cell.Cell",
 
   members :
   {
-    /** {Array} List of all non CSS themable properties */
+    /** @type {Array} List of all non CSS themable properties */
     __themableProperties : null,
 
-    /** {String} Unique key over the current set of states */
+    /** @type {String} Unique key over the current set of states */
     __statesKey : null,
 
     __states : null,
@@ -363,7 +363,7 @@ qx.Class.define("qx.ui.virtual.cell.Cell",
       if (value === null) {
         this._storeStyle(name, null)
       } else {
-        var cssKey = qx.lang.String.hyphenate(name);
+        var cssKey = qx.bom.Style.getCssName(name);
         this._storeStyle(name, cssKey + ":" + value + "px");
       }
     },
@@ -424,7 +424,7 @@ qx.Class.define("qx.ui.virtual.cell.Cell",
       }
 
       var appearance = this.getAppearance();
-      var statesKey = appearance + "-" + qx.lang.Object.getKeys(states).sort().join(" ");
+      var statesKey = appearance + "-" + Object.keys(states).sort().join(" ");
       if (this.__statesKey == statesKey) {
         return;
       }

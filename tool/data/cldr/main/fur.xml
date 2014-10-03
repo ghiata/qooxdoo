@@ -1,15 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE ldml SYSTEM "../../common/dtd/ldml.dtd">
+<!-- Copyright © 1991-2013 Unicode, Inc.
+CLDR data files are interpreted according to the LDML specification (http://unicode.org/reports/tr35/)
+For terms of use, see http://www.unicode.org/copyright.html
+-->
 <ldml>
 	<identity>
-		<version number="$Revision: 5859 $"/>
-		<generation date="$Date: 2011-05-07 04:18:01 -0500 (Sat, 07 May 2011) $"/>
+		<version number="$Revision: 9792 $"/>
+		<generation date="$Date: 2014-02-25 16:17:53 -0600 (Tue, 25 Feb 2014) $"/>
 		<language type="fur"/>
 	</identity>
 	<localeDisplayNames>
 		<localeDisplayPattern>
 			<localePattern draft="unconfirmed">{0} ({1})</localePattern>
-			<localeSeparator draft="unconfirmed">, </localeSeparator>
+			<localeSeparator draft="unconfirmed">{0}, {1}</localeSeparator>
 		</localeDisplayPattern>
 		<languages>
 			<language type="aa" draft="unconfirmed">afar</language>
@@ -19,12 +23,10 @@
 			<language type="am" draft="unconfirmed">amaric</language>
 			<language type="an" draft="unconfirmed">aragonês</language>
 			<language type="ang" draft="unconfirmed">vieri inglês</language>
-			<language type="apa" draft="unconfirmed">lenghe Apache</language>
 			<language type="ar" draft="unconfirmed">arap</language>
 			<language type="arc" draft="unconfirmed">aramaic</language>
 			<language type="as" draft="unconfirmed">assamês</language>
 			<language type="ast" draft="unconfirmed">asturian</language>
-			<language type="aus" draft="unconfirmed">lenghis australianis</language>
 			<language type="av" draft="unconfirmed">avar</language>
 			<language type="ay" draft="unconfirmed">aymarà</language>
 			<language type="az" draft="unconfirmed">azerbaijani</language>
@@ -36,7 +38,6 @@
 			<language type="bs" draft="unconfirmed">bosniac</language>
 			<language type="ca" draft="unconfirmed">catalan</language>
 			<language type="ce" draft="unconfirmed">cecen</language>
-			<language type="cel" draft="unconfirmed">lenghe celtiche</language>
 			<language type="ch" draft="unconfirmed">chamorro</language>
 			<language type="co" draft="unconfirmed">cors</language>
 			<language type="cop" draft="unconfirmed">coptic</language>
@@ -76,7 +77,6 @@
 			<language type="fy" draft="unconfirmed">frisian</language>
 			<language type="ga" draft="unconfirmed">gaelic irlandês</language>
 			<language type="gd" draft="unconfirmed">gaelic scozês</language>
-			<language type="gem" draft="unconfirmed">lenghe gjermaniche</language>
 			<language type="gl" draft="unconfirmed">galizian</language>
 			<language type="gn" draft="unconfirmed">guaranì</language>
 			<language type="got" draft="unconfirmed">gotic</language>
@@ -92,7 +92,6 @@
 			<language type="id" draft="unconfirmed">indonesian</language>
 			<language type="ig" draft="unconfirmed">igbo</language>
 			<language type="ik" draft="unconfirmed">inupiaq</language>
-			<language type="ine" draft="unconfirmed">lenghe indo-europeane</language>
 			<language type="io" draft="unconfirmed">ido</language>
 			<language type="is" draft="unconfirmed">islandês</language>
 			<language type="it" draft="unconfirmed">talian</language>
@@ -114,20 +113,16 @@
 			<language type="lo" draft="unconfirmed">lao</language>
 			<language type="lt" draft="unconfirmed">lituan</language>
 			<language type="lv" draft="unconfirmed">leton</language>
-			<language type="map" draft="unconfirmed">austronesian</language>
 			<language type="mg" draft="unconfirmed">malagasy</language>
 			<language type="mi" draft="unconfirmed">maori</language>
-			<language type="mis" draft="unconfirmed">lenghis variis</language>
 			<language type="mk" draft="unconfirmed">macedon</language>
 			<language type="ml" draft="unconfirmed">malayalam</language>
 			<language type="mn" draft="unconfirmed">mongul</language>
-			<language type="mo" draft="unconfirmed">moldâf</language>
 			<language type="mr" draft="unconfirmed">marathi</language>
 			<language type="ms" draft="unconfirmed">malês</language>
 			<language type="mt" draft="unconfirmed">maltês</language>
 			<language type="mul" draft="unconfirmed">lenghis multiplis</language>
 			<language type="mwl" draft="unconfirmed">mirandês</language>
-			<language type="myn" draft="unconfirmed">lenghis Maya</language>
 			<language type="nap" draft="unconfirmed">napoletan</language>
 			<language type="nb" draft="unconfirmed">norvegjês bokmål</language>
 			<language type="nd" draft="unconfirmed">ndebele setentrionâl</language>
@@ -156,7 +151,7 @@
 			<language type="qu" draft="unconfirmed">quechua</language>
 			<language type="rm" draft="unconfirmed">rumanç</language>
 			<language type="ro" draft="unconfirmed">romen</language>
-			<language type="roa" draft="unconfirmed">lenghe romanze</language>
+			<language type="ro_MD">moldâf</language>
 			<language type="ru" draft="unconfirmed">rus</language>
 			<language type="sa" draft="unconfirmed">sanscrit</language>
 			<language type="sc" draft="unconfirmed">sardegnûl</language>
@@ -169,7 +164,6 @@
 			<language type="si" draft="unconfirmed">sinalês</language>
 			<language type="sk" draft="unconfirmed">slovac</language>
 			<language type="sl" draft="unconfirmed">sloven</language>
-			<language type="sla" draft="unconfirmed">lenghe sclave</language>
 			<language type="sm" draft="unconfirmed">samoan</language>
 			<language type="so" draft="unconfirmed">somal</language>
 			<language type="sq" draft="unconfirmed">albanês</language>
@@ -301,8 +295,7 @@
 			<territory type="151" draft="unconfirmed">Europe orientâl</territory>
 			<territory type="154" draft="unconfirmed">Europe setentrionâl</territory>
 			<territory type="155" draft="unconfirmed">Europe ocidentâl</territory>
-			<territory type="172" draft="unconfirmed">Commonwealth dai stâts indipendents</territory>
-			<territory type="419" draft="unconfirmed">Americhe latine e caraibiche</territory>
+			<territory type="419" draft="unconfirmed">Americhe latine</territory>
 			<territory type="AD" draft="unconfirmed">Andorra</territory>
 			<territory type="AE" draft="unconfirmed">Emirâts araps unîts</territory>
 			<territory type="AF" draft="unconfirmed">Afghanistan</territory>
@@ -343,13 +336,12 @@
 			<territory type="CA" draft="unconfirmed">Canade</territory>
 			<territory type="CC" draft="unconfirmed">Isulis Cocos</territory>
 			<territory type="CD" draft="unconfirmed">Republiche Democratiche dal Congo</territory>
-			<territory type="CD" alt="variant" draft="unconfirmed">Congo [RDC]</territory>
+			<territory type="CD" alt="variant" draft="unconfirmed">Congo (RDC)</territory>
 			<territory type="CF" draft="unconfirmed">Republiche centri africane</territory>
 			<territory type="CG" draft="unconfirmed">Congo - Brazzaville</territory>
-			<territory type="CG" alt="variant" draft="unconfirmed">Congo [Republiche]</territory>
+			<territory type="CG" alt="variant" draft="unconfirmed">Congo (Republiche)</territory>
 			<territory type="CH" draft="unconfirmed">Svuizare</territory>
 			<territory type="CI" draft="unconfirmed">Cueste di Avoli</territory>
-			<territory type="CI" alt="variant" draft="unconfirmed">Cueste di Avoli</territory>
 			<territory type="CK" draft="unconfirmed">Isulis Cook</territory>
 			<territory type="CL" draft="unconfirmed">Cile</territory>
 			<territory type="CM" draft="unconfirmed">Camerun</territory>
@@ -357,7 +349,6 @@
 			<territory type="CO" draft="unconfirmed">Colombie</territory>
 			<territory type="CP" draft="unconfirmed">Isule Clipperton</territory>
 			<territory type="CR" draft="unconfirmed">Costa Rica</territory>
-			<territory type="CS" draft="unconfirmed">Serbie e Montenegro</territory>
 			<territory type="CU" draft="unconfirmed">Cuba</territory>
 			<territory type="CV" draft="unconfirmed">Cjâf vert</territory>
 			<territory type="CX" draft="unconfirmed">Isule Christmas</territory>
@@ -382,7 +373,7 @@
 			<territory type="FI" draft="unconfirmed">Finlandie</territory>
 			<territory type="FJ" draft="unconfirmed">Fizi</territory>
 			<territory type="FK" draft="unconfirmed">Isulis Falkland</territory>
-			<territory type="FK" alt="variant" draft="unconfirmed">Isulis Falkland [Isulis Malvinas]</territory>
+			<territory type="FK" alt="variant" draft="unconfirmed">Isulis Falkland (Isulis Malvinas)</territory>
 			<territory type="FM" draft="unconfirmed">Micronesie</territory>
 			<territory type="FO" draft="unconfirmed">Isulis Faroe</territory>
 			<territory type="FR" draft="unconfirmed">France</territory>
@@ -457,7 +448,7 @@
 			<territory type="MG" draft="unconfirmed">Madagascar</territory>
 			<territory type="MH" draft="unconfirmed">Isulis Marshall</territory>
 			<territory type="MK" draft="unconfirmed">Macedonie</territory>
-			<territory type="MK" alt="variant" draft="unconfirmed">Macedonie [FYROM]</territory>
+			<territory type="MK" alt="variant" draft="unconfirmed">Macedonie (FYROM)</territory>
 			<territory type="ML" draft="unconfirmed">Mali</territory>
 			<territory type="MM" draft="unconfirmed">Birmanie</territory>
 			<territory type="MN" draft="unconfirmed">Mongolie</territory>
@@ -536,7 +527,6 @@
 			<territory type="TJ" draft="unconfirmed">Tazikistan</territory>
 			<territory type="TK" draft="unconfirmed">Tokelau</territory>
 			<territory type="TL" draft="unconfirmed">Timor orientâl</territory>
-			<territory type="TL" alt="variant" draft="unconfirmed">Timor orientâl</territory>
 			<territory type="TM" draft="unconfirmed">Turkmenistan</territory>
 			<territory type="TN" draft="unconfirmed">Tunisie</territory>
 			<territory type="TO" draft="unconfirmed">Tonga</territory>
@@ -593,7 +583,6 @@
 			<type type="big5han" key="collation" draft="unconfirmed">ordin cinês tradizionâl - Big5</type>
 			<type type="buddhist" key="calendar" draft="unconfirmed">calendari budist</type>
 			<type type="chinese" key="calendar" draft="unconfirmed">calendari cinês</type>
-			<type type="direct" key="collation" draft="unconfirmed">ordin diret</type>
 			<type type="ducet" key="collation" draft="unconfirmed">ordenament predeterminât Unicode</type>
 			<type type="gb2312han" key="collation" draft="unconfirmed">ordin cinês semplificât - GB2312</type>
 			<type type="gregorian" key="calendar" draft="unconfirmed">calendari gregorian</type>
@@ -624,7 +613,6 @@
 	<characters>
 		<exemplarCharacters>[a à â b c ç d e è ê f g h i ì î j k l m n o ò ô p q r s t u ù û v w x y z]</exemplarCharacters>
 		<exemplarCharacters type="auxiliary">[å č é ë ğ ï ñ ó š ü]</exemplarCharacters>
-		<exemplarCharacters type="currencySymbol" draft="unconfirmed">[a b c č d e f g h i j k l ł m n o º p q r s t u v w x y z]</exemplarCharacters>
 		<exemplarCharacters type="index" draft="unconfirmed">[A B C Ç D E F G H I J K L M N O P Q R S T U V W X Y Z]</exemplarCharacters>
 	</characters>
 	<delimiters>
@@ -635,6 +623,150 @@
 	</delimiters>
 	<dates>
 		<calendars>
+			<calendar type="generic">
+				<dateFormats>
+					<dateFormatLength type="full">
+						<dateFormat>
+							<pattern draft="unconfirmed">EEEE d 'di' MMMM 'dal' y G</pattern>
+						</dateFormat>
+					</dateFormatLength>
+					<dateFormatLength type="long">
+						<dateFormat>
+							<pattern draft="unconfirmed">d 'di' MMMM 'dal' y G</pattern>
+						</dateFormat>
+					</dateFormatLength>
+					<dateFormatLength type="medium">
+						<dateFormat>
+							<pattern draft="unconfirmed">dd/MM/y G</pattern>
+						</dateFormat>
+					</dateFormatLength>
+					<dateFormatLength type="short">
+						<dateFormat>
+							<pattern draft="unconfirmed">dd/MM/yy GGGGG</pattern>
+						</dateFormat>
+					</dateFormatLength>
+				</dateFormats>
+				<dateTimeFormats>
+					<availableFormats>
+						<dateFormatItem id="d" draft="unconfirmed">d</dateFormatItem>
+						<dateFormatItem id="Ed" draft="unconfirmed">d E</dateFormatItem>
+						<dateFormatItem id="Hm" draft="unconfirmed">H:mm</dateFormatItem>
+						<dateFormatItem id="M" draft="unconfirmed">L</dateFormatItem>
+						<dateFormatItem id="Md" draft="unconfirmed">d/M</dateFormatItem>
+						<dateFormatItem id="MEd" draft="unconfirmed">E d/M</dateFormatItem>
+						<dateFormatItem id="MMd" draft="unconfirmed">d/MM</dateFormatItem>
+						<dateFormatItem id="MMM" draft="unconfirmed">LLL</dateFormatItem>
+						<dateFormatItem id="MMMd" draft="unconfirmed">d MMM</dateFormatItem>
+						<dateFormatItem id="MMMEd" draft="unconfirmed">E d MMM</dateFormatItem>
+						<dateFormatItem id="MMMMd" draft="unconfirmed">d 'di' MMMM</dateFormatItem>
+						<dateFormatItem id="MMMMEd" draft="unconfirmed">E d MMMM</dateFormatItem>
+						<dateFormatItem id="ms" draft="unconfirmed">mm:ss</dateFormatItem>
+						<dateFormatItem id="y" draft="unconfirmed">y</dateFormatItem>
+						<dateFormatItem id="yM" draft="unconfirmed">M/y</dateFormatItem>
+						<dateFormatItem id="yMEd" draft="unconfirmed">E, d/M/y</dateFormatItem>
+						<dateFormatItem id="yMMM" draft="unconfirmed">MMM y</dateFormatItem>
+						<dateFormatItem id="yMMMEd" draft="unconfirmed">E d MMM y</dateFormatItem>
+						<dateFormatItem id="yMMMM" draft="unconfirmed">LLLL 'dal' y</dateFormatItem>
+						<dateFormatItem id="yQQQ" draft="unconfirmed">QQQ y</dateFormatItem>
+						<dateFormatItem id="yQQQQ" draft="unconfirmed">QQQQ y</dateFormatItem>
+					</availableFormats>
+					<intervalFormats>
+						<intervalFormatFallback draft="unconfirmed">{0} – {1}</intervalFormatFallback>
+						<intervalFormatItem id="d">
+							<greatestDifference id="d" draft="unconfirmed">d-d</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="h">
+							<greatestDifference id="a" draft="unconfirmed">h a - h a</greatestDifference>
+							<greatestDifference id="h" draft="unconfirmed">h-h a</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="H">
+							<greatestDifference id="H" draft="unconfirmed">HH-HH</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="hm">
+							<greatestDifference id="a" draft="unconfirmed">h:mm a - h:mm a</greatestDifference>
+							<greatestDifference id="h" draft="unconfirmed">h:mm-h:mm a</greatestDifference>
+							<greatestDifference id="m" draft="unconfirmed">h:mm-h:mm a</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="Hm">
+							<greatestDifference id="H" draft="unconfirmed">HH:mm-HH:mm</greatestDifference>
+							<greatestDifference id="m" draft="unconfirmed">HH:mm-HH:mm</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="hmv">
+							<greatestDifference id="a" draft="unconfirmed">h:mm a - h:mm a v</greatestDifference>
+							<greatestDifference id="h" draft="unconfirmed">h:mm-h:mm a v</greatestDifference>
+							<greatestDifference id="m" draft="unconfirmed">h:mm-h:mm a v</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="Hmv">
+							<greatestDifference id="H" draft="unconfirmed">HH:mm-HH:mm v</greatestDifference>
+							<greatestDifference id="m" draft="unconfirmed">HH:mm-HH:mm v</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="hv">
+							<greatestDifference id="a" draft="unconfirmed">h a - h a v</greatestDifference>
+							<greatestDifference id="h" draft="unconfirmed">h-h a v</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="Hv">
+							<greatestDifference id="H" draft="unconfirmed">HH-HH v</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="M">
+							<greatestDifference id="M" draft="unconfirmed">M-M</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="Md">
+							<greatestDifference id="d" draft="unconfirmed">dd/MM - dd/MM</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">dd/MM - dd/MM</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="MEd">
+							<greatestDifference id="d" draft="unconfirmed">E dd/MM - E dd/MM</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">E dd/MM - E dd/MM</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="MMM">
+							<greatestDifference id="M" draft="unconfirmed">LLL-LLL</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="MMMd">
+							<greatestDifference id="d" draft="unconfirmed">d-d 'di' MMM</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">d 'di' MMM - d 'di' MMM</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="MMMEd">
+							<greatestDifference id="d" draft="unconfirmed">E d - E d 'di' MMM</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">E d 'di' MMM - E d 'di' MMM</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="y">
+							<greatestDifference id="y" draft="unconfirmed">y-y</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="yM">
+							<greatestDifference id="M" draft="unconfirmed">MM/y - MM/y</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">MM/y - MM/y</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="yMd">
+							<greatestDifference id="d" draft="unconfirmed">dd/MM/y - dd/MM/y</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">dd/MM/y - dd/MM/y</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">dd/MM/y - dd/MM/y</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="yMEd">
+							<greatestDifference id="d" draft="unconfirmed">E dd/MM/y - E dd/MM/y</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">E dd/MM/y - E dd/MM/y</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">E dd/MM/y - E dd/MM/y</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="yMMM">
+							<greatestDifference id="M" draft="unconfirmed">MM - MM/y</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">MM/y - MM/y</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="yMMMd">
+							<greatestDifference id="d" draft="unconfirmed">d - d/MM/y</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">dd/MM/y - d/MM</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">dd/MM/y - dd/MM/y</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="yMMMEd">
+							<greatestDifference id="d" draft="unconfirmed">E dd/MM/y - E dd/MM/y</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">E dd/MM/y - E dd/MM/y</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">E dd/MM/y - E dd/MM/y</greatestDifference>
+						</intervalFormatItem>
+						<intervalFormatItem id="yMMMM">
+							<greatestDifference id="M" draft="unconfirmed">MM - MM/y</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">MM/y - MM/y</greatestDifference>
+						</intervalFormatItem>
+					</intervalFormats>
+				</dateTimeFormats>
+			</calendar>
 			<calendar type="gregorian">
 				<months>
 					<monthContext type="format">
@@ -849,7 +981,7 @@
 					</dateFormatLength>
 					<dateFormatLength type="medium">
 						<dateFormat>
-							<pattern draft="unconfirmed">dd/MM/yyyy</pattern>
+							<pattern draft="unconfirmed">dd/MM/y</pattern>
 						</dateFormat>
 					</dateFormatLength>
 					<dateFormatLength type="short">
@@ -883,7 +1015,7 @@
 				<dateTimeFormats>
 					<availableFormats>
 						<dateFormatItem id="d" draft="unconfirmed">d</dateFormatItem>
-						<dateFormatItem id="EEEd" draft="unconfirmed">d EEE</dateFormatItem>
+						<dateFormatItem id="Ed" draft="unconfirmed">d E</dateFormatItem>
 						<dateFormatItem id="Hm" draft="unconfirmed">H:mm</dateFormatItem>
 						<dateFormatItem id="M" draft="unconfirmed">L</dateFormatItem>
 						<dateFormatItem id="Md" draft="unconfirmed">d/M</dateFormatItem>
@@ -896,13 +1028,13 @@
 						<dateFormatItem id="MMMMEd" draft="unconfirmed">E d MMMM</dateFormatItem>
 						<dateFormatItem id="ms" draft="unconfirmed">mm:ss</dateFormatItem>
 						<dateFormatItem id="y" draft="unconfirmed">y</dateFormatItem>
-						<dateFormatItem id="yM" draft="unconfirmed">M/yyyy</dateFormatItem>
-						<dateFormatItem id="yMEd" draft="unconfirmed">EEE, d/M/yyyy</dateFormatItem>
+						<dateFormatItem id="yM" draft="unconfirmed">M/y</dateFormatItem>
+						<dateFormatItem id="yMEd" draft="unconfirmed">E, d/M/y</dateFormatItem>
 						<dateFormatItem id="yMMM" draft="unconfirmed">MMM y</dateFormatItem>
-						<dateFormatItem id="yMMMEd" draft="unconfirmed">EEE d MMM y</dateFormatItem>
+						<dateFormatItem id="yMMMEd" draft="unconfirmed">E d MMM y</dateFormatItem>
 						<dateFormatItem id="yMMMM" draft="unconfirmed">LLLL 'dal' y</dateFormatItem>
-						<dateFormatItem id="yQ" draft="unconfirmed">Q yyyy</dateFormatItem>
 						<dateFormatItem id="yQQQ" draft="unconfirmed">QQQ y</dateFormatItem>
+						<dateFormatItem id="yQQQQ" draft="unconfirmed">QQQQ y</dateFormatItem>
 					</availableFormats>
 					<intervalFormats>
 						<intervalFormatFallback draft="unconfirmed">{0} – {1}</intervalFormatFallback>
@@ -914,7 +1046,6 @@
 							<greatestDifference id="h" draft="unconfirmed">h-h a</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="H">
-							<greatestDifference id="a" draft="unconfirmed">HH-HH</greatestDifference>
 							<greatestDifference id="H" draft="unconfirmed">HH-HH</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="hm">
@@ -923,7 +1054,6 @@
 							<greatestDifference id="m" draft="unconfirmed">h:mm-h:mm a</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="Hm">
-							<greatestDifference id="a" draft="unconfirmed">HH:mm-HH:mm</greatestDifference>
 							<greatestDifference id="H" draft="unconfirmed">HH:mm-HH:mm</greatestDifference>
 							<greatestDifference id="m" draft="unconfirmed">HH:mm-HH:mm</greatestDifference>
 						</intervalFormatItem>
@@ -933,7 +1063,6 @@
 							<greatestDifference id="m" draft="unconfirmed">h:mm-h:mm a v</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="Hmv">
-							<greatestDifference id="a" draft="unconfirmed">HH:mm-HH:mm v</greatestDifference>
 							<greatestDifference id="H" draft="unconfirmed">HH:mm-HH:mm v</greatestDifference>
 							<greatestDifference id="m" draft="unconfirmed">HH:mm-HH:mm v</greatestDifference>
 						</intervalFormatItem>
@@ -942,7 +1071,6 @@
 							<greatestDifference id="h" draft="unconfirmed">h-h a v</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="Hv">
-							<greatestDifference id="a" draft="unconfirmed">HH-HH v</greatestDifference>
 							<greatestDifference id="H" draft="unconfirmed">HH-HH v</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="M">
@@ -971,83 +1099,137 @@
 							<greatestDifference id="y" draft="unconfirmed">y-y</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="yM">
-							<greatestDifference id="M" draft="unconfirmed">MM/yy - MM/yy</greatestDifference>
-							<greatestDifference id="y" draft="unconfirmed">MM/yy - MM/yy</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">MM/y - MM/y</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">MM/y - MM/y</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="yMd">
-							<greatestDifference id="d" draft="unconfirmed">dd/MM/yy - dd/MM/yy</greatestDifference>
-							<greatestDifference id="M" draft="unconfirmed">dd/MM/yy - dd/MM/yy</greatestDifference>
-							<greatestDifference id="y" draft="unconfirmed">dd/MM/yy - dd/MM/yy</greatestDifference>
+							<greatestDifference id="d" draft="unconfirmed">dd/MM/y - dd/MM/y</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">dd/MM/y - dd/MM/y</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">dd/MM/y - dd/MM/y</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="yMEd">
-							<greatestDifference id="d" draft="unconfirmed">E dd/MM/yy - E dd/MM/yy</greatestDifference>
-							<greatestDifference id="M" draft="unconfirmed">E dd/MM/yy - E dd/MM/yy</greatestDifference>
-							<greatestDifference id="y" draft="unconfirmed">E dd/MM/yyyy - E dd/MM/yyyy</greatestDifference>
+							<greatestDifference id="d" draft="unconfirmed">E dd/MM/y - E dd/MM/y</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">E dd/MM/y - E dd/MM/y</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">E dd/MM/y - E dd/MM/y</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="yMMM">
-							<greatestDifference id="M" draft="unconfirmed">MM - MM/yyyy</greatestDifference>
-							<greatestDifference id="y" draft="unconfirmed">MM/yyyy - MM/yyyy</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">MM - MM/y</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">MM/y - MM/y</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="yMMMd">
-							<greatestDifference id="d" draft="unconfirmed">d - d/MM/yyyy</greatestDifference>
-							<greatestDifference id="M" draft="unconfirmed">dd/MM/yyyy - d/MM</greatestDifference>
-							<greatestDifference id="y" draft="unconfirmed">dd/MM/yyyy - dd/MM/yyyy</greatestDifference>
+							<greatestDifference id="d" draft="unconfirmed">d - d/MM/y</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">dd/MM/y - d/MM</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">dd/MM/y - dd/MM/y</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="yMMMEd">
-							<greatestDifference id="d" draft="unconfirmed">E dd/MM/yyyy - E dd/MM/yyyy</greatestDifference>
-							<greatestDifference id="M" draft="unconfirmed">E dd/MM/yyyy - E dd/MM/yyyy</greatestDifference>
-							<greatestDifference id="y" draft="unconfirmed">E dd/MM/yyyy - E dd/MM/yyyy</greatestDifference>
+							<greatestDifference id="d" draft="unconfirmed">E dd/MM/y - E dd/MM/y</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">E dd/MM/y - E dd/MM/y</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">E dd/MM/y - E dd/MM/y</greatestDifference>
 						</intervalFormatItem>
 						<intervalFormatItem id="yMMMM">
-							<greatestDifference id="M" draft="unconfirmed">MM - MM/yyyy</greatestDifference>
-							<greatestDifference id="y" draft="unconfirmed">MM/yyyy - MM/yyyy</greatestDifference>
+							<greatestDifference id="M" draft="unconfirmed">MM - MM/y</greatestDifference>
+							<greatestDifference id="y" draft="unconfirmed">MM/y - MM/y</greatestDifference>
 						</intervalFormatItem>
 					</intervalFormats>
 				</dateTimeFormats>
-				<fields>
-					<field type="era">
-						<displayName draft="unconfirmed">ere</displayName>
-					</field>
-					<field type="year">
-						<displayName draft="unconfirmed">an</displayName>
-					</field>
-					<field type="month">
-						<displayName draft="unconfirmed">mês</displayName>
-					</field>
-					<field type="week">
-						<displayName draft="unconfirmed">setemane</displayName>
-					</field>
-					<field type="day">
-						<displayName draft="unconfirmed">dì</displayName>
-						<relative type="-3" draft="unconfirmed">trê dîs fa</relative>
-						<relative type="-2" draft="unconfirmed">îr l'altri</relative>
-						<relative type="-1" draft="unconfirmed">îr</relative>
-						<relative type="0" draft="unconfirmed">vuê</relative>
-						<relative type="1" draft="unconfirmed">doman</relative>
-						<relative type="2" draft="unconfirmed">passantdoman</relative>
-						<relative type="3" draft="unconfirmed">tra trê dîs</relative>
-					</field>
-					<field type="weekday">
-						<displayName draft="unconfirmed">dì de setemane</displayName>
-					</field>
-					<field type="dayperiod">
-						<displayName draft="unconfirmed">toc dal dì</displayName>
-					</field>
-					<field type="hour">
-						<displayName draft="unconfirmed">ore</displayName>
-					</field>
-					<field type="minute">
-						<displayName draft="unconfirmed">minût</displayName>
-					</field>
-					<field type="second">
-						<displayName draft="unconfirmed">secont</displayName>
-					</field>
-					<field type="zone">
-						<displayName draft="unconfirmed">zone</displayName>
-					</field>
-				</fields>
 			</calendar>
 		</calendars>
+		<fields>
+			<field type="era">
+				<displayName draft="unconfirmed">ere</displayName>
+			</field>
+			<field type="year">
+				<displayName draft="unconfirmed">an</displayName>
+				<relativeTime type="future">
+					<relativeTimePattern count="one">ca di {0} an</relativeTimePattern>
+					<relativeTimePattern count="other">ca di {0} agns</relativeTimePattern>
+				</relativeTime>
+				<relativeTime type="past">
+					<relativeTimePattern count="one">{0} an indaûr</relativeTimePattern>
+					<relativeTimePattern count="other">{0} agns indaûr</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="month">
+				<displayName draft="unconfirmed">mês</displayName>
+				<relativeTime type="future">
+					<relativeTimePattern count="one">ca di {0} mês</relativeTimePattern>
+					<relativeTimePattern count="other">ca di {0} mês</relativeTimePattern>
+				</relativeTime>
+				<relativeTime type="past">
+					<relativeTimePattern count="one">{0} mês indaûr</relativeTimePattern>
+					<relativeTimePattern count="other">{0} mês indaûr</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="week">
+				<displayName draft="unconfirmed">setemane</displayName>
+				<relativeTime type="future">
+					<relativeTimePattern count="one">ca di {0} setemane</relativeTimePattern>
+					<relativeTimePattern count="other">ca di {0} setemanis</relativeTimePattern>
+				</relativeTime>
+				<relativeTime type="past">
+					<relativeTimePattern count="one">{0} setemane indaûr</relativeTimePattern>
+					<relativeTimePattern count="other">{0} setemanis indaûr</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="day">
+				<displayName draft="unconfirmed">dì</displayName>
+				<relative type="-2" draft="unconfirmed">îr l'altri</relative>
+				<relative type="-1" draft="unconfirmed">îr</relative>
+				<relative type="0" draft="unconfirmed">vuê</relative>
+				<relative type="1" draft="unconfirmed">doman</relative>
+				<relative type="2" draft="unconfirmed">passantdoman</relative>
+				<relativeTime type="future">
+					<relativeTimePattern count="one">ca di {0} zornade</relativeTimePattern>
+					<relativeTimePattern count="other">ca di {0} zornadis</relativeTimePattern>
+				</relativeTime>
+				<relativeTime type="past">
+					<relativeTimePattern count="one">{0} zornade indaûr</relativeTimePattern>
+					<relativeTimePattern count="other">{0} zornadis indaûr</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="weekday">
+				<displayName draft="unconfirmed">dì de setemane</displayName>
+			</field>
+			<field type="dayperiod">
+				<displayName draft="unconfirmed">toc dal dì</displayName>
+			</field>
+			<field type="hour">
+				<displayName draft="unconfirmed">ore</displayName>
+				<relativeTime type="future">
+					<relativeTimePattern count="one">ca di {0} ore</relativeTimePattern>
+					<relativeTimePattern count="other">ca di {0} oris</relativeTimePattern>
+				</relativeTime>
+				<relativeTime type="past">
+					<relativeTimePattern count="one">{0} ore indaûr</relativeTimePattern>
+					<relativeTimePattern count="other">{0} oris indaûr</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="minute">
+				<displayName draft="unconfirmed">minût</displayName>
+				<relativeTime type="future">
+					<relativeTimePattern count="one">ca di {0} minût</relativeTimePattern>
+					<relativeTimePattern count="other">ca di {0} minûts</relativeTimePattern>
+				</relativeTime>
+				<relativeTime type="past">
+					<relativeTimePattern count="one">{0} minût indaûr</relativeTimePattern>
+					<relativeTimePattern count="other">{0} minûts indaûr</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="second">
+				<displayName draft="unconfirmed">secont</displayName>
+				<relativeTime type="future">
+					<relativeTimePattern count="one">ca di {0} secont</relativeTimePattern>
+					<relativeTimePattern count="other">ca di {0} seconts</relativeTimePattern>
+				</relativeTime>
+				<relativeTime type="past">
+					<relativeTimePattern count="one">{0} secont indaûr</relativeTimePattern>
+					<relativeTimePattern count="other">{0} seconts indaûr</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="zone">
+				<displayName draft="unconfirmed">zone</displayName>
+			</field>
+		</fields>
 		<timeZoneNames>
 			<hourFormat draft="unconfirmed">+HH:mm;-HH:mm</hourFormat>
 			<gmtFormat draft="unconfirmed">GMT{0}</gmtFormat>
@@ -1066,9 +1248,6 @@
 			</zone>
 			<zone type="Atlantic/Canary">
 				<exemplarCity draft="unconfirmed">Canariis</exemplarCity>
-			</zone>
-			<zone type="Europe/Rome">
-				<exemplarCity draft="unconfirmed">Rome</exemplarCity>
 			</zone>
 			<zone type="Europe/Luxembourg">
 				<exemplarCity draft="unconfirmed">Lussemburc</exemplarCity>
@@ -1099,28 +1278,50 @@
 			</zone>
 			<metazone type="Europe_Central">
 				<long>
-					<standard draft="unconfirmed">Ore de Europe centrâl</standard>
-					<daylight draft="unconfirmed">Ore estive de Europe centrâl</daylight>
+					<generic>Ore de Europe centrâl</generic>
+					<standard>Ore standard de Europe centrâl</standard>
+					<daylight>Ore estive de Europe centrâl</daylight>
 				</long>
-				<commonlyUsed draft="unconfirmed">true</commonlyUsed>
+				<short>
+					<generic>CET</generic>
+					<standard>CET</standard>
+					<daylight>CEST</daylight>
+				</short>
 			</metazone>
 			<metazone type="Europe_Eastern">
 				<long>
-					<standard draft="unconfirmed">Ore de Europe orientâl</standard>
-					<daylight draft="unconfirmed">Ore estive de Europe orientâl</daylight>
+					<generic>Ore de Europe orientâl</generic>
+					<standard>Ore standard de Europe orientâl</standard>
+					<daylight>Ore estive de Europe orientâl</daylight>
 				</long>
-				<commonlyUsed draft="unconfirmed">false</commonlyUsed>
+				<short>
+					<generic>EET</generic>
+					<standard>EET</standard>
+					<daylight>EEST</daylight>
+				</short>
 			</metazone>
 			<metazone type="Europe_Western">
 				<long>
-					<standard draft="unconfirmed">Ore de Europe ocidentâl</standard>
-					<daylight draft="unconfirmed">Ore estive de Europe ocidentâl</daylight>
+					<generic>Ore de Europe ocidentâl</generic>
+					<standard>Ore standard de Europe ocidentâl</standard>
+					<daylight>Ore estive de Europe ocidentâl</daylight>
 				</long>
-				<commonlyUsed draft="unconfirmed">false</commonlyUsed>
+				<short>
+					<generic>WET</generic>
+					<standard>WET</standard>
+					<daylight>WEST</daylight>
+				</short>
+			</metazone>
+			<metazone type="GMT">
+				<short>
+					<standard draft="unconfirmed">GMT</standard>
+				</short>
 			</metazone>
 			<metazone type="Moscow">
 				<long>
-					<generic draft="unconfirmed">Ore di Mosche</generic>
+					<generic>Ore di Mosche</generic>
+					<standard>Ore standard di Mosche</standard>
+					<daylight>Ore estive di Mosche</daylight>
 				</long>
 			</metazone>
 		</timeZoneNames>
@@ -1138,30 +1339,30 @@
 			<infinity draft="unconfirmed">∞</infinity>
 			<nan draft="unconfirmed">NaN</nan>
 		</symbols>
-		<decimalFormats>
+		<decimalFormats numberSystem="latn">
 			<decimalFormatLength>
 				<decimalFormat>
 					<pattern draft="unconfirmed">#,##0.###</pattern>
 				</decimalFormat>
 			</decimalFormatLength>
 		</decimalFormats>
-		<scientificFormats>
+		<scientificFormats numberSystem="latn">
 			<scientificFormatLength>
 				<scientificFormat>
 					<pattern draft="unconfirmed">#E0</pattern>
 				</scientificFormat>
 			</scientificFormatLength>
 		</scientificFormats>
-		<percentFormats>
+		<percentFormats numberSystem="latn">
 			<percentFormatLength>
 				<percentFormat>
 					<pattern draft="unconfirmed">#,##0%</pattern>
 				</percentFormat>
 			</percentFormatLength>
 		</percentFormats>
-		<currencyFormats>
+		<currencyFormats numberSystem="latn">
 			<currencyFormatLength>
-				<currencyFormat>
+				<currencyFormat type="standard">
 					<pattern draft="unconfirmed">¤ #,##0.00</pattern>
 				</currencyFormat>
 			</currencyFormatLength>
@@ -1170,7 +1371,7 @@
 		</currencyFormats>
 		<currencies>
 			<currency type="AMD">
-				<displayName count="one" draft="unconfirmed">Dram armen</displayName>
+				<displayName draft="unconfirmed">Dram armen</displayName>
 			</currency>
 			<currency type="ARS">
 				<displayName draft="unconfirmed">Peso argjentin</displayName>
@@ -1409,6 +1610,7 @@
 			</currency>
 			<currency type="XXX">
 				<displayName draft="unconfirmed">Monede no valide o no cognossude</displayName>
+				<displayName count="one" draft="unconfirmed">Monede no valide o no cognossude</displayName>
 				<displayName count="other" draft="unconfirmed">Monedis no validis o no cognossudis</displayName>
 			</currency>
 			<currency type="ZAR">
@@ -1419,95 +1621,41 @@
 		</currencies>
 	</numbers>
 	<units>
-		<unit type="day">
-			<unitPattern count="one">{0} zornade</unitPattern>
-			<unitPattern count="other">{0} zornadis</unitPattern>
-		</unit>
-		<unit type="day-future">
-			<unitPattern count="one" draft="unconfirmed">ca di {0} zornade</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">ca di {0} zornadis</unitPattern>
-		</unit>
-		<unit type="day-past">
-			<unitPattern count="one" draft="unconfirmed">{0} zornade indaûr</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">{0} zornadis indaûr</unitPattern>
-		</unit>
-		<unit type="hour">
-			<unitPattern count="one">{0} ore</unitPattern>
-			<unitPattern count="other">{0} oris</unitPattern>
-		</unit>
-		<unit type="hour-future">
-			<unitPattern count="one" draft="unconfirmed">ca di {0} ore</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">ca di {0} oris</unitPattern>
-		</unit>
-		<unit type="hour-past">
-			<unitPattern count="one" draft="unconfirmed">{0} ore indaûr</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">{0} oris indaûr</unitPattern>
-		</unit>
-		<unit type="minute">
-			<unitPattern count="one">{0} minût</unitPattern>
-			<unitPattern count="other">{0} minûts</unitPattern>
-		</unit>
-		<unit type="minute-future">
-			<unitPattern count="one" draft="unconfirmed">ca di {0} minût</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">ca di {0} minûts</unitPattern>
-		</unit>
-		<unit type="minute-past">
-			<unitPattern count="one" draft="unconfirmed">{0} minût indaûr</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">{0} minûts indaûr</unitPattern>
-		</unit>
-		<unit type="month">
-			<unitPattern count="one">{0} mês</unitPattern>
-			<unitPattern count="other">{0} mês</unitPattern>
-		</unit>
-		<unit type="month-future">
-			<unitPattern count="one" draft="unconfirmed">ca di {0} mês</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">ca di {0} mês</unitPattern>
-		</unit>
-		<unit type="month-past">
-			<unitPattern count="one" draft="unconfirmed">{0} mês indaûr</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">{0} mês indaûr</unitPattern>
-		</unit>
-		<unit type="second">
-			<unitPattern count="one">{0} secont</unitPattern>
-			<unitPattern count="other">{0} seconts</unitPattern>
-		</unit>
-		<unit type="second-future">
-			<unitPattern count="one" draft="unconfirmed">ca di {0} secont</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">ca di {0} seconts</unitPattern>
-		</unit>
-		<unit type="second-past">
-			<unitPattern count="one" draft="unconfirmed">{0} secont indaûr</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">{0} seconts indaûr</unitPattern>
-		</unit>
-		<unit type="week">
-			<unitPattern count="one">{0} setemane</unitPattern>
-			<unitPattern count="other">{0} setemanis</unitPattern>
-		</unit>
-		<unit type="week-future">
-			<unitPattern count="one" draft="unconfirmed">ca di {0} setemane</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">ca di {0} setemanis</unitPattern>
-		</unit>
-		<unit type="week-past">
-			<unitPattern count="one" draft="unconfirmed">{0} setemane indaûr</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">{0} setemanis indaûr</unitPattern>
-		</unit>
-		<unit type="year">
-			<unitPattern count="one">{0} an</unitPattern>
-			<unitPattern count="other">{0} agns</unitPattern>
-		</unit>
-		<unit type="year-future">
-			<unitPattern count="one" draft="unconfirmed">ca di {0} an</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">ca di {0} agns</unitPattern>
-		</unit>
-		<unit type="year-past">
-			<unitPattern count="one" draft="unconfirmed">{0} an indaûr</unitPattern>
-			<unitPattern count="other" draft="unconfirmed">{0} agns indaûr</unitPattern>
-		</unit>
+		<unitLength type="long">
+			<unit type="duration-day">
+				<unitPattern count="one">{0} zornade</unitPattern>
+				<unitPattern count="other">{0} zornadis</unitPattern>
+			</unit>
+			<unit type="duration-hour">
+				<unitPattern count="one">{0} ore</unitPattern>
+				<unitPattern count="other">{0} oris</unitPattern>
+			</unit>
+			<unit type="duration-minute">
+				<unitPattern count="one">{0} minût</unitPattern>
+				<unitPattern count="other">{0} minûts</unitPattern>
+			</unit>
+			<unit type="duration-month">
+				<unitPattern count="one">{0} mês</unitPattern>
+				<unitPattern count="other">{0} mês</unitPattern>
+			</unit>
+			<unit type="duration-second">
+				<unitPattern count="one">{0} secont</unitPattern>
+				<unitPattern count="other">{0} seconts</unitPattern>
+			</unit>
+			<unit type="duration-week">
+				<unitPattern count="one">{0} setemane</unitPattern>
+				<unitPattern count="other">{0} setemanis</unitPattern>
+			</unit>
+			<unit type="duration-year">
+				<unitPattern count="one">{0} an</unitPattern>
+				<unitPattern count="other">{0} agns</unitPattern>
+			</unit>
+		</unitLength>
 	</units>
 	<listPatterns>
 		<listPattern>
-			<listPatternPart type="2" draft="unconfirmed">{0} e {1}</listPatternPart>
 			<listPatternPart type="end" draft="unconfirmed">{0} e {1}</listPatternPart>
+			<listPatternPart type="2" draft="unconfirmed">{0} e {1}</listPatternPart>
 		</listPattern>
 	</listPatterns>
 	<posix>

@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE ldml SYSTEM "../../common/dtd/ldml.dtd">
+<!-- Copyright © 1991-2013 Unicode, Inc.
+CLDR data files are interpreted according to the LDML specification (http://unicode.org/reports/tr35/)
+For terms of use, see http://www.unicode.org/copyright.html
+-->
 <ldml>
 	<identity>
-		<version number="$Revision: 5884 $"/>
-		<generation date="$Date: 2011-05-10 15:58:32 -0500 (Tue, 10 May 2011) $"/>
+		<version number="$Revision: 9624 $"/>
+		<generation date="$Date: 2014-01-08 23:02:40 -0600 (Wed, 08 Jan 2014) $"/>
 		<language type="es"/>
 		<territory type="419"/>
 	</identity>
@@ -72,13 +76,15 @@
 			<measurementSystemName type="UK" draft="contributed">Reino Unido</measurementSystemName>
 		</measurementSystemNames>
 	</localeDisplayNames>
-	<characters>
-		<stopwords>
-			<stopwordList type="collation" draft="provisional">artículos</stopwordList>
-		</stopwords>
-	</characters>
 	<dates>
 		<calendars>
+			<calendar type="generic">
+				<dateTimeFormats>
+					<availableFormats>
+						<dateFormatItem id="yMEd" draft="contributed">E d/M/y G</dateFormatItem>
+					</availableFormats>
+				</dateTimeFormats>
+			</calendar>
 			<calendar type="gregorian">
 				<quarters>
 					<quarterContext type="format">
@@ -90,79 +96,92 @@
 						</quarterWidth>
 					</quarterContext>
 				</quarters>
-				<fields>
-					<field type="year">
-						<relative type="-1" draft="contributed">Año pasado</relative>
-						<relative type="0" draft="contributed">Este año</relative>
-						<relative type="1" draft="contributed">Año próximo</relative>
-					</field>
-					<field type="month">
-						<relative type="-1" draft="contributed">El mes pasado</relative>
-						<relative type="0" draft="contributed">Este mes</relative>
-						<relative type="1" draft="contributed">Mes próximo</relative>
-					</field>
-					<field type="week">
-						<relative type="-1" draft="contributed">Semana pasada</relative>
-						<relative type="0" draft="contributed">Esta semana</relative>
-						<relative type="1" draft="contributed">Próxima semana</relative>
-					</field>
-				</fields>
+				<dateTimeFormats>
+					<availableFormats>
+						<dateFormatItem id="yMEd" draft="contributed">E d/M/y</dateFormatItem>
+					</availableFormats>
+				</dateTimeFormats>
 			</calendar>
 		</calendars>
+		<fields>
+			<field type="year">
+				<relative type="-1" draft="contributed">Año pasado</relative>
+				<relative type="0" draft="contributed">Este año</relative>
+				<relative type="1" draft="contributed">Año próximo</relative>
+				<relativeTime type="future">
+					<relativeTimePattern count="one">En {0} año</relativeTimePattern>
+					<relativeTimePattern count="other">En {0} años</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="month">
+				<relative type="-1" draft="contributed">El mes pasado</relative>
+				<relative type="0" draft="contributed">Este mes</relative>
+				<relative type="1" draft="contributed">Mes próximo</relative>
+				<relativeTime type="future">
+					<relativeTimePattern count="one">En {0} mes</relativeTimePattern>
+					<relativeTimePattern count="other">En {0} meses</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="week">
+				<relative type="-1" draft="contributed">Semana pasada</relative>
+				<relative type="0" draft="contributed">Esta semana</relative>
+				<relative type="1" draft="contributed">Próxima semana</relative>
+				<relativeTime type="future">
+					<relativeTimePattern count="one">En {0} semana</relativeTimePattern>
+					<relativeTimePattern count="other">En {0} semanas</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="day">
+				<relativeTime type="future">
+					<relativeTimePattern count="one">En {0} día</relativeTimePattern>
+					<relativeTimePattern count="other">En {0} días</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="hour">
+				<relativeTime type="future">
+					<relativeTimePattern count="one">En {0} hora</relativeTimePattern>
+					<relativeTimePattern count="other">En {0} horas</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="minute">
+				<relativeTime type="future">
+					<relativeTimePattern count="one">En {0} minuto</relativeTimePattern>
+					<relativeTimePattern count="other">En {0} minutos</relativeTimePattern>
+				</relativeTime>
+			</field>
+			<field type="second">
+				<relativeTime type="future">
+					<relativeTimePattern count="one">En {0} segundo</relativeTimePattern>
+					<relativeTimePattern count="other">En {0} segundos</relativeTimePattern>
+				</relativeTime>
+			</field>
+		</fields>
 		<timeZoneNames>
-			<metazone type="Anadyr">
-				<long>
-					<daylight draft="contributed">Hora de Verano de Anadyr</daylight>
-				</long>
+			<metazone type="Europe_Central">
+				<short>
+					<generic>∅∅∅</generic>
+					<standard>∅∅∅</standard>
+					<daylight>∅∅∅</daylight>
+				</short>
 			</metazone>
-			<metazone type="Argentina_Western">
-				<long>
-					<generic draft="contributed">Hora del Oeste de Argentina</generic>
-					<daylight draft="contributed">Hora de verano en el oeste de Argentina</daylight>
-				</long>
+			<metazone type="Europe_Eastern">
+				<short>
+					<generic>∅∅∅</generic>
+					<standard>∅∅∅</standard>
+					<daylight>∅∅∅</daylight>
+				</short>
 			</metazone>
-			<metazone type="Indonesia_Central">
-				<long>
-					<generic draft="contributed">Hora central de Indonesia</generic>
-				</long>
+			<metazone type="Europe_Western">
+				<short>
+					<generic>∅∅∅</generic>
+					<standard>∅∅∅</standard>
+					<daylight>∅∅∅</daylight>
+				</short>
 			</metazone>
-			<metazone type="Indonesia_Eastern">
-				<long>
-					<generic draft="contributed">Hora del Este de Indonesia</generic>
-				</long>
-			</metazone>
-			<metazone type="Indonesia_Western">
-				<long>
-					<generic draft="contributed">Indonesia, hora del oeste</generic>
-				</long>
-			</metazone>
-			<metazone type="Kamchatka">
-				<long>
-					<standard draft="contributed">Hora de Petropávlovsk-Kamchatski</standard>
-					<daylight draft="contributed">Hora de verano de Petropávlovsk-Kamchatski</daylight>
-				</long>
-			</metazone>
-			<metazone type="Kazakhstan_Eastern">
-				<long>
-					<generic draft="contributed">Hora del Este de Kazajistán</generic>
-					<daylight draft="contributed">Hora de verano en el este de Kazajistán</daylight>
-				</long>
-			</metazone>
-			<metazone type="Kazakhstan_Western">
-				<long>
-					<generic draft="contributed">Hora del Oeste de Kazajistán</generic>
-					<daylight draft="contributed">Hora de Verano en el oeste de Kazajistán</daylight>
-				</long>
-			</metazone>
-			<metazone type="Omsk">
-				<long>
-					<daylight draft="contributed">Hora de Verano de Omsk</daylight>
-				</long>
-			</metazone>
-			<metazone type="Sakhalin">
-				<long>
-					<daylight draft="contributed">Hora de Verano de Sajalín</daylight>
-				</long>
+			<metazone type="GMT">
+				<short>
+					<standard>∅∅∅</standard>
+				</short>
 			</metazone>
 		</timeZoneNames>
 	</dates>
@@ -171,57 +190,43 @@
 			<decimal>.</decimal>
 			<group>,</group>
 		</symbols>
-		<currencyFormats>
+		<decimalFormats numberSystem="latn">
+			<decimalFormatLength type="short">
+				<decimalFormat>
+					<pattern type="1000" count="one" draft="contributed">0</pattern>
+					<pattern type="1000" count="other" draft="contributed">0</pattern>
+					<pattern type="10000" count="one" draft="contributed">00k</pattern>
+					<pattern type="10000" count="other" draft="contributed">00k</pattern>
+					<pattern type="100000" count="one" draft="contributed">000k</pattern>
+					<pattern type="100000" count="other" draft="contributed">000k</pattern>
+					<pattern type="1000000" count="one" draft="contributed">0 M</pattern>
+					<pattern type="1000000" count="other" draft="contributed">0 M</pattern>
+					<pattern type="10000000" count="one" draft="contributed">00 M</pattern>
+					<pattern type="10000000" count="other" draft="contributed">00 M</pattern>
+					<pattern type="100000000" count="one" draft="contributed">000 M</pattern>
+					<pattern type="100000000" count="other" draft="contributed">000 M</pattern>
+					<pattern type="1000000000" count="one" draft="contributed">0k M</pattern>
+					<pattern type="1000000000" count="other" draft="contributed">0k M</pattern>
+					<pattern type="10000000000" count="one" draft="contributed">00k M</pattern>
+					<pattern type="10000000000" count="other" draft="contributed">00k M</pattern>
+					<pattern type="100000000000" count="one" draft="contributed">000k M</pattern>
+					<pattern type="100000000000" count="other" draft="contributed">000k M</pattern>
+					<pattern type="1000000000000" count="one" draft="contributed">0 B</pattern>
+					<pattern type="1000000000000" count="other" draft="contributed">0 B</pattern>
+					<pattern type="10000000000000" count="one" draft="contributed">00 B</pattern>
+					<pattern type="10000000000000" count="other" draft="contributed">00 B</pattern>
+					<pattern type="100000000000000" count="one" draft="contributed">000 B</pattern>
+					<pattern type="100000000000000" count="other" draft="contributed">000 B</pattern>
+				</decimalFormat>
+			</decimalFormatLength>
+		</decimalFormats>
+		<currencyFormats numberSystem="latn">
 			<currencyFormatLength>
-				<currencyFormat>
+				<currencyFormat type="standard">
 					<pattern draft="contributed">¤#,##0.00</pattern>
 				</currencyFormat>
 			</currencyFormatLength>
 		</currencyFormats>
 	</numbers>
-	<units>
-		<unit type="day-future">
-			<unitPattern count="0" draft="contributed">En 0 días</unitPattern>
-			<unitPattern count="1" draft="contributed">En 1 día</unitPattern>
-			<unitPattern count="one" draft="contributed">En {0} día</unitPattern>
-			<unitPattern count="other" draft="contributed">En {0} días</unitPattern>
-		</unit>
-		<unit type="hour-future">
-			<unitPattern count="0" draft="contributed">En 0 horas</unitPattern>
-			<unitPattern count="1" draft="contributed">En 1 hora</unitPattern>
-			<unitPattern count="one" draft="contributed">En {0} hora</unitPattern>
-			<unitPattern count="other" draft="contributed">En {0} horas</unitPattern>
-		</unit>
-		<unit type="minute-future">
-			<unitPattern count="0" draft="contributed">En 0 minutos</unitPattern>
-			<unitPattern count="1" draft="contributed">En 1 minuto</unitPattern>
-			<unitPattern count="one" draft="contributed">En {0} minuto</unitPattern>
-			<unitPattern count="other" draft="contributed">En {0} minutos</unitPattern>
-		</unit>
-		<unit type="month-future">
-			<unitPattern count="0" draft="contributed">En 0 meses</unitPattern>
-			<unitPattern count="1" draft="contributed">En 1 mes</unitPattern>
-			<unitPattern count="one" draft="contributed">En {0} mes</unitPattern>
-			<unitPattern count="other" draft="contributed">En {0} meses</unitPattern>
-		</unit>
-		<unit type="second-future">
-			<unitPattern count="0" draft="contributed">En 0 segundos</unitPattern>
-			<unitPattern count="1" draft="contributed">En 1 segundo</unitPattern>
-			<unitPattern count="one" draft="contributed">En {0} segundo</unitPattern>
-			<unitPattern count="other" draft="contributed">En {0} segundos</unitPattern>
-		</unit>
-		<unit type="week-future">
-			<unitPattern count="0" draft="contributed">En 0 semanas</unitPattern>
-			<unitPattern count="1" draft="contributed">En 1 semana</unitPattern>
-			<unitPattern count="one" draft="contributed">En {0} semana</unitPattern>
-			<unitPattern count="other" draft="contributed">En {0} semanas</unitPattern>
-		</unit>
-		<unit type="year-future">
-			<unitPattern count="0" draft="contributed">En 0 años</unitPattern>
-			<unitPattern count="1" draft="contributed">En 1 año</unitPattern>
-			<unitPattern count="one" draft="contributed">En {0} año</unitPattern>
-			<unitPattern count="other" draft="contributed">En {0} años</unitPattern>
-		</unit>
-	</units>
 </ldml>
 

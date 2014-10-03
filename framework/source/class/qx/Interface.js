@@ -23,6 +23,8 @@
  *
  * See the description of the {@link #define} method how an interface is
  * defined.
+ *
+ * @require(qx.lang.normalize.Array)
  */
 qx.Bootstrap.define("qx.Interface",
 {
@@ -88,6 +90,8 @@ qx.Bootstrap.define("qx.Interface",
      *     <tr><th>properties</th><td>Map</td><td>Map of properties and their definitions.</td></tr>
      *     <tr><th>events</th><td>Map</td><td>Map of event names and the corresponding event class name.</td></tr>
      *   </table>
+     *
+     * @return {qx.Interface} The configured interface
      */
     define : function(name, config)
     {
@@ -214,27 +218,30 @@ qx.Bootstrap.define("qx.Interface",
      * @param iface {Interface} the interface to verify
      * @param wrap {Boolean ? false} wrap functions required by interface to
      *     check parameters etc.
+     * @param shouldThrow {Boolean} if <code>false</code>, the method
+     *   will return a boolean instead of throwing an exception
+     * @return {Boolean} <code>true</code> if all members are supported
      */
-    __assertMembers : function(object, clazz, iface, wrap)
+    __checkMembers : function(object, clazz, iface, wrap, shouldThrow)
     {
       // Validate members
       var members = iface.$$members;
-      if (members)
-      {
-        for (var key in members)
-        {
-          if (qx.Bootstrap.isFunction(members[key]))
-          {
+      if (members) {
+        for (var key in members) {
+          if (qx.Bootstrap.isFunction(members[key])) {
             var isPropertyMethod = this.__isPropertyMethod(clazz, key);
             var hasMemberFunction = isPropertyMethod || qx.Bootstrap.isFunction(object[key]);
 
-            if (!hasMemberFunction)
-            {
-              throw new Error(
-                  'Implementation of method "' + key +
-                  '" is missing in class "' + clazz.classname +
-                  '" required by interface "' + iface.name + '"'
-              );
+            if (!hasMemberFunction) {
+              if (shouldThrow) {
+                throw new Error(
+                    'Implementation of method "' + key +
+                    '" is missing in class "' + clazz.classname +
+                    '" required by interface "' + iface.name + '"'
+                );
+              } else {
+                return false;
+              }
             }
 
             // Only wrap members if the interface was not been applied yet. This
@@ -242,30 +249,34 @@ qx.Bootstrap.define("qx.Interface",
             var shouldWrapFunction =
               wrap === true &&
               !isPropertyMethod &&
-              !qx.Bootstrap.hasInterface(clazz, iface);
+              !qx.util.OOUtil.hasInterface(clazz, iface);
 
             if (shouldWrapFunction) {
               object[key] = this.__wrapInterfaceMember(
                 iface, object[key], key, members[key]
               );
             }
-          }
-          else
-          {
+          } else {
             // Other members are not checked more detailed because of
             // JavaScript's loose type handling
-            if (typeof object[key] === undefined)
-            {
+            if (typeof object[key] === undefined) {
               if (typeof object[key] !== "function") {
-                throw new Error(
-                  'Implementation of member "' + key +
-                  '" is missing in class "' + clazz.classname +
-                  '" required by interface "' + iface.name + '"'
-                );
+                if (shouldThrow) {
+                  throw new Error(
+                    'Implementation of member "' + key +
+                    '" is missing in class "' + clazz.classname +
+                    '" required by interface "' + iface.name + '"'
+                  );
+                } else {
+                  return false;
+                }
               }
             }
           }
         }
+      }
+      if (!shouldThrow) {
+        return true;
       }
     },
 
@@ -289,14 +300,14 @@ qx.Bootstrap.define("qx.Interface",
       }
 
       var propertyName = qx.Bootstrap.firstLow(match[2]);
-      var isPropertyMethod = qx.Bootstrap.getPropertyDefinition(clazz, propertyName);
+      var isPropertyMethod = qx.util.OOUtil.getPropertyDefinition(clazz, propertyName);
       if (!isPropertyMethod) {
         return false;
       }
 
       var isBoolean = match[0] == "is" || match[0] == "toggle";
       if (isBoolean) {
-        return qx.Bootstrap.getPropertyDefinition(clazz, propertyName).check == "Boolean";
+        return qx.util.OOUtil.getPropertyDefinition(clazz, propertyName).check == "Boolean";
       }
 
       return true;
@@ -308,20 +319,28 @@ qx.Bootstrap.define("qx.Interface",
      *
      * @param clazz {Class} class to check interface for
      * @param iface {Interface} the interface to verify
+     * @param shouldThrow {Boolean} if <code>false</code>, the method
+     *   will return a boolean instead of throwing an exception
+     * @return {Boolean} <code>true</code> if all properties are supported
      */
-    __assertProperties : function(clazz, iface)
+    __checkProperties : function(clazz, iface, shouldThrow)
     {
-      if (iface.$$properties)
-      {
-        for (var key in iface.$$properties)
-        {
-          if (!qx.Bootstrap.getPropertyDefinition(clazz, key)) {
-            throw new Error(
-              'The property "' + key + '" is not supported by Class "' +
-              clazz.classname + '"!'
-            );
+      if (iface.$$properties) {
+        for (var key in iface.$$properties) {
+          if (!qx.util.OOUtil.getPropertyDefinition(clazz, key)) {
+            if (shouldThrow) {
+              throw new Error(
+                'The property "' + key + '" is not supported by Class "' +
+                clazz.classname + '"!'
+              );
+            } else {
+              return false;
+            }
           }
         }
+      }
+      if (!shouldThrow) {
+        return true;
       }
     },
 
@@ -331,20 +350,28 @@ qx.Bootstrap.define("qx.Interface",
      *
      * @param clazz {Class} class to check interface for
      * @param iface {Interface} the interface to verify
+     * @param shouldThrow {Boolean} if <code>false</code>, the method
+     *   will return a boolean instead of throwing an exception
+     * @return {Boolean} <code>true</code> if all events are supported
      */
-    __assertEvents : function(clazz, iface)
+    __checkEvents : function(clazz, iface, shouldThrow)
     {
-      if (iface.$$events)
-      {
-        for (var key in iface.$$events)
-        {
-          if (!qx.Bootstrap.supportsEvent(clazz, key)) {
-            throw new Error(
-              'The event "' + key + '" is not supported by Class "' +
-              clazz.classname + '"!'
-            );
+      if (iface.$$events) {
+        for (var key in iface.$$events) {
+          if (!qx.util.OOUtil.supportsEvent(clazz, key)) {
+            if (shouldThrow) {
+              throw new Error(
+                'The event "' + key + '" is not supported by Class "' +
+                clazz.classname + '"!'
+              );
+            } else {
+              return false;
+            }
           }
         }
+      }
+      if (!shouldThrow) {
+        return true;
       }
     },
 
@@ -360,9 +387,9 @@ qx.Bootstrap.define("qx.Interface",
     assertObject : function(object, iface)
     {
       var clazz = object.constructor;
-      this.__assertMembers(object, clazz, iface, false);
-      this.__assertProperties(clazz, iface);
-      this.__assertEvents(clazz, iface);
+      this.__checkMembers(object, clazz, iface, false, true);
+      this.__checkProperties(clazz, iface, true);
+      this.__checkEvents(clazz, iface, true);
 
       // Validate extends, recursive
       var extend = iface.$$extends;
@@ -385,9 +412,9 @@ qx.Bootstrap.define("qx.Interface",
      */
     assert : function(clazz, iface, wrap)
     {
-      this.__assertMembers(clazz.prototype, clazz, iface, wrap);
-      this.__assertProperties(clazz, iface);
-      this.__assertEvents(clazz, iface);
+      this.__checkMembers(clazz.prototype, clazz, iface, wrap, true);
+      this.__checkProperties(clazz, iface, true);
+      this.__checkEvents(clazz, iface, true);
 
       // Validate extends, recursive
       var extend = iface.$$extends;
@@ -400,6 +427,66 @@ qx.Bootstrap.define("qx.Interface",
     },
 
 
+    /**
+     * Asserts that the given object implements all the methods defined in the
+     * interface.
+     *
+     *  @param object {qx.core.Object} Object to check interface for
+     *  @param iface {Interface} The interface to verify
+     * @return {Boolean} <code>true</code> if the objects implements the interface
+     */
+    objectImplements : function(object, iface) {
+      var clazz = object.constructor;
+      if (!this.__checkMembers(object, clazz, iface) ||
+        !this.__checkProperties(clazz, iface) ||
+        !this.__checkEvents(clazz, iface))
+      {
+        return false;
+      }
+
+      // Validate extends, recursive
+      var extend = iface.$$extends;
+      if (extend)
+      {
+        for (var i=0, l=extend.length; i<l; i++) {
+          if (!this.objectImplements(object, extend[i])) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    },
+
+
+    /**
+     * Tests whether an interface is implemented by a class, without throwing an
+     * exception when it doesn't.
+     *
+     * @param clazz {Class} class to check interface for
+     * @param iface {Interface} the interface to verify
+     * @return {Boolean} <code>true</code> if interface is implemented
+     */
+    classImplements : function(clazz, iface) {
+      if (!this.__checkMembers(clazz.prototype, clazz, iface) ||
+        !this.__checkProperties(clazz, iface) ||
+        !this.__checkEvents(clazz, iface))
+      {
+        return false;
+      }
+
+      // Validate extends, recursive
+      var extend = iface.$$extends;
+      if (extend) {
+        for (var i=0, l=extend.length; i<l; i++) {
+          if (!this.has(clazz, extend[i])) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    },
 
 
 
@@ -455,11 +542,11 @@ qx.Bootstrap.define("qx.Interface",
         return wrappedFunction;
       },
 
-      "default" : function() {}
+      "default" : function(iface, origFunction, functionName, preCondition) {}
     }),
 
 
-    /** {Map} allowed keys in interface definition */
+    /** @type {Map} allowed keys in interface definition */
     __allowedKeys : qx.core.Environment.select("qx.debug",
     {
       "true":
@@ -562,7 +649,7 @@ qx.Bootstrap.define("qx.Interface",
         }
       },
 
-      "default" : function() {}
+      "default" : function(name, config) {}
     })
   }
 });

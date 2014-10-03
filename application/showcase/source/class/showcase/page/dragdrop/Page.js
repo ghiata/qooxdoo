@@ -18,14 +18,11 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#use(showcase.page.dragdrop.Content)
-
-************************************************************************ */
 /**
  * @lint ignoreReferenceField(__descriptionText, __tryThis,
  *   __features, __manual, __demos, __api)
+ *
+ * @use(showcase.page.dragdrop.Content)
  */
 qx.Class.define("showcase.page.dragdrop.Page",
 {
@@ -67,7 +64,7 @@ qx.Class.define("showcase.page.dragdrop.Page",
     __features : null,
 
     __manual : {
-      "pages/gui_toolkit/ui_dragdrop.html" : "Drag &amp; Drop"
+      "pages/desktop/ui_dragdrop.html" : "Drag &amp; Drop"
     },
 
     __demos : {

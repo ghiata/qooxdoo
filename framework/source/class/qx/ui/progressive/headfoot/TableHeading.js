@@ -32,7 +32,6 @@ qx.Class.define("qx.ui.progressive.headfoot.TableHeading",
    * @param labelArr {Array}
    *   Array of labels, one for each of the columns.
    *
-   * @return {void}
    */
   construct : function(columnWidths, labelArr)
   {
@@ -114,6 +113,7 @@ qx.Class.define("qx.ui.progressive.headfoot.TableHeading",
     /**
      * This method is required by the box layout. If returns an array of items
      * to relayout.
+     * @return {Array} List of child items
      */
     getLayoutChildren : function()
     {
@@ -135,16 +135,21 @@ qx.Class.define("qx.ui.progressive.headfoot.TableHeading",
      * @param e {qx.event.type.Event}
      *   Ignored.
      *
-     * @return {void}
      */
     _resizeColumns : function(e)
     {
       var width =
-        this.getBounds().width - qx.bom.element.Overflow.getScrollbarWidth();
+        this.getBounds().width - qx.bom.element.Scroll.getScrollbarWidth();
 
       // Compute the column widths
       this.__bCalculateWidths = true;
-      this.__layout.renderLayout(width, 100);
+      var padding = {
+        top : this.getPaddingTop(),
+        right : this.getPaddingRight(),
+        bottom : this.getPaddingBottom(),
+        left : this.getPaddingLeft()
+      }
+      this.__layout.renderLayout(width, 100, padding);
       this.__bCalculateWidths = false;
 
       // Get the column data

@@ -202,11 +202,15 @@ qx.Class.define("qx.ui.virtual.layer.CellSpanManager",
       if (rowCount > 0)
       {
         var lastRow = firstRow + rowCount - 1;
-        qx.lang.Object.merge(
+        qx.lang.Object.mergeWith(
           verticalInWindow,
-          this._findCellsInRange("firstRow", firstRow, lastRow),
+          this._findCellsInRange("firstRow", firstRow, lastRow)
+        );
+        qx.lang.Object.mergeWith(
+          verticalInWindow,
           this._findCellsInRange("lastRow", firstRow, lastRow)
         );
+
       }
 
       var horizontalInWindow = {};
@@ -214,11 +218,15 @@ qx.Class.define("qx.ui.virtual.layer.CellSpanManager",
       if (columnCount > 0)
       {
         var lastColumn = firstColumn + columnCount - 1;
-        qx.lang.Object.merge(
+        qx.lang.Object.mergeWith(
             horizontalInWindow,
-            this._findCellsInRange("firstColumn", firstColumn, lastColumn),
+            this._findCellsInRange("firstColumn", firstColumn, lastColumn)
+        );
+        qx.lang.Object.mergeWith(
+            horizontalInWindow,
             this._findCellsInRange("lastColumn", firstColumn, lastColumn)
         );
+
       }
 
       return this.__intersectionAsArray(horizontalInWindow, verticalInWindow);
@@ -319,6 +327,8 @@ qx.Class.define("qx.ui.virtual.layer.CellSpanManager",
      *    {@link #findCellsInWindow} to get the bounds for
      * @param firstVisibleRow {Map} The pane's first visible row
      * @param firstVisibleColumn {Map} The pane's first visible column
+     * @return {Map} Boundaries map with the keys <code>left</code>,
+     * <code>top</code>, <code>width</code> and <code>height</code>
      */
     _getSingleCellBounds : function(cell, firstVisibleRow, firstVisibleColumn)
     {
@@ -327,7 +337,7 @@ qx.Class.define("qx.ui.virtual.layer.CellSpanManager",
         top: 0,
         width: 0,
         height: 0
-      }
+      };
 
       bounds.height =
         this._getRowPosition(cell.lastRow) +

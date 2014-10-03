@@ -19,12 +19,14 @@
 
 /* ************************************************************************
 
-#asset(demobrowser/demo/data/persons.json)
 
 ************************************************************************ */
 
 /**
+ *
+ * @asset(demobrowser/demo/data/persons.json)
  * @tag databinding
+ * @tag noPlayground
  */
 qx.Class.define("demobrowser.demo.data.NamesList",
 {
@@ -73,7 +75,7 @@ qx.Class.define("demobrowser.demo.data.NamesList",
        * ********************************************* */
       var description = new qx.ui.basic.Label();
       description.setRich(true);
-      description.setWidth(300);
+      description.setWidth(470);
       description.setValue(
         "<b>List bound to data in a json file</b><br/>"
         + "Loading the json file <a href='" + url +"' target='_blank'>"

@@ -22,7 +22,7 @@
 /**
  * A group box, which has a radio button near the legend.
  *
- * @childControl legend {qx.ui.form.RadionButton} radio button to en-/disable the groupbox content
+ * @childControl legend {qx.ui.form.RadioButton} radio button to en-/disable the groupbox content
  */
 qx.Class.define("qx.ui.groupbox.RadioGroupBox",
 {
@@ -105,6 +105,14 @@ qx.Class.define("qx.ui.groupbox.RadioGroupBox",
       }
 
       return control || this.base(arguments, id);
+    },
+
+
+    // overridden
+    _applyEnabled : function(value, old) {
+      this.base(arguments, value, old);
+
+      this.getChildrenContainer().setEnabled(value && this.getValue());
     },
 
 

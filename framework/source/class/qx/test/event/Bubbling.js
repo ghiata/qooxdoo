@@ -17,9 +17,9 @@
 
 ************************************************************************ */
 
-/*
-#use(qx.test.event.MockBubblingHandler)
-*/
+/**
+ * @use(qx.test.event.MockBubblingHandler)
+ */
 
 qx.Class.define("qx.test.event.Bubbling",
 {
@@ -36,7 +36,7 @@ qx.Class.define("qx.test.event.Bubbling",
   {
     setUp : function()
     {
-      var root = qx.bom.Element.create("div", {id: "root"});
+      var root = qx.dom.Element.create("div", {id: "root"});
       document.body.appendChild(root);
 
       // root

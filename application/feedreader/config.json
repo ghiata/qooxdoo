@@ -8,38 +8,69 @@
     },
     {
       "path" : "image.json"
+    },
+    {
+      "path" : "${QOOXDOO_PATH}/tool/data/config/image.json",
+      "as"   : "image"
     }
   ],
-  
+
+  "export" :
+    [
+      "api",
+      "api-data",
+      "build",
+      "build-mobile",
+      "build-website",
+      "clean",
+      "distclean",
+      "fix",
+      "info",
+      "inspector",
+      "lint",
+      "migration",
+      "pretty",
+      "profiling",
+      "source",
+      "source-all",
+      "source-hybrid",
+      "source-mobile",
+      "source-website",
+      "translation",
+      "validate-config",
+      "validate-manifest"
+    ],
+
   "default-job" : "source",
 
   "let" :
   {
     "APPLICATION"  : "feedreader",
     "QOOXDOO_PATH" : "../..",
-    "QXTHEME"      : "qx.theme.Modern",
-    "LOCALES"      : ["en", "de", "es", "fr", "it", "nl", "sv", "ro"],
-    "ROOT"         : ".",
-    "SELENIUM_SERVER" : "localhost",
-    "SELENIUM_PORT" : 4444,
-    "SELENIUM_BROWSER" : "*firefox3",
-    "SIMULATOR_APPLICATION" : "simulator.reporter.Application",
-    //set by shell macro definition:
-    "AUT_HOST" : null,
-    "AUT_PATH" : null,
-    "SIMULATOR_REPORTSERVER" : null,
-    "SIMULATOR_CLASSPATH" : ["/home/dwagner/workspace/js.jar","/home/dwagner/workspace/selenium-java-client-driver.jar"]
+    "QXTHEME"      : "qx.theme.Indigo",
+    "QXICONTHEME"  : ["Oxygen", "Tango"],
+    "LOCALES"      : ["en", "de", "es", "fr", "it", "nl", "sv", "ro", "cs"],
+    "ROOT"         : "."
   },
-  
+
   "config-warnings" :
   {
-	"job-shadowing" : ["common", "simulation-build", "simulation-run"]
+    "job-shadowing" :
+    [
+      "common",
+      "build-script",
+      "image-combine",
+      "libraries",
+      "translation"
+    ],
+
+    "environment" : [ "non-literal-keys" ]
   },
-  
-  
+
+
   "jobs" :
   {
-    "libraries" : 
+    "libraries" :
     {
       "library" :
       [
@@ -48,49 +79,63 @@
         }
       ]
     },
-    
+
     "common" :
     {
       "environment" :
       {
         "qx.nativeScrollBars" : true
       },
-      
+
       "compile-options" :
       {
         "paths" : { "scripts-add-hash" : true },
         "uris"  : { "add-nocache-param": false }
       },
 
-      "packages" : 
+      "packages" :
       {
         "separate-loader"  : true,
         "i18n-as-parts"    : true,
-        "parts" : 
-        {          
-          "boot": 
+        "parts" :
+        {
+          "boot":
           {
             "include" : ["${QXTHEME}", "feedreader.Application"]
           },
-          "settings": 
+          "settings":
           {
             "include" : ["feedreader.view.desktop.PreferenceWindow"]
             //,"expected-load-order" : 1
           },
-          "addfeed": 
+          "addfeed":
           {
             "include" : ["feedreader.view.desktop.AddFeedWindow"]
             //,"expected-load-order" : 1
           }
         },
-        "sizes" : 
+        "sizes" :
         {
           "min-package" : 10
-        } 
+        }
       }
     },
-    
-    // A logging example job
+
+    // "Common" job is too late for these
+    "build-script" :
+    {
+      "compile-options" :
+      {
+        //"code" : { "format" : true }
+      }
+    },
+
+    "translation" :
+    {
+      "translate" : { "poentry-with-occurrences" : false  }
+    },
+
+    // Some logging example jobs
 
     "source-with-dot" :
     {
@@ -99,12 +144,20 @@
       ,"log" : { "dependencies" : { "dot" : { "root" : "feedreader.view.desktop.PreferenceWindow" }}}
     },
 
+    "source-with-translations" : {
+      "extend" : ["source"],
+      "log" : {
+        "filter" : { "debug" : ["generator.code.CodeGenerator.printTranslationStats"] },
+        "translations" : { "untranslated-keys" : { "skip-locales" : [ "C", "en" ] }}
+      }
+    },
+
     // -- Website App -----------------------------------------------------------
 
-    "source-website" : 
+    "source-website" :
     {
       "extend" : ["source"],
-      "let" : 
+      "let" :
       {
         "APPLICATION_MAIN_CLASS" : "${APPLICATION}.WebsiteApplication"
       },
@@ -118,7 +171,7 @@
     },
 
 
-    "build-website" : 
+    "build-website" :
     {
       "extend" : ["build"],
       "let" :
@@ -129,7 +182,7 @@
 
       "compile-options" :
       {
-        "paths" : { 
+        "paths" : {
           "file" : "build-website/script/${APPLICATION}.js",
           "scripts-add-hash" : false
         }
@@ -153,29 +206,33 @@
 
     // -- Mobile App -----------------------------------------------------------
 
-    "source-mobile" : 
+    "source-mobile" :
     {
       "extend" : ["source"],
-      "let" : 
+      "let" :
       {
         "APPLICATION_MAIN_CLASS" : "${APPLICATION}.MobileApplication"
-      },
-      
-      "environment" :
-      {
-        "qx.mobile.emulatetouch" : true
       },
 
       "compile-options" :
       {
-        "paths" : { "file" : "source/script/${APPLICATION}-mobile.js" }
+        "paths": {
+          "file": "source/script/${APPLICATION}-mobile.js",
+          "loader-template": "${QOOXDOO_PATH}/tool/data/generator/mobile.loader.tmpl.js"
+        }
       },
 
-      "=packages" : {}
+      "=packages" : {},
+
+      "add-css" : [
+        { "uri" : "./resource/${APPLICATION}/css/indigo.css" }
+      ],
+
+      "run": ["compile-scss"]
     },
 
 
-    "build-mobile" : 
+    "build-mobile" :
     {
       "extend" : ["build"],
       "let" :
@@ -191,7 +248,7 @@
 
       "compile-options" :
       {
-        "paths" : { 
+        "paths" : {
           "file" : "build-mobile/script/${APPLICATION}.js",
           "scripts-add-hash" : false
         }
@@ -209,43 +266,37 @@
         "target" : "${BUILD_PATH}"
       },
 
-      "=packages" : {}
+      "=packages" : {},
+
+      "add-css" : [
+        { "uri" : "./resource/${APPLICATION}/css/indigo.css" }
+      ],
+
+      "run": ["compile-scss"]
     },
 
-
-    // -- Simulation Jobs ------------------------------------------------------
-
-    "simulation-run" :
+    "compile-scss" :
     {
-      "environment" :
-      {
-        "simulator.selServer"   : "${SELENIUM_SERVER}",
-        "simulator.selPort"     : "${SELENIUM_PORT}",
-        "simulator.testBrowser" : "${SELENIUM_BROWSER}",
-        "simulator.autHost"     : "${AUT_HOST}",
-        "simulator.autPath"     : "${AUT_PATH}",
-        "simulator.reportServer": "${SIMULATOR_REPORTSERVER}",
-        "simulator.applicationLog" : true,
-        "simulator.globalErrorLogging" : true
-      }
-    },
-    
-    "simulation-build" :
-    {
+      "desc"   : "Compile the theme scss once",
+      "extend" : ["cache"],
       "let" :
       {
-        "SIMULATION_INCLUDE" : "feedreader.simulation.ria.*"
+        "QX_MOBILE_THEME_PATH" : "$${QOOXDOO_PATH}/framework/source/resource/qx/mobile/scss",
+        "QX_SHARED_THEME_PATH" : "$${QOOXDOO_PATH}/framework/source/resource/qx/scss",
+        "MOBILE_RESOURCE_PATH" : "source/resource/$${APPLICATION}"
+      },
+      "shell" :
+      {
+        "command" : "sass -C -t compressed -I ${QX_MOBILE_THEME_PATH} -I ${QX_SHARED_THEME_PATH} --update ${MOBILE_RESOURCE_PATH}/scss:${MOBILE_RESOURCE_PATH}/css",
+        "command-not-found" : "It seems that Sass (http://sass-lang.com/) is not installed and/or executable, which is needed for the SCSS-compilation."
       }
     },
-    
-    "simulation-build-mobile" :
+
+    // -- Image Jobs ------------------------------------------------------
+
+    "image-combine" :
     {
-      "extend" : ["simulation-build"],
-    
-      "let" :
-      {
-        "SIMULATION_INCLUDE" : "feedreader.simulation.mobile.*"
-      }
+      "extend" : ["image::combining"]
     }
-  }  
+  }
 }

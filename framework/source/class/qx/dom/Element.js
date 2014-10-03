@@ -21,7 +21,7 @@
  * Manages children structures of an element. Easy and convenient APIs
  * to insert, remove and replace children.
  */
-qx.Class.define("qx.dom.Element",
+qx.Bootstrap.define("qx.dom.Element",
 {
   statics :
   {
@@ -155,6 +155,7 @@ qx.Class.define("qx.dom.Element",
       } else {
         parent.appendChild(node);
       }
+      return true;
     },
 
 
@@ -167,6 +168,7 @@ qx.Class.define("qx.dom.Element",
      */
     insertEnd : function(node, parent) {
       parent.appendChild(node);
+      return true;
     },
 
 
@@ -320,6 +322,87 @@ qx.Class.define("qx.dom.Element",
 
       parent.replaceChild(newNode, oldNode);
       return true;
+    },
+
+
+    /**
+     * Stores helper element for element creation in WebKit
+     *
+     * @internal
+     */
+    __helperElement : {},
+
+
+
+    /**
+     * Creates and returns a DOM helper element.
+     *
+     * @param win {Window?} Window to create the element for
+     * @return {Element} The created element node
+     */
+    getHelperElement : function (win)
+    {
+      if (!win) {
+        win = window;
+      }
+
+      // key is needed to allow using different windows
+      var key = win.location.href;
+
+      if (!qx.dom.Element.__helperElement[key])
+      {
+        var helper = qx.dom.Element.__helperElement[key] = win.document.createElement("div");
+
+        // innerHTML will only parsed correctly if element is appended to document
+        if (qx.core.Environment.get("engine.name") == "webkit")
+        {
+          helper.style.display = "none";
+
+          win.document.body.appendChild(helper);
+        }
+      }
+
+      return qx.dom.Element.__helperElement[key];
+    },
+
+
+    /**
+     * Creates a DOM element.
+     *
+     * @param name {String} Tag name of the element
+     * @param attributes {Map?} Map of attributes to apply
+     * @param win {Window?} Window to create the element for
+     * @return {Element} The created element node
+     */
+    create : function(name, attributes, win)
+    {
+      if (!win) {
+        win = window;
+      }
+
+      if (!name) {
+        throw new Error("The tag name is missing!");
+      }
+
+      var element = win.document.createElement(name);
+
+      for (var key in attributes)
+      {
+        qx.bom.element.Attribute.set(element, key, attributes[key]);
+      }
+
+      return element;
+    },
+
+
+    /**
+     * Removes all content from the given element
+     *
+     * @param element {Element} element to clean
+     * @return {String} empty string (new HTML content)
+     */
+    empty : function(element) {
+      return element.innerHTML = "";
     }
   }
 });

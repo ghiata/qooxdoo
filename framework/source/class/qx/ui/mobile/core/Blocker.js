@@ -18,21 +18,33 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * This class blocks events and can be included into all widgets.
  *
  */
 qx.Class.define("qx.ui.mobile.core.Blocker",
 {
+
   extend : qx.ui.mobile.core.Widget,
+  type : "singleton",
 
 
-  /*
-  *****************************************************************************
-     PROPERTIES
-  *****************************************************************************
-  */
+  statics:
+  {
+    ROOT : null
+  },
+
+
+  construct : function()
+  {
+    this.base(arguments);
+
+    if(qx.ui.mobile.core.Blocker.ROOT == null) {
+      qx.ui.mobile.core.Blocker.ROOT = qx.core.Init.getApplication().getRoot();
+    }
+    this.forceHide();
+    qx.ui.mobile.core.Blocker.ROOT.add(this);
+  },
+
 
   properties :
   {
@@ -44,14 +56,6 @@ qx.Class.define("qx.ui.mobile.core.Blocker",
     }
   },
 
-
-
-
-  /*
-  *****************************************************************************
-     MEMBERS
-  *****************************************************************************
-  */
 
   members :
   {
@@ -104,6 +108,7 @@ qx.Class.define("qx.ui.mobile.core.Blocker",
 
     /**
      * Whether the blocker is shown or not.
+     * @return {Boolean} <code>true</code> if the blocker is shown
      */
     isShown : function()
     {
@@ -116,14 +121,14 @@ qx.Class.define("qx.ui.mobile.core.Blocker",
      */
     _updateSize : function()
     {
-      if(qx.core.Init.getApplication().getRoot() == this.getLayoutParent())
+      if(qx.ui.mobile.core.Blocker.ROOT == this.getLayoutParent())
       {
         this.getContainerElement().style.top = qx.bom.Viewport.getScrollTop() + "px";
         this.getContainerElement().style.left = qx.bom.Viewport.getScrollLeft() + "px";
         this.getContainerElement().style.width = qx.bom.Viewport.getWidth() + "px";
         this.getContainerElement().style.height = qx.bom.Viewport.getHeight()  + "px";
       }
-      else
+      else if(this.getLayoutParent() != null)
       {
         var dimension = qx.bom.element.Dimension.getSize(this.getLayoutParent().getContainerElement());
         this.getContainerElement().style.width = dimension.width + "px";
@@ -133,21 +138,9 @@ qx.Class.define("qx.ui.mobile.core.Blocker",
 
 
     /**
-     * Event handler. Called when the touch event occurs.
-     * Prevents the default of the event.
-     *
-     * @param evt {qx.event.type.Touch} The touch event
-     */
-    _onTouch : function(evt)
-    {
-      evt.preventDefault();
-    },
-
-
-    /**
      * Event handler. Called when the scroll event occurs.
      *
-     * @param evt {qx.event.type.Touch} The touch event
+     * @param evt {Event} The scroll event
      */
     _onScroll : function(evt)
     {
@@ -162,8 +155,8 @@ qx.Class.define("qx.ui.mobile.core.Blocker",
     {
       qx.event.Registration.addListener(window, "resize", this._updateSize, this);
       qx.event.Registration.addListener(window, "scroll", this._onScroll, this);
-      qx.event.Registration.addListener(document, "touchstart", this._onTouch, this);
-      qx.event.Registration.addListener(document, "touchmove", this._onTouch, this);
+      this.addListener("pointerdown", qx.bom.Event.preventDefault, this);
+      this.addListener("pointerup", qx.bom.Event.preventDefault, this);
     },
 
 
@@ -174,22 +167,15 @@ qx.Class.define("qx.ui.mobile.core.Blocker",
     {
       qx.event.Registration.removeListener(window, "resize", this._updateSize, this);
       qx.event.Registration.removeListener(window, "scroll", this._onScroll, this);
-      qx.event.Registration.removeListener(document, "touchstart", this._onTouch, this);
-      qx.event.Registration.removeListener(document, "touchmove", this._onTouch, this);
+      this.removeListener("pointerdown", qx.bom.Event.preventDefault, this);
+      this.removeListener("pointerup", qx.bom.Event.preventDefault, this);
     }
   },
 
 
-
-
-  /*
-  *****************************************************************************
-     DESTRUCTOR
-  *****************************************************************************
-  */
-
   destruct : function()
   {
+    qx.ui.mobile.core.Blocker.ROOT.remove(this);
     this.__unregisterEventListener();
   }
 });

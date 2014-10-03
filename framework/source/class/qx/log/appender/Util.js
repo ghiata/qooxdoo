@@ -20,7 +20,7 @@
 /**
  * Contains some common methods available to all log appenders.
  */
-qx.Class.define("qx.log.appender.Util",
+qx.Bootstrap.define("qx.log.appender.Util",
 {
   statics :
   {
@@ -29,7 +29,6 @@ qx.Class.define("qx.log.appender.Util",
      *
      * @signature function(entry)
      * @param entry {Map} The entry to process
-     * @return {void}
      */
     toHtml : function(entry)
     {
@@ -118,14 +117,6 @@ qx.Class.define("qx.log.appender.Util",
 
 
     /**
-     * User-defined formatter for stack trace information. If the value is a
-     * function, it will be called with the raw stack trace string as the only
-     * argument. The return value is then appended to the log message.
-     */
-    FORMAT_STACK : null,
-
-
-    /**
      * Escapes the HTML in the given value
      *
      * @param value {String} value to escape
@@ -200,6 +191,9 @@ qx.Class.define("qx.log.appender.Util",
 
         if (item.trace && item.trace.length > 0) {
           if (typeof(this.FORMAT_STACK) == "function") {
+            qx.log.Logger.deprecatedConstantWarning(qx.log.appender.Util,
+              "FORMAT_STACK",
+              "Use qx.dev.StackTrace.FORMAT_STACKTRACE instead");
             msg += "\n" + this.FORMAT_STACK(item.trace);
           } else {
             msg += "\n" + item.trace;

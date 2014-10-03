@@ -67,7 +67,7 @@ qx.Class.define("qx.ui.tabview.Page",
   events :
   {
     /**
-     * Fired by {@link qx.ui.tabview.TabButton} if the close button is clicked.
+     * Fired by {@link qx.ui.tabview.TabButton} if the close button is tapped.
      */
     "close" : "qx.event.type.Event"
   },
@@ -103,7 +103,8 @@ qx.Class.define("qx.ui.tabview.Page",
     {
       check : "String",
       init : "",
-      apply : "_applyIcon"
+      apply : "_applyIcon",
+      nullable: true
     },
 
     /** Indicates if the close button of a TabButton should be shown. */
@@ -157,7 +158,13 @@ qx.Class.define("qx.ui.tabview.Page",
 
     // property apply
     _applyIcon : function(value, old) {
-      this.getChildControl("button").setIcon(value);
+      var btn = this.getChildControl("button");
+      if (value) {
+        btn.setIcon(value);
+        btn._showChildControl("icon");
+      } else {
+        btn._excludeChildControl("icon");
+      }
     },
 
 
@@ -227,7 +234,7 @@ qx.Class.define("qx.ui.tabview.Page",
 
     /**
      * Fires an "close" event when the close button of the TabButton of the page
-     * is clicked.
+     * is tapped.
      */
     _onButtonClose : function() {
       this.fireEvent("close");

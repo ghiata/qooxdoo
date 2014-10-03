@@ -19,12 +19,16 @@
 
 /* ************************************************************************
 
-#asset(demobrowser/demo/media/knock.mp3)
-#asset(demobrowser/demo/media/knock.ogg)
-#asset(demobrowser/demo/media/knock.wav)
 
 ************************************************************************ */
 
+/**
+ *
+ * @asset(demobrowser/demo/media/knock.mp3)
+ * @asset(demobrowser/demo/media/knock.ogg)
+ * @asset(demobrowser/demo/media/knock.wav)
+ * @tag noPlayground
+ */
 qx.Class.define("demobrowser.demo.bom.Audio",
 {
   extend : qx.application.Standalone,

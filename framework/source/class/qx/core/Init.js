@@ -17,16 +17,12 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.event.handler.Application)
-#require(qx.event.handler.Window)
-#require(qx.event.dispatch.Direct)
-
-************************************************************************ */
-
 /**
  * This is the base class for all qooxdoo applications.
+ *
+ * @require(qx.event.handler.Application)
+ * @require(qx.event.handler.Window)
+ * @require(qx.event.dispatch.Direct)
  */
 qx.Class.define("qx.core.Init",
 {
@@ -50,7 +46,6 @@ qx.Class.define("qx.core.Init",
      * Runs when the application is loaded. Automatically creates an instance
      * of the class defined by the setting <code>qx.application</code>.
      *
-     * @return {void}
      */
     ready : qx.core.BaseInit.ready,
 
@@ -60,7 +55,6 @@ qx.Class.define("qx.core.Init",
      * method to check if the unload process should be stopped.
      *
      * @param e {qx.event.type.Native} Incoming beforeunload event.
-     * @return {void}
      */
     __close : function(e)
     {
@@ -75,7 +69,6 @@ qx.Class.define("qx.core.Init",
      * Runs when the document is unloaded. Automatically terminates a previously
      * created application instance.
      *
-     * @return {void}
      */
     __shutdown : function()
     {

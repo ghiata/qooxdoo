@@ -14,14 +14,18 @@
 
    Authors:
      * Tristan Koch (tristankoch)
+     * Richard Sternagel (rsternagel)
 
 ************************************************************************ */
 
 /* ************************************************************************
 
-#asset(qx/test/xmlhttp/*)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/test/xmlhttp/*)
+ */
 
 qx.Class.define("qx.test.io.rest.Resource",
 {
@@ -43,8 +47,6 @@ qx.Class.define("qx.test.io.rest.Resource",
         qx.io.request.Xhr.restore();
       }
 
-      // Obsolete and dispose previous request
-      this.req && this.req.dispose();
       var req = this.req = new qx.io.request.Xhr();
 
       // Stub request methods, leave event system intact
@@ -52,6 +54,11 @@ qx.Class.define("qx.test.io.rest.Resource",
 
       // Inject double and return
       this.injectStub(qx.io.request, "Xhr", req);
+
+      // Remember request for later disposal
+      this.__reqs = this.__reqs || [];
+      this.__reqs.push(this.req);
+
       return req;
     },
 
@@ -67,55 +74,21 @@ qx.Class.define("qx.test.io.rest.Resource",
     tearDown: function() {
       this.getSandbox().restore();
       this.res.dispose();
-      this.req.dispose();
+      this.__reqs.forEach(function(req) {
+        req.dispose();
+      });
+    },
+
+    __skip : function() {
+      if (qx.core.Environment.get("browser.name") == "safari" &&
+          qx.core.Environment.get("os.name") == "osx") {
+        this.require(["noSelenium"]);
+      }
     },
 
     //
     // Configuration
     //
-
-    "test: configure request": function() {
-      var res = this.res,
-          req = this.req,
-          msg,
-          callback;
-
-      callback = this.spy(qx.lang.Function.bind(function(req) {
-        this.assertIdentical(this.req, req, msg);
-      }, this));
-
-      msg = "Instantiation";
-      res.configureRequest(callback);
-
-      msg = "Map";
-      res.configureRequest(callback);
-
-      msg = "Invoke #1";
-      res.get();
-      res.configureRequest(callback);
-
-      msg = "Invoke #2";
-      res.get();
-      res.configureRequest(callback);
-
-      this.assertCalled(callback, "Must call configuration callback");
-    },
-
-    "test: configure request receives action and parameters": function() {
-      var res = this.res,
-          req = this.req,
-          params = {},
-          callback;
-
-      callback = this.spy(qx.lang.Function.bind(function(req, _action, _params) {
-        this.assertEquals("get", _action, "Unexpected action");
-        this.assertEquals(params, _params, "Unexpected params");
-      }, this));
-      res.configureRequest(callback);
-
-      res.get(params);
-      this.assertCalled(callback);
-    },
 
     "test: configure request receives pre-configured but unsent request": function() {
       var res = this.res,
@@ -123,11 +96,29 @@ qx.Class.define("qx.test.io.rest.Resource",
 
       res.configureRequest(qx.lang.Function.bind(function(req) {
         this.assertCalledWith(req.setMethod, "GET");
-        this.assertCalledWith(req.setUrl, "/photos");
+        this.assertCalled(req.setUrl, "/photos");
         this.assertNotCalled(req.send);
       }, this));
 
       res.get();
+    },
+
+    "test: configure request receives invocation details": function() {
+      var res = this.res,
+          req = this.req,
+          params = {},
+          data = {},
+          callback;
+
+      callback = this.spy(qx.lang.Function.bind(function(req, _action, _params, _data) {
+        this.assertEquals("get", _action, "Unexpected action");
+        this.assertEquals(params, _params, "Unexpected params");
+        this.assertEquals(data, _data, "Unexpected data");
+      }, this));
+      res.configureRequest(callback);
+
+      res.get(params, data);
+      this.assertCalled(callback);
     },
 
     //
@@ -142,6 +133,16 @@ qx.Class.define("qx.test.io.rest.Resource",
 
       this.assertEquals("GET", params.method);
       this.assertEquals("/photos", params.url);
+    },
+
+    "test: map action when base URL": function() {
+      var res = this.res,
+          params;
+
+      res.setBaseUrl("http://example.com");
+      params = res._getRequestConfig("get");
+
+      this.assertEquals("http://example.com/photos", params.url);
     },
 
     "test: map existing action": function() {
@@ -182,19 +183,12 @@ qx.Class.define("qx.test.io.rest.Resource",
           req = this.req;
 
       // For documentation purposes
-      res.get = qx.lang.Function.empty;
+      res.get = (function() {});
 
       res.map("get", "GET", "/photos/popular");
     },
 
-    "test: dynamically created method is chainable": function() {
-      var res = this.res,
-          req = this.req;
-
-      this.assertEquals(res, res.get(), "Must return itself");
-    },
-
-    "test: dynamically created method forwards arguments": function() {
+    "test: dynamically created action forwards arguments": function() {
       var res = this.res,
           req = this.req;
 
@@ -202,6 +196,12 @@ qx.Class.define("qx.test.io.rest.Resource",
       res.get({}, 1, 2, 3);
 
       this.assertCalledWith(res.invoke, "get", {}, 1, 2, 3);
+    },
+
+    "test: dynamically created action returns what invoke returns": function() {
+      var id = 1;
+      this.stub(this.res, "invoke").returns(id);
+      this.assertEquals(id, this.res.get());
     },
 
     "test: map actions from description": function() {
@@ -240,6 +240,8 @@ qx.Class.define("qx.test.io.rest.Resource",
     },
 
     "test: map action from description throws with incomplete route": function() {
+      this.require(["debug"]);
+
       this.res.dispose();
       this.assertException(function() {
         var description =
@@ -273,6 +275,13 @@ qx.Class.define("qx.test.io.rest.Resource",
       this.assertSend();
     },
 
+    "test: invoke action returns id of request": function() {
+      var res = this.res,
+          req = this.req;
+
+      this.assertNumber(res.invoke("get"));
+    },
+
     "test: invoke action while other is in progress": function() {
       var res = this.res,
           req1, req2;
@@ -289,9 +298,12 @@ qx.Class.define("qx.test.io.rest.Resource",
       this.assertCalledOnce(req2.send);
     },
 
-    "test: invoke same action twice aborts previous": function() {
+    "test: invoke same action handles multiple requests": function() {
       var res = this.res,
-          req1, req2;
+          req1, req2,
+          getSuccess = this.spy();
+
+      res.addListener("getSuccess", getSuccess);
 
       req1 = this.req;
       res.get();
@@ -301,8 +313,10 @@ qx.Class.define("qx.test.io.rest.Resource",
       req2 = this.req;
       res.get();
 
-      this.assertCalledOnce(req1.abort);
-      this.assertCalledOnce(req2.send);
+      this.respond("", req1);
+      this.respond("", req2);
+
+      this.assertCalledTwice(getSuccess);
     },
 
     "test: invoke action with positional params": function() {
@@ -335,41 +349,20 @@ qx.Class.define("qx.test.io.rest.Resource",
       this.assertCalledWith(req.setUrl, "/photos/1");
     },
 
-    "test: invoke action with additional params": function() {
+    "test: invoke action with params and data": function() {
       var res = this.res,
-          req = this.req,
-          spy;
-
-      spy = req.setRequestData.withArgs({article: '{title: "Affe"}'});
+          req = this.req;
 
       res.map("put", "PUT", "/articles/{id}");
-      res.put({id: "1", article: '{title: "Affe"}'});
+      res.put({id: "1"}, {article: '{title: "Affe"}'});
 
       // Note that with method GET, parameters are appended to the URLs query part.
       // Please refer to the API docs of qx.io.request.AbstractRequest#requestData.
       //
-      // res.get({id: "1", : lang: "de"});
+      // res.get({id: "1"}, {lang: "de"});
       // --> /articles/1/?lang=de
 
-      this.assertCalled(spy);
-    },
-
-    "test: invoke action with additional params not include positional params": function() {
-      var res = this.res,
-          req = this.req,
-          call,
-          msg;
-
-      res.map("get", "GET", "/photos/{id}");
-      res.get({id: "1", width: "200"});
-
-      call = req.setRequestData.getCall(0);
-      if (call) {
-        msg = "Request data must not include positional param id";
-        this.assertUndefined(call.args[0].id, msg);
-      } else {
-        this.fail("Must call setRequestData");
-      }
+      this.assertCalledWith(req.setRequestData, {article: '{title: "Affe"}'});
     },
 
     "test: invoke action with multiple positional params": function() {
@@ -390,6 +383,56 @@ qx.Class.define("qx.test.io.rest.Resource",
       res.get({id: "1", commentId: "2"});
 
       this.assertCalledWith(req.setUrl, "/photos/1/comments?id=2");
+    },
+
+    "test: invoke action with undefined params": function() {
+      var res = this.res,
+          req = this.req;
+
+      res.get();
+      this.assertCalled(req.send);
+    },
+
+    "test: invoke action with null params": function() {
+      var res = this.res,
+          req = this.req;
+
+      res.get(null);
+      this.assertCalled(req.send);
+    },
+
+    "test: invoke action when content type json": function() {
+      var res = this.res,
+          req = this.req;
+
+      req.setRequestHeader.restore();
+      req.getRequestHeader.restore();
+
+      res.configureRequest(function(req) {
+        req.setRequestHeader("Content-Type", "application/json");
+      });
+
+      this.spy(qx.lang.Json, "stringify");
+      var data = {location: "Karlsruhe"};
+      res.map("post", "POST", "/photos/{id}/meta");
+      res.post({id: 1}, data);
+
+      this.assertCalledWith(req.setRequestData, '{"location":"Karlsruhe"}');
+      this.assertCalledWith(qx.lang.Json.stringify, data);
+    },
+
+    "test: invoke action when content type json and get": function() {
+      var res = this.res,
+          req = this.req;
+
+      req.setMethod.restore();
+      req.getMethod.restore();
+
+      this.spy(qx.lang.Json, "stringify");
+      req.getRequestHeader.withArgs("Content-Type").returns("application/json");
+      res.get();
+
+      this.assertNotCalled(qx.lang.Json.stringify);
     },
 
     "test: invoke action for url with port": function() {
@@ -503,6 +546,32 @@ qx.Class.define("qx.test.io.rest.Resource",
       this.assertCalledOnce(req.abort);
     },
 
+    "test: abort action when multiple requests": function() {
+      var res = this.res,
+          req1, req2;
+
+      req1 = this.setUpDoubleRequest();
+      res.get();
+
+      req2 = this.setUpDoubleRequest();
+      res.get();
+
+      res.abort("get");
+
+      this.assertCalledOnce(req1.abort);
+      this.assertCalledOnce(req2.abort);
+    },
+
+    "test: abort by action id": function() {
+      var res = this.res,
+          req = this.req;
+
+      var id = res.get();
+      res.abort(id);
+
+      this.assertCalledOnce(req.abort);
+    },
+
     //
     // Helper
     //
@@ -531,18 +600,19 @@ qx.Class.define("qx.test.io.rest.Resource",
     },
 
     "test: poll action": function() {
+      this.__skip();
       var res = this.res,
           sandbox = this.getSandbox();
 
       sandbox.useFakeTimers();
-      this.spy(res, "refresh");
+      this.spy(res._resource, "refresh");
 
       res.poll("get", 10);
       this.respond();
-      sandbox.clock.tick(10);
+      sandbox.clock.tick(20);
 
-      this.assertCalledWith(res.refresh, "get");
-      this.assertCalledOnce(res.refresh);
+      this.assertCalledWith(res._resource.refresh, "get");
+      this.assertCalledOnce(res._resource.refresh);
     },
 
     "test: not poll action when no response received yet": function() {
@@ -553,7 +623,7 @@ qx.Class.define("qx.test.io.rest.Resource",
       this.spy(res, "refresh");
 
       res.poll("get", 10);
-      sandbox.clock.tick(10);
+      sandbox.clock.tick(20);
 
       this.assertNotCalled(res.refresh);
     },
@@ -561,19 +631,19 @@ qx.Class.define("qx.test.io.rest.Resource",
     "test: poll action immediately": function() {
       var res = this.res;
 
-      this.spy(res, "invoke");
-      res.poll("get", 10);
-      this.assertCalled(res.invoke);
+      this.spy(res._resource, "invoke");
+      res.poll("get", 10, undefined, true);
+      this.assertCalled(res._resource.invoke);
     },
 
     "test: poll action sets initial params": function() {
       var res = this.res;
 
       res.map("get", "GET", "/photos/{id}");
-      this.stub(res, "invoke");
+      this.stub(res._resource, "invoke");
 
-      res.poll("get", 10, {id: "1"});
-      this.assertCalledWith(res.invoke, "get", {id: "1"});
+      res.poll("get", 10, {id: "1"}, true);
+      this.assertCalledWith(res._resource.invoke, "get", {id: "1"});
     },
 
     "test: poll action replaying previous params": function() {
@@ -589,25 +659,27 @@ qx.Class.define("qx.test.io.rest.Resource",
     },
 
     "test: poll action repeatedly ends previous timer": function() {
+      this.__skip();
       var res = this.res,
           sandbox = this.getSandbox(),
           msg;
 
       sandbox.useFakeTimers();
-      this.stub(res, "refresh");
+      this.stub(res._resource, "refresh");
 
       res.poll("get", 10);
       this.respond();
-      sandbox.clock.tick(10);
+      sandbox.clock.tick(20);
 
       res.poll("get", 100);
       this.respond();
       sandbox.clock.tick(100);
 
-      this.assertCalledTwice(res.refresh);
+      this.assertCalledTwice(res._resource.refresh);
     },
 
     "test: poll many actions": function() {
+      this.__skip();
       var res = this.res,
           sandbox = this.getSandbox(),
           spy,
@@ -617,14 +689,14 @@ qx.Class.define("qx.test.io.rest.Resource",
       this.stub(this.req, "dispose");
       sandbox.useFakeTimers();
 
-      spy = this.spy(res, "refresh");
+      spy = this.spy(res._resource, "refresh");
       get = spy.withArgs("get");
       post = spy.withArgs("post");
 
       res.poll("get", 10);
       res.poll("post", 10);
       this.respond();
-      sandbox.clock.tick(10);
+      sandbox.clock.tick(20);
 
       this.assertCalledOnce(get);
       this.assertCalledOnce(post);
@@ -634,37 +706,39 @@ qx.Class.define("qx.test.io.rest.Resource",
     },
 
     "test: end poll action": function() {
+      this.__skip();
       var res = this.res,
           sandbox = this.getSandbox(),
-          timer,
-          numCalled;
+          timer;
 
       sandbox.useFakeTimers();
 
-      this.spy(res, "refresh");
+      this.spy(res._resource, "refresh");
       timer = res.poll("get", 10);
       this.respond();
 
-      sandbox.clock.tick(10);
+      // 10ms invoke, 20ms refresh, 30ms refresh
+      sandbox.clock.tick(30);
       timer.stop();
       sandbox.clock.tick(100);
 
-      this.assertCalledOnce(res.refresh);
+      this.assertCalledTwice(res._resource.refresh);
     },
 
     "test: end poll action does not end polling of other action": function() {
+      this.__skip();
       var res = this.res,
           sandbox = this.getSandbox(),
           timer,
           spy;
 
       sandbox.useFakeTimers();
-      spy = this.spy(res, "refresh").withArgs("get");
+      spy = this.spy(res._resource, "refresh").withArgs("get");
       this.respond();
 
       res.poll("get", 10);
       timer = res.poll("post", 10);
-      sandbox.clock.tick(10);
+      sandbox.clock.tick(20);
       timer.stop();
       sandbox.clock.tick(10);
 
@@ -672,6 +746,7 @@ qx.Class.define("qx.test.io.rest.Resource",
     },
 
     "test: restart poll action": function() {
+      this.__skip();
       var res = this.res,
           sandbox = this.getSandbox(),
           timer;
@@ -683,10 +758,10 @@ qx.Class.define("qx.test.io.rest.Resource",
       sandbox.clock.tick(10);
       timer.stop();
 
-      this.spy(res, "refresh");
+      this.spy(res._resource, "refresh");
       timer.restart();
       sandbox.clock.tick(10);
-      this.assertCalled(res.refresh);
+      this.assertCalled(res._resource.refresh);
     },
 
     "test: long poll action": function() {
@@ -791,7 +866,7 @@ qx.Class.define("qx.test.io.rest.Resource",
           msg;
 
       this.stub(req, "dispose");
-      this.spy(res, "refresh");
+      this.spy(res._resource, "refresh");
 
       handlerId = res.longPoll("get");
 
@@ -801,7 +876,7 @@ qx.Class.define("qx.test.io.rest.Resource",
       res.removeListenerById(handlerId);
       this.respond();
 
-      this.assertCalledTwice(res.refresh);
+      this.assertCalledTwice(res._resource.refresh);
     },
 
     //
@@ -820,6 +895,7 @@ qx.Class.define("qx.test.io.rest.Resource",
         that.assertEquals("Affe", e.getData());
         that.assertEquals("get", e.getAction());
         that.assertIdentical(req, e.getRequest());
+        that.assertInteger(e.getId());
       });
     },
 
@@ -835,6 +911,7 @@ qx.Class.define("qx.test.io.rest.Resource",
         that.assertEquals("Affe", e.getData());
         that.assertEquals("get", e.getAction());
         that.assertIdentical(req, e.getRequest());
+        that.assertInteger(e.getId());
       });
     },
 
@@ -891,6 +968,27 @@ qx.Class.define("qx.test.io.rest.Resource",
       this.assertCalled(req2.dispose);
     },
 
+    "test: dispose requests of same action": function() {
+      var res = this.res,
+          req1, req2;
+
+      req1 = this.req;
+      res.get();
+
+      this.setUpDoubleRequest();
+
+      req2 = this.req;
+      res.get();
+
+      this.spy(req1, "dispose");
+      this.spy(req2, "dispose");
+
+      res.dispose();
+
+      this.assertCalled(req1.dispose);
+      this.assertCalled(req2.dispose);
+    },
+
     "test: dispose request on loadEnd": function() {
       var res = this.res,
           req = this.req;
@@ -900,7 +998,13 @@ qx.Class.define("qx.test.io.rest.Resource",
       res.get();
       this.respond();
 
-      this.assertCalledOnce(req.dispose);
+      setTimeout(function() {
+        this.resume(function() {
+          this.assertCalledOnce(req.dispose);
+        }, this);
+      }.bind(this), 100);
+
+      this.wait();
     },
 
     assertSend: function(method, url) {
@@ -923,8 +1027,8 @@ qx.Class.define("qx.test.io.rest.Resource",
     },
 
     // Fake response
-    respond: function(response) {
-      var req = this.req;
+    respond: function(response, req) {
+      var req = req || this.req;
       response = response || "";
       req.isDone.returns(true);
       req.getPhase.returns("success");

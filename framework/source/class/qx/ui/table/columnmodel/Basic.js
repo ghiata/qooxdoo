@@ -105,16 +105,16 @@ qx.Class.define("qx.ui.table.columnmodel.Basic",
   statics :
   {
 
-    /** {Integer} the default width of a column in pixels. */
+    /** @type {Integer} the default width of a column in pixels. */
     DEFAULT_WIDTH           : 100,
 
-    /** {qx.ui.table.headerrenderer.Default} the default header cell renderer. */
+    /** @type {qx.ui.table.headerrenderer.Default} the default header cell renderer. */
     DEFAULT_HEADER_RENDERER : qx.ui.table.headerrenderer.Default,
 
-    /** {qx.ui.table.cellrenderer.Default} the default data cell renderer. */
+    /** @type {qx.ui.table.cellrenderer.Default} the default data cell renderer. */
     DEFAULT_DATA_RENDERER   : qx.ui.table.cellrenderer.Default,
 
-    /** {qx.ui.table.celleditor.TextField} the default editor factory. */
+    /** @type {qx.ui.table.celleditor.TextField} the default editor factory. */
     DEFAULT_EDITOR_FACTORY  : qx.ui.table.celleditor.TextField
   },
 
@@ -240,13 +240,12 @@ qx.Class.define("qx.ui.table.columnmodel.Basic",
      * @param width {Integer}
      *   The new width the column should get in pixels.
      *
-     * @param isMouseAction {Boolean}
+     * @param isPointerAction {Boolean}
      *   <i>true</i> if the column width is being changed as a result of a
-     *   mouse drag in the header; false or undefined otherwise.
+     *   pointer drag in the header; false or undefined otherwise.
      *
-     * @return {void}
      */
-    setColumnWidth : function(col, width, isMouseAction)
+    setColumnWidth : function(col, width, isPointerAction)
     {
       if (qx.core.Environment.get("qx.debug"))
       {
@@ -266,7 +265,7 @@ qx.Class.define("qx.ui.table.columnmodel.Basic",
           col           : col,
           newWidth      : width,
           oldWidth      : oldWidth,
-          isMouseAction : isMouseAction || false
+          isPointerAction : isPointerAction || false
         };
 
         this.fireDataEvent("widthChanged", data);
@@ -297,7 +296,6 @@ qx.Class.define("qx.ui.table.columnmodel.Basic",
      * @param col {Integer} the model index of the column.
      * @param renderer {qx.ui.table.IHeaderRenderer} the new header renderer the column
      *      should get.
-     * @return {void}
      */
     setHeaderCellRenderer : function(col, renderer)
     {
@@ -388,7 +386,6 @@ qx.Class.define("qx.ui.table.columnmodel.Basic",
      *
      * @param col {Integer} the model index of the column.
      * @param factory {qx.ui.table.ICellEditorFactory} the new cell editor factory the column should get.
-     * @return {void}
      */
     setCellEditorFactory : function(col, factory)
     {
@@ -399,9 +396,9 @@ qx.Class.define("qx.ui.table.columnmodel.Basic",
         this.assertNotUndefined(this.__columnDataArr[col], "Column not found in table model");
       }
 
-      var oldRenderer = this.__columnDataArr[col].headerRenderer;
-      if (oldRenderer !== this.__editorFactory) {
-        oldRenderer.dispose();
+      var oldFactory = this.__columnDataArr[col].editorFactory;
+      if (oldFactory !== this.__editorFactory) {
+        oldFactory.dispose();
       }
 
       this.__columnDataArr[col].editorFactory = factory;
@@ -564,7 +561,6 @@ qx.Class.define("qx.ui.table.columnmodel.Basic",
      *
      * @param col {Integer} the model index of the column.
      * @param visible {Boolean} whether the column should be visible.
-     * @return {void}
      */
     setColumnVisible : function(col, visible)
     {

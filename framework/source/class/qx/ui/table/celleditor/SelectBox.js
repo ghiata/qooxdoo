@@ -86,6 +86,9 @@ qx.Class.define("qx.ui.table.celleditor.SelectBox",
           if ( row instanceof Array ) {
             item = new qx.ui.form.ListItem(row[0], row[1]);
             item.setUserData("row", row[2]);
+            if (value == row[2]) {
+              label = row[0];
+            }
           } else {
             item = new qx.ui.form.ListItem(row, null);
             item.setUserData("row", row);
@@ -94,7 +97,9 @@ qx.Class.define("qx.ui.table.celleditor.SelectBox",
         };
       }
 
-      var itemToSelect = cellEditor.getChildrenContainer().findItem("" + value);
+      if (label != null) {
+        var itemToSelect = cellEditor.getChildrenContainer().findItem(label + "");
+      }
 
       if (itemToSelect) {
         cellEditor.setSelection([itemToSelect]);
@@ -116,7 +121,8 @@ qx.Class.define("qx.ui.table.celleditor.SelectBox",
       var value = "";
 
       if (selection && selection[0]) {
-        value = selection[0].getUserData("row") || selection[0].getLabel();
+        var userValue = selection[0].getUserData("row")
+        value = userValue === undefined ? selection[0].getLabel() : userValue;
       }
 
       // validation function will be called with new and old value

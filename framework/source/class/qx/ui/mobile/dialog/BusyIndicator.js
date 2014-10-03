@@ -18,65 +18,128 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
+ * The widget displays a busy indicator.
  *
- * This class blocks events and can be included into all widgets.
+ * *Example*
  *
+ * Here is a little example of how to use the widget.
+ *
+ * <pre class='javascript'>
+ *   var busyIndicator = new qx.ui.mobile.dialog.BusyIndicator("Please wait");
+ *   this.getRoot().add(busyIndicator);
+ * </pre>
+ *
+ * This example create a widget to display the busy indicator.
  */
 qx.Class.define("qx.ui.mobile.dialog.BusyIndicator",
 {
-  extend : qx.ui.mobile.core.Widget,
+  extend : qx.ui.mobile.basic.Atom,
 
-  /*
-  *****************************************************************************
-     CONSTRUCTOR
-  *****************************************************************************
-  */
- 
+
   /**
-   * @param infoText {String?null} the message to be shown.
+   * @param label {String} Label to use
    */
-  construct : function(infoText)
+  construct : function(label)
   {
-    this.base(arguments);
-    
-    this.__createChildren(infoText);
-    
+    // the image passed as second argument is a blank 1px transparent png
+    this.base(arguments, label, qx.ui.mobile.basic.Image.PLACEHOLDER_IMAGE);
+
+    this.addListener("appear", this._onAppear, this);
+    this.addListener("disappear", this._onDisappear, this);
   },
 
 
-  /*
-  *****************************************************************************
-     MEMBERS
-  *****************************************************************************
-  */
+  properties :
+  {
+
+    /**
+     * The spinner css class to use.
+     */
+    spinnerClass :
+    {
+      apply : "_applySpinnerClass",
+      nullable : false,
+      check : "String",
+      init : "spinner"
+    }
+  },
+
+
+  statics : {
+    SPINNER_ANIMATION : null
+  },
+
 
   members :
   {
-    __spinner : null,
-    __infoLabel : null,
-    __widgetContainer : null,
-    
-    /**
-     * Creates the DOM elements necessary to show the indicator.
-     * @param labelText {String?null} the message to be shown.
-     * 
-     */
-    __createChildren : function(labelText)
-    {
-      this.__widgetContainer = new qx.ui.mobile.container.Composite(new qx.ui.mobile.layout.VBox().set({alignY: "middle"}));
-      this.__widgetContainer.addCssClass("spinnerContainer");
+    __animationHandle : null,
 
-      this.__spinner = new qx.ui.mobile.core.Widget();
-      this.__spinner.addCssClass("spinner");
-      this.__widgetContainer.add(this.__spinner);
-      
-      if(labelText) {
-        this.__infoLabel = new qx.ui.mobile.basic.Label(labelText);
-        this.__widgetContainer.add(this.__infoLabel);
+
+    /**
+     * Listener for appear event.
+     */
+    _onAppear : function() {
+      this.__animationHandle = qx.bom.element.Animation.animate(this.getIconWidget().getContainerElement(), qx.ui.mobile.dialog.BusyIndicator.SPINNER_ANIMATION);
+    },
+
+
+    /**
+     * Handler for disappear event.
+     */
+    _onDisappear : function() {
+      this.__animationHandle.stop();
+    },
+
+
+    // overridden
+    _createIconWidget : function(iconUrl)
+    {
+      var iconWidget = this.base(arguments,iconUrl);
+      iconWidget.addCssClass(this.getSpinnerClass());
+      return iconWidget;
+    },
+
+
+    // property apply
+    _applySpinnerClass : function(value, old)
+    {
+      if (old) {
+        this.getIconWidget().removeCssClass(old);
       }
-      
-      this._add(this.__widgetContainer);
+      if(value) {
+        this.getIconWidget().addCssClass(value);
+      }
     }
+  },
+
+
+  destruct : function()
+  {
+    this.removeListener("appear", this._onAppear, this);
+    this.removeListener("disappear", this._onDisappear, this);
+
+    if(this.__animationHandle) {
+      this.__animationHandle.stop();
+    }
+
+    this.__animationHandle = null;
+  },
+
+
+  defer : function() {
+    qx.ui.mobile.dialog.BusyIndicator.SPINNER_ANIMATION = {
+      duration: 750,
+      timing: "linear",
+      origin: "center center",
+      repeat: "infinite",
+      keyFrames : {
+        0: {
+          rotate : "0deg"
+        },
+        100: {
+          rotate : "359deg"
+        }
+      }
+    };
   }
 });

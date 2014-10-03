@@ -20,15 +20,11 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#asset(qx/icon/${qx.icontheme}/*)
-
-************************************************************************ */
-
 /**
  * Playground application, which allows for source code editing and live
  * previews of a simple custom application.
+ *
+ * @asset(qx/icon/${qx.icontheme}/*)
  */
 qx.Class.define("playground.Application",
 {
@@ -71,12 +67,14 @@ qx.Class.define("playground.Application",
   {
     // UI Components
     __header : null,
+    __mainsplit : null,
     __toolbar : null,
     __log : null,
     __editor : null,
     __playArea : null,
     __samplesPane : null,
     __editorsplit : null,
+    __websiteContent : null,
 
     // storages
     __samples : null,
@@ -108,13 +106,14 @@ qx.Class.define("playground.Application",
     /**
      * This method contains the initial application code and gets called
      * during startup of the application.
-     *
-     * @lint ignoreUndefined(qxc)
      */
     main : function()
     {
       // Call super class
       this.base(arguments);
+
+      // register error handler
+      qx.event.GlobalError.setErrorHandler(this.__onGlobalError, this);
 
       // container layout
       var layout = new qx.ui.layout.VBox();
@@ -143,8 +142,9 @@ qx.Class.define("playground.Application",
       this.__toolbar.addListener("openDemoBrowser",this.__onDemoBrowser,this);
 
       // mainsplit, contains the editor splitpane and the info splitpane
-      var mainsplit = new qx.ui.splitpane.Pane("horizontal");
-      mainContainer.add(mainsplit, { flex : 1 });
+      this.__mainsplit = new qx.ui.splitpane.Pane("horizontal");
+      mainContainer.add(this.__mainsplit, { flex : 1 });
+      this.__mainsplit.setAppearance("app-splitpane");
 
       // editor split (left side of main split)
       this.__editorsplit = new qx.ui.splitpane.Pane("horizontal");
@@ -170,46 +170,42 @@ qx.Class.define("playground.Application",
       }, this);
 
       // initialize custom samples
-      if (qx.core.Environment.get("html.storage.local")) {
-        this.__store = new qx.data.store.Offline("qooxdoo-playground-samples");
-        // if the local storage is not empty
-        if (this.__store.getModel() != null) {
-          // use the stored array to initialize the built in samples
-          this.__samples = new playground.Samples(this.__store.getModel());
-        } else {
-          // init the samples and store in the local storage
-          this.__samples = new playground.Samples();
-          this.__store.setModel(this.__samples.getModel());
-        }
-        this.__store.bind("model", this.__samplesPane, "model");
+      this.__store = new qx.data.store.Offline("qooxdoo-playground-samples");
+      // if the local storage is not empty
+      if (this.__store.getModel() != null) {
+        // use the stored array to initialize the built in samples
+        this.__samples = new playground.Samples(this.__store.getModel());
       } else {
-        // just use the samples as model if no local storage is available
+        // init the samples and store in the local storage
         this.__samples = new playground.Samples();
-        this.__samplesPane.setModel(this.__samples.getModel());
+        this.__store.setModel(this.__samples.getModel());
       }
+      this.__store.bind("model", this.__samplesPane, "model");
+
 
       // need to split up the creation process
       this.__editor = new playground.view.Editor();
       this.__editor.addListener("disableHighlighting", function() {
         this.__toolbar.enableHighlighting(false);
       }, this);
-      this.__editor.init();
+      playground.view.Editor.loadAce(function() {
+        this.init();
+      }, this);
 
       this.__editorsplit.add(this.__samplesPane, 1);
       this.__editorsplit.add(this.__editor, 4);
-
-      mainsplit.add(this.__editorsplit, 6);
-      mainsplit.add(infosplit, 5);
+      this.__mainsplit.add(this.__editorsplit, 6);
+      this.__mainsplit.add(infosplit, 3);
 
       this.__playArea = new playground.view.PlayArea();
       this.__playArea.addListener("toggleMaximize", this._onToggleMaximize, this);
       infosplit.add(this.__playArea, 2);
 
-      mainsplit.getChildControl("splitter").addListener("mousedown", function() {
+      this.__mainsplit.getChildControl("splitter").addListener("pointerdown", function() {
         this.__editor.block();
       }, this);
 
-      mainsplit.addListener("losecapture", function() {
+      this.__mainsplit.addListener("losecapture", function() {
         this.__editor.unblock();
       }, this);
 
@@ -220,8 +216,12 @@ qx.Class.define("playground.Application",
     },
 
 
-    // overridden
-    finalize: function() {
+    /**
+     * Initialization after the external editor has been loaded.
+     */
+    init: function() {
+      this.__editor.init();
+
       // check if mobile chould be used
       if (this.__supportsMode("mobile")) {
         // check for the mode cookie
@@ -269,10 +269,12 @@ qx.Class.define("playground.Application",
 
     // property apply
     _applyCurrentSample : function(newSample, old) {
-      // ignore wenn the sample is set to null
+      // ignore when the sample is set to null
       if (!newSample) {
         return;
       }
+
+      this.setMode(newSample.getMode());
 
       // need to get the code from the editor in case he changes something
       // in the code
@@ -281,7 +283,7 @@ qx.Class.define("playground.Application",
 
       // only add static samples to the url as name
       if (newSample.getCategory() == "static") {
-        this.__history.addToHistory(newSample.getName() + "-" + newSample.getMode());        
+        this.__history.addToHistory(newSample.getName() + "-" + newSample.getMode());
       } else {
         this.__addCodeToHistory(newSample.getCode());
       }
@@ -295,6 +297,31 @@ qx.Class.define("playground.Application",
     // ***************************************************
     // MODE HANDLING
     // ***************************************************
+    __enableWebsiteMode : function(enabled) {
+      if (enabled) {
+        this.__toolbar.exclude();
+        this.__mainsplit.exclude();
+      } else {
+        this.__toolbar.show();
+        this.__mainsplit.show();
+      }
+
+      // on demand creation
+      if (!this.__websiteContent && enabled) {
+        this.__websiteContent = new playground.view.WebsiteContent();
+        this.getRoot().getChildren()[0].add(this.__websiteContent, {flex: 1});
+      }
+
+      if (this.__websiteContent) {
+        if (!enabled) {
+          this.__websiteContent.exclude();
+        } else {
+          this.__websiteContent.show();
+        }
+      }
+
+    },
+
     /**
      * Event handler for changing the mode of the palyground.
      * @param e {qx.event.type.Data} The data event containing the mode.
@@ -323,8 +350,21 @@ qx.Class.define("playground.Application",
      */
     __supportsMode : function(mode) {
       if (mode == "mobile") {
-        return qx.core.Environment.get("engine.name") == "webkit";
-      } else if (mode == "ria") {
+        var engine = qx.core.Environment.get("engine.name");
+
+        // all webkits are ok
+        if (engine == "webkit") {
+          return true;
+        }
+        // ie > 10 is ok
+        if (engine == "mshtml" && parseInt(qx.core.Environment.get("browser.documentmode")) >= 10) {
+          return true;
+        }
+        // ff > 10 is ok
+        if (engine == "gecko" && parseInt(qx.core.Environment.get("engine.version")) >= 10) {
+          return true;
+        }
+      } else if (mode == "ria" || mode == "website") {
         return true;
       }
       return false;
@@ -341,6 +381,11 @@ qx.Class.define("playground.Application",
         throw new Error("Mode '" + mode + "' not supported");
       }
 
+      // only set new mode if not already set
+      if (this.__mode == mode) {
+        return true;
+      }
+
       // only change the mode if no code gets lost
       if (this.__discardChanges()) {
         return false;
@@ -349,6 +394,8 @@ qx.Class.define("playground.Application",
       // store the mode
       qx.bom.Cookie.set("playgroundMode", mode, 100);
       this.__mode = mode;
+
+      this.__enableWebsiteMode(mode == "website");
 
       // update the views (changes the play application)
       this.__playArea.setMode(mode);
@@ -366,7 +413,7 @@ qx.Class.define("playground.Application",
     // SAMPEL SAVE / DELETE
     // ***************************************************
     /**
-     * Helper to write the current code to the model and with that to the 
+     * Helper to write the current code to the model and with that to the
      * offline store.
      */
     __onSave : function() {
@@ -387,7 +434,7 @@ qx.Class.define("playground.Application",
 
 
     /**
-     * Helper to write the current code to the model and with that to the 
+     * Helper to write the current code to the model and with that to the
      * offline store.
      * @lint ignoreDeprecated(confirm)
      */
@@ -409,9 +456,9 @@ qx.Class.define("playground.Application",
       };
       // create new sample
       var data = {
-        name: name, 
-        code: this.__editor.getCode(), 
-        mode: this.__mode, 
+        name: name,
+        code: this.__editor.getCode(),
+        mode: this.__mode,
         category: "user"
       };
       var sample = qx.data.marshal.Json.createModel(data, true);
@@ -459,7 +506,7 @@ qx.Class.define("playground.Application",
 
 
     /**
-     * Helper to toggle the editors split pane which means togglinge the 
+     * Helper to toggle the editors split pane which means togglinge the
      * visibility of the editor and the samples pane.
      */
     _onToggleMaximize : function() {
@@ -477,7 +524,7 @@ qx.Class.define("playground.Application",
     // ***************************************************
     /**
      * Handler for sample changes of the toolbar.
-     * @param e {qx.event.type.Data} Data event containing the boolean 
+     * @param e {qx.event.type.Data} Data event containing the boolean
      * weather the examples should be shown.
      */
     __onSampleChange : function(e) {
@@ -487,7 +534,7 @@ qx.Class.define("playground.Application",
       } else {
         this.__samplesPane.exclude();
       }
-    }, 
+    },
 
 
     /**
@@ -565,7 +612,7 @@ qx.Class.define("playground.Application",
     __initBookmarkSupport : function()
     {
       this.__history = qx.bom.History.getInstance();
-      this.__history.addListener("request", this.__onHistoryChanged, this);
+      this.__history.addListener("changeState", this.__onHistoryChanged, this);
 
       // Handle bookmarks
       var state = this.__history.getState();
@@ -710,10 +757,8 @@ qx.Class.define("playground.Application",
      */
     __discardChanges : function() {
       var userCode = this.__editor.getCode();
-      if (userCode && this.__isCodeNotEqual(userCode, this.getOriginCode()))
-      {
-        if (!confirm(this.tr("Click OK to discard your changes.")))
-        {
+      if (userCode && this.__isCodeNotEqual(userCode, this.getOriginCode())) {
+        if (!confirm(this.tr("Tap OK to discard your changes."))) {
           return true;
         }
       }
@@ -780,7 +825,7 @@ qx.Class.define("playground.Application",
       // try to create a function
       try {
         this.__oldCode = code;
-        this.fun = new Function(code);
+        this.fun = qx.event.GlobalError.observeMethod(new Function(code));
       } catch(ex) {
         var exc = ex;
       }
@@ -791,7 +836,7 @@ qx.Class.define("playground.Application",
         qx.ui.core.queue.Manager.flush();
         this.__beforeReg = qx.lang.Object.clone(qx.core.ObjectRegistry.getRegistry());
 
-        // run the aplpication
+        // run the application
         this.fun.call(this.__playArea.getApp());
         qx.ui.core.queue.Manager.flush();
         this.__afterReg = qx.lang.Object.clone(qx.core.ObjectRegistry.getRegistry());
@@ -839,6 +884,16 @@ qx.Class.define("playground.Application",
       }
 
       this.__updatePlayground();
+    },
+
+
+    /**
+     * Handler for global errors.
+     *
+     * @param e {Event} The global error event
+     */
+    __onGlobalError : function(e) {
+      this.error(e);
     },
 
 
@@ -899,7 +954,6 @@ qx.Class.define("playground.Application",
       }
     }
   },
-
 
 
   /*

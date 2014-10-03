@@ -17,27 +17,68 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-#ignore(qx.DeferFoo)
-#ignore(qx.MyClass)
-#ignore(qx.test.u.u)
-#ignore(qx.FuncName)
-#ignore(qx.Defer)
-#ignore(qx.Single1)
-#ignore(qx.ConcreteCar)
-#ignore(qx.AbstractCar)
-#ignore(qx.Bmw)
-#ignore(qx.Car)
-#ignore(qx.Empty)
-#ignore(qx.DeferFoo)
-************************************************************************ */
+/**
+ * @ignore(qx.AbstractCar, qx.Bmw, qx.Car, qx.ConcreteCar, qx.Defer.*)
+ * @ignore(qx.DeferFoo, qx.Empty, qx.FuncName, qx.MyClass, qx.MyMixin)
+ * @ignore(qx.Single1.*, qx.test.u.u.*)
+
+ */
 
 qx.Class.define("qx.test.Class",
 {
   extend : qx.dev.unit.TestCase,
+  include : [qx.dev.unit.MRequirements],
 
   members :
   {
+    testAnonymous : function() {
+      var clazz = qx.Class.define(null, {statics : {
+        test : function() {
+          return true;
+        }
+      }});
+
+      this.assertTrue(clazz.test());
+    },
+
+
+    testOverridePropertyMethod : function() {
+      this.require(["qx.debug"]);
+
+      var C = qx.Class.define(null, {
+        extend : qx.core.Object,
+        properties : {
+          prop: {
+            check : "Boolean",
+            inheritable: true,
+            themeable: true
+          }
+        }
+      });
+
+      var methods = [
+        "set", "get", "init", "reset", "refresh",
+        "setRuntime", "resetRuntime",
+        "is", "toggle",
+        "setThemed", "resetThemed"
+      ];
+
+      for (var i = 0; i < methods.length; i++) {
+        var name = methods[i] + "Prop";
+        var members = {};
+        members[name] = function() {};
+        this.assertException(function() {
+          // extract the class define to prevent the generator from parsing this class
+          var Clazz = qx.Class;
+          Clazz.define(null, {
+            extend : C,
+            members : members
+          });
+        }, Error, new RegExp(name), name + " went wrong!");
+      }
+    },
+
+
     testEmptyClass : function()
     {
       qx.Class.define("qx.Empty",
@@ -233,7 +274,7 @@ qx.Class.define("qx.test.Class",
       {
         extend : qx.core.Object,
 
-        defer : function(statics, prot, properties)
+        defer : function(statics, members, properties)
         {
           statics.FOO = 12;
 
@@ -241,7 +282,7 @@ qx.Class.define("qx.test.Class",
             return "Hello";
           };
 
-          prot.sayJuhu = function() {
+          members.sayJuhu = function() {
             return "Juhu";
           };
 

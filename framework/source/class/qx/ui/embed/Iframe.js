@@ -37,7 +37,7 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/widget/iframe.html' target='_blank'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/widget/iframe.html' target='_blank'>
  * Documentation of this widget in the qooxdoo manual.</a>
  */
 qx.Class.define("qx.ui.embed.Iframe",
@@ -62,18 +62,17 @@ qx.Class.define("qx.ui.embed.Iframe",
 
     this.base(arguments, source);
 
-    qx.event.Registration.addListener(document.body, "mousedown", this.block, this, true);
-    qx.event.Registration.addListener(document.body, "mouseup", this.release, this, true);
+    qx.event.Registration.addListener(document.body, "pointerdown", this.block, this, true);
+    qx.event.Registration.addListener(document.body, "pointerup", this.release, this, true);
     qx.event.Registration.addListener(document.body, "losecapture", this.release, this, true);
 
     this.__blockerElement = this._createBlockerElement();
-    this.getContainerElement().add(this.__blockerElement);
 
     if ((qx.core.Environment.get("engine.name") == "gecko"))
     {
       this.addListenerOnce("appear", function(e)
       {
-        var element = this.getContainerElement().getDomElement();
+        var element = this.getContentElement().getDomElement();
         qx.bom.Event.addNativeListener(element, "DOMNodeInserted", this._onDOMNodeInserted);
       });
       this._onDOMNodeInserted = qx.lang.Function.listener(this._syncSourceAfterDOMMove, this);
@@ -155,8 +154,8 @@ qx.Class.define("qx.ui.embed.Iframe",
       var insets = this.getInsets();
 
       this.__blockerElement.setStyles({
-        "left": insets.left + pixel,
-        "top": insets.top + pixel,
+        "left": (left + insets.left) + pixel,
+        "top": (top + insets.top) + pixel,
         "width": (width - insets.left - insets.right) + pixel,
         "height": (height - insets.top - insets.bottom) + pixel
       });
@@ -179,7 +178,7 @@ qx.Class.define("qx.ui.embed.Iframe",
 
 
     /**
-     * Creates <div> element which is aligned over iframe node to avoid losing mouse events.
+     * Creates <div> element which is aligned over iframe node to avoid losing pointer events.
      *
      * @return {Object} Blocker element node
      */
@@ -219,7 +218,7 @@ qx.Class.define("qx.ui.embed.Iframe",
 
     /**
      * Cover the iframe with a transparent blocker div element. This prevents
-     * mouse or key events to be handled by the iframe. To release the blocker
+     * pointer or key events to be handled by the iframe. To release the blocker
      * use {@link #release}.
      *
      */
@@ -291,10 +290,9 @@ qx.Class.define("qx.ui.embed.Iframe",
 
 
     // property apply
-    _applyNativeHelp : qx.core.Environment.select("engine.name",
+    _applyNativeHelp : function(value, old)
     {
-      "mshtml" : function(value, old)
-      {
+      if (qx.core.Environment.get("event.help")) {
         var document = this.getDocument();
         if (!document) {
           return;
@@ -303,19 +301,21 @@ qx.Class.define("qx.ui.embed.Iframe",
         try
         {
           if (old === false) {
-            qx.bom.Event.removeNativeListener(document, "help", qx.lang.Function.returnFalse);
+            qx.bom.Event.removeNativeListener(document, "help", (function() {return false;}));
           }
 
           if (value === false) {
-            qx.bom.Event.addNativeListener(document, "help", qx.lang.Function.returnFalse);
+            qx.bom.Event.addNativeListener(document, "help", (function() {return false;}));
           }
         } catch (e) {
-          // this may fail due to security restrictions
-        };
-      },
-
-      "default" : function() {}
-    }),
+          if (qx.core.Environment.get("qx.debug")) {
+            this.warn(
+              "Unable to set 'nativeHelp' property, possibly due to security restrictions"
+            );
+          }
+        }
+      }
+    },
 
 
     /**
@@ -345,6 +345,16 @@ qx.Class.define("qx.ui.embed.Iframe",
     // property apply
     _applyScrollbar : function(value) {
       this.getContentElement().setAttribute("scrolling", value);
+    },
+
+
+    // overridden
+    setLayoutParent : function(parent)
+    {
+      this.base(arguments, parent);
+      if (parent) {
+        this.getLayoutParent().getContentElement().add(this.__blockerElement);
+      }
     }
   },
 
@@ -357,10 +367,13 @@ qx.Class.define("qx.ui.embed.Iframe",
 
   destruct : function()
   {
+    if (this.getLayoutParent() && this.__blockerElement.getParent()) {
+      this.getLayoutParent().getContentElement().remove(this.__blockerElement);
+    }
     this._disposeObjects("__blockerElement");
 
-    qx.event.Registration.removeListener(document.body, "mousedown", this.block, this, true);
-    qx.event.Registration.removeListener(document.body, "mouseup", this.release, this, true);
+    qx.event.Registration.removeListener(document.body, "pointerdown", this.block, this, true);
+    qx.event.Registration.removeListener(document.body, "pointerup", this.release, this, true);
     qx.event.Registration.removeListener(document.body, "losecapture", this.release, this, true);
   }
 });

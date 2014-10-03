@@ -14,6 +14,7 @@
 
    Authors:
      * Jonathan Weiß (jonathan_rass)
+     * Mustafa Sak (msak)
 
 ************************************************************************ */
 
@@ -21,14 +22,23 @@ qx.Class.define("qx.test.bom.Font",
 {
   extend : qx.test.ui.LayoutTestCase,
 
+  include : [qx.dev.unit.MRequirements],
+
   members :
   {
+    hasNoIe : function()
+    {
+      return qx.core.Environment.get("engine.name") !== "mshtml";
+    },
+
+
     setUp : function() {
       this.__font = new qx.bom.Font;
     },
 
 
     tearDown : function() {
+      this.base(arguments);
       this.__font.dispose();
     },
 
@@ -123,6 +133,17 @@ qx.Class.define("qx.test.bom.Font",
     },
 
 
+    testTextShadow : function()
+    {
+      this.require(["noIe"]);
+
+      this.__font.setTextShadow("red 1px 1px 3px, green -1px -1px 3px, white -1px 1px 3px, white 1px -1px 3px");
+
+      var styles = this.__font.getStyles();
+      this.assertEquals("red 1px 1px 3px, green -1px -1px 3px, white -1px 1px 3px, white 1px -1px 3px", styles.textShadow, "Wrong style value for 'textShadow' property!");
+    },
+
+
     testColorAtWidget : function()
     {
       this.__font.setColor("#ff0000");
@@ -135,12 +156,8 @@ qx.Class.define("qx.test.bom.Font",
 
       var useRgbValue = true;
 
-      if (qx.core.Environment.get("browser.name") == "ie" && 
-          qx.core.Environment.get("browser.version") < 9) {
-        useRgbValue = false;
-      }
-
-      if (qx.core.Environment.get("browser.name") == "opera") {
+      if (qx.core.Environment.get("browser.name") == "ie" &&
+          qx.core.Environment.get("browser.documentmode") < 9) {
         useRgbValue = false;
       }
 
@@ -151,6 +168,7 @@ qx.Class.define("qx.test.bom.Font",
       // set using the color theme. So this default color should show up and not
       // the defined color of the font.
       this.assertEquals(checkValue, color, "Wrong style applied for 'color' property!");
+      label.destroy();
     },
 
 
@@ -158,12 +176,12 @@ qx.Class.define("qx.test.bom.Font",
     {
       var styles = this.__font.getStyles();
 
-      // we expect a map with only 'fontFamily' set, otherwise the null values 
+      // we expect a map with only 'fontFamily' set, otherwise the null values
       // which are returned are overwriting styles. Only return styles which are set.
-      var keys = qx.lang.Object.getKeys(styles);
+      var keys = Object.keys(styles);
 
       this.assertMap(styles, "Method 'getStyles' should return a map!");
-      this.assertEquals(7, qx.lang.Object.getLength(styles), "Map should contain 7 key!");
+      this.assertEquals(8, qx.lang.Object.getLength(styles), "Map should contain 8 key!");
       this.assertNotUndefined(styles.fontFamily, "Key 'fontFamily' has to be present!");
       this.assertNotUndefined(styles.fontStyle, "Key 'fontStyle' has to be present!");
       this.assertNotUndefined(styles.fontWeight, "Key 'fontWeight' has to be present!");
@@ -171,6 +189,7 @@ qx.Class.define("qx.test.bom.Font",
       this.assertNotUndefined(styles.lineHeight, "Key 'lineHeight' has to be present!");
       this.assertNotUndefined(styles.textDecoration, "Key 'textDecoration' has to be present!");
       this.assertNotUndefined(styles.color, "Key 'color' has to be present!");
+      this.assertNotUndefined(styles.textShadow, "Key 'textShadow' has to be present!");
     },
 
 
@@ -182,7 +201,7 @@ qx.Class.define("qx.test.bom.Font",
       this.__font.setDecoration("underline");
 
       var styles = this.__font.getStyles();
-      var keys = qx.lang.Object.getKeys(styles);
+      var keys = Object.keys(styles);
 
       this.assertMap(styles, "Method 'getStyles' should return a map!");
       this.assertEquals("fontFamily", keys[0], "Key 'fontFamily' has to be present!");

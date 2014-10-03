@@ -234,7 +234,7 @@ qx.Class.define("qx.ui.embed.Flash",
 
   members :
   {
-    /** {Integer} The time stamp when the loading begins. */
+    /** @type {Integer} The time stamp when the loading begins. */
     __time : null,
 
 
@@ -305,7 +305,9 @@ qx.Class.define("qx.ui.embed.Flash",
 
     // overridden
     _createContentElement : function() {
-      return new qx.html.Flash();
+      var el = new qx.html.Flash();
+      el.setAttribute("$$widget", this.toHashCode());
+      return el;
     },
 
     /**

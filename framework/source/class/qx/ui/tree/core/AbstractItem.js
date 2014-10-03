@@ -17,7 +17,7 @@
      * Sebastian Werner (wpbasti)
      * Andreas Ecker (ecker)
      * Derrell Lipman (derrell)
-     * Christian Hagendonr (chris_schmidt)
+     * Christian Hagendorn (chris_schmidt)
 
 ************************************************************************ */
 
@@ -394,7 +394,6 @@ qx.Class.define("qx.ui.tree.core.AbstractItem",
     * Set source of icon child control
     *
     * @param url {String} The URL of the icon
-    * @return {void}
     */
     __setIconSource : function(url) {
       var icon = this.getChildControl("icon", true);
@@ -492,7 +491,7 @@ qx.Class.define("qx.ui.tree.core.AbstractItem",
 
 
     // overridden
-    syncWidget : function() {
+    syncWidget : function(jobs) {
       this._updateIndent();
     },
 

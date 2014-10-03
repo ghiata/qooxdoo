@@ -36,6 +36,16 @@ qx.Class.define("testrunner.view.Console", {
   {
     qx.log.appender.Native;
     qx.log.appender.Console;
+
+    // Workaround for http://bugzilla.qooxdoo.org/show_bug.cgi?id=8242
+    var button = document.createElement("button");
+    button.id = "run";
+    var text = document.createTextNode("Run Tests");
+    button.appendChild(text);
+    qx.bom.Event.addNativeListener(button, "click", function() {
+      qx.core.Init.getApplication().runner.view.run();
+    });
+    document.body.appendChild(button);
   },
 
   /*
@@ -45,7 +55,7 @@ qx.Class.define("testrunner.view.Console", {
   */
   members :
   {
-    __testResults : null,
+    __suiteResults : null,
     __iframe : null,
 
     /**
@@ -53,7 +63,11 @@ qx.Class.define("testrunner.view.Console", {
      */
     run : function()
     {
-      this.__testResults = {};
+      this.__suiteResults = {
+        startedAt : new Date().getTime(),
+        finishedAt : null,
+        tests : {}
+      };
       this.fireEvent("runTests");
     },
 
@@ -92,6 +106,9 @@ qx.Class.define("testrunner.view.Console", {
     {
       switch(value)
       {
+        case "init":
+          this.setStatus("Waiting for tests");
+          break;
         case "loading" :
           this.setStatus("Loading tests...");
           break;
@@ -105,6 +122,7 @@ qx.Class.define("testrunner.view.Console", {
           this.setStatus("Running tests...");
           break;
         case "finished" :
+          this.__suiteResults.finishedAt = new Date().getTime();
           this.setStatus("Test suite finished. Call qx.core.Init.getApplication().runner.view.getTestResults() to get the results.");
           break;
         case "aborted" :
@@ -137,25 +155,40 @@ qx.Class.define("testrunner.view.Console", {
     {
       var testName = testResultData.getFullName();
       var state = testResultData.getState();
+
       var exceptions = testResultData.getExceptions();
 
       //Update test results map
-      if (!this.__testResults[testName]) {
-        this.__testResults[testName] = {};
+      if (!this.__suiteResults.tests[testName]) {
+        this.__suiteResults.tests[testName] = {};
       }
-      this.__testResults[testName].state = state;
-      if (exceptions) {
-        this.__testResults[testName].exceptions = exceptions;
-        var messages = [];
-        for (var i=0,l=exceptions.length; i<l; i++) {
-          var message = exceptions[i].exception.toString()
-          var trace = testResultData.getStackTrace(exceptions[i].exception);
-          trace = trace.replace(/<br>/g, "\n");
-          message += "\n" + trace;
-          messages.push(message);
-        }
-        this.__testResults[testName].messages = messages;
+      this.__suiteResults.tests[testName].state = state;
 
+      if (exceptions) {
+        this.__suiteResults.tests[testName].exceptions = [];
+        for (var i=0,l=exceptions.length; i<l; i++) {
+          var ex = exceptions[i].exception;
+          var type = ex.classname || ex.type || "Error";
+
+          var message = ex.toString ? ex.toString() :
+            ex.message ? ex.message : "Unknown Error";
+
+          var stacktrace;
+          if (!(ex.classname && ex.classname == "qx.dev.unit.MeasurementResult")) {
+            stacktrace = testResultData.getStackTrace(ex);
+          }
+
+          var serializedEx = {
+            type : type,
+            message : message
+          };
+
+          if (stacktrace) {
+            serializedEx.stacktrace = stacktrace;
+          }
+
+          this.__suiteResults.tests[testName].exceptions.push(serializedEx);
+        }
       }
 
       var level;
@@ -190,21 +223,46 @@ qx.Class.define("testrunner.view.Console", {
      */
     getTestResults : function(exceptions)
     {
+      if (!(this.__suiteResults && this.__suiteResults.tests)) {
+        throw new Error("No results to get. Run the test suite first.");
+      }
       if (exceptions) {
-        return this.__testResults;
+        return this.__suiteResults.tests;
       }
 
       var readableResults = {};
-      var res = this.__testResults;
+      var res = this.__suiteResults.tests;
       for (var key in res) {
         if (res.hasOwnProperty(key)) {
           readableResults[key] = { state : res[key].state };
-          if (res[key].messages) {
-            readableResults[key].messages = res[key].messages;
+          if (res[key].exceptions) {
+            var exceptions = res[key].exceptions;
+            var messages = [];
+            for (var i=0,l=exceptions.length; i<l; i++) {
+              var exMap = exceptions[i];
+              var message = exMap.type + ": " + exMap.message;
+              if (exMap.stacktrace) {
+                message += "\n" + exMap.stacktrace.split("<br>").join("\n");
+              }
+              messages.push(message);
+            }
+
+            readableResults[key].messages = messages;
           }
         }
       }
       return readableResults;
+    },
+
+
+    /**
+     * Returns the aggregated results for this test suite
+     *
+     * @return {Map} Test suite results
+     */
+    getSuiteResults : function()
+    {
+      return this.__suiteResults;
     },
 
     /**

@@ -5,7 +5,7 @@
    http://qooxdoo.org
 
    Copyright:
-     2004-2011 1&1 Internet AG, Germany, http://www.1und1.de
+     2004-2014 1&1 Internet AG, Germany, http://www.1und1.de
 
    License:
      LGPL: http://www.gnu.org/licenses/lgpl.html
@@ -14,12 +14,11 @@
 
    Authors:
      * Tino Butz (tbtz)
+     * Christopher Zuendorf (czuendorf)
 
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * Abstract class for all input fields.
  */
 qx.Class.define("qx.ui.mobile.form.Input",
@@ -28,6 +27,7 @@ qx.Class.define("qx.ui.mobile.form.Input",
   include : [
     qx.ui.form.MForm,
     qx.ui.form.MModelProperty,
+    qx.ui.mobile.container.MScrollHandling,
     qx.ui.mobile.form.MState
   ],
   implement : [
@@ -37,23 +37,15 @@ qx.Class.define("qx.ui.mobile.form.Input",
   type : "abstract",
 
 
-  /*
-  *****************************************************************************
-     CONSTRUCTOR
-  *****************************************************************************
-  */
-
   construct : function()
   {
     this.base(arguments);
     this._setAttribute("type", this._getType());
+    this.addCssClass("gap");
+
+    this.addListener("focus", this._onSelected, this);
   },
 
-  /*
-  *****************************************************************************
-     MEMBERS
-  *****************************************************************************
-  */
 
   members :
   {
@@ -73,7 +65,37 @@ qx.Class.define("qx.ui.mobile.form.Input",
       if (qx.core.Environment.get("qx.debug")) {
         throw new Error("Abstract method call");
       }
-    }
+    },
 
+
+    /**
+     * Handles the <code>click</code> and <code>focus</code> event on this input widget.
+     * @param evt {qx.event.type.Event} <code>click</code> or <code>focus</code> event
+     */
+    _onSelected : function(evt) {
+      if (!(evt.getTarget() instanceof qx.ui.mobile.form.TextField) && !(evt.getTarget() instanceof qx.ui.mobile.form.NumberField)) {
+        return;
+      }
+
+      var scrollContainer = this._getParentScrollContainer();
+      if(scrollContainer === null) {
+        return;
+      }
+
+      setTimeout(function() {
+        scrollContainer.scrollToWidget(this.getLayoutParent(), 0);
+
+        // Refresh caret position after scrolling.
+        this._setStyle("position","relative");
+        qx.bom.AnimationFrame.request(function() {
+          this._setStyle("position",null);
+        }, this);
+      }.bind(this), 300);
+    }
+  },
+
+
+  destruct : function() {
+    this.removeListener("focus", this._onSelected, this);
   }
 });

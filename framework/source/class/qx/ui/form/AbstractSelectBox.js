@@ -60,10 +60,6 @@ qx.Class.define("qx.ui.form.AbstractSelectBox",
     this.addListener("keypress", this._onKeyPress);
     this.addListener("blur", this._onBlur, this);
 
-    // register mouse wheel listener
-    var root = qx.core.Init.getApplication().getRoot();
-    root.addListener("mousewheel", this._onMousewheel, this, true);
-
     // register the resize listener
     this.addListener("resize", this._onResize, this);
   },
@@ -147,14 +143,14 @@ qx.Class.define("qx.ui.form.AbstractSelectBox",
           });
 
           control.addListener("changeSelection", this._onListChangeSelection, this);
-          control.addListener("mousedown", this._onListMouseDown, this);
+          control.addListener("pointerdown", this._onListPointerDown, this);
           break;
 
         case "popup":
           control = new qx.ui.popup.Popup(new qx.ui.layout.VBox);
           control.setAutoHide(false);
           control.setKeepActive(true);
-          control.addListener("mouseup", this.close, this);
+          control.addListener("tap", this.close, this);
           control.add(this.getChildControl("list"));
 
           control.addListener("changeVisibility", this._onPopupChangeVisibility, this);
@@ -313,29 +309,6 @@ qx.Class.define("qx.ui.form.AbstractSelectBox",
 
 
     /**
-     * Close the pop-up if the mousewheel event isn't on the pup-up window.
-     *
-     * @param e {qx.event.type.Mouse} Mousewheel event.
-     */
-    _onMousewheel : function(e)
-    {
-      var target = e.getTarget();
-      var popup = this.getChildControl("popup", true);
-
-      if (popup == null) {
-        return;
-      }
-
-      if (qx.ui.core.Widget.contains(popup, target)) {
-        // needed for ComboBox widget inside an inline application
-        e.preventDefault();
-      } else {
-        this.close();
-      }
-    },
-
-
-    /**
      * Updates list minimum size.
      *
      * @param e {qx.event.type.Data} Data event
@@ -356,12 +329,12 @@ qx.Class.define("qx.ui.form.AbstractSelectBox",
 
 
     /**
-     * Redirects mousedown event from the list to this widget.
+     * Redirects pointerdown event from the list to this widget.
      *
-     * @param e {qx.event.type.Mouse} Mouse Event
+     * @param e {qx.event.type.Pointer} Pointer Event
      */
-    _onListMouseDown : function(e) {
-      throw new Error("Abstract method: _onListMouseDown()");
+    _onListPointerDown : function(e) {
+      throw new Error("Abstract method: _onListPointerDown()");
     },
 
 
@@ -372,20 +345,6 @@ qx.Class.define("qx.ui.form.AbstractSelectBox",
      */
     _onPopupChangeVisibility : function(e) {
       e.getData() == "visible" ? this.addState("popupOpen") : this.removeState("popupOpen");
-    }
-  },
-
-  /*
-  *****************************************************************************
-     DESTRUCTOR
-  *****************************************************************************
-  */
-
-  destruct : function()
-  {
-    var root = qx.core.Init.getApplication().getRoot();
-    if (root) {
-      root.removeListener("mousewheel", this._onMousewheel, this, true);
     }
   }
 });

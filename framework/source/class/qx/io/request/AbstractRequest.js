@@ -114,7 +114,7 @@ qx.Class.define("qx.io.request.AbstractRequest",
      * Fired on timeout, error or remote error.
      *
      * This event is fired for convenience. Usually, it is recommended
-     * to handle error related events in a more granular approach.
+     * to handle error related events in a more fine-grained approach.
      */
     "fail": "qx.event.type.Event",
 
@@ -134,7 +134,7 @@ qx.Class.define("qx.io.request.AbstractRequest",
     *
     * The response is parsed (and therefore changed) only
     * after the request completes successfully. This means
-    * that when a new request is made the initial emtpy value
+    * that when a new request is made the initial empty value
     * is ignored, instead only the final value is bound.
     *
     */
@@ -159,26 +159,9 @@ qx.Class.define("qx.io.request.AbstractRequest",
       check: "String"
     },
 
-    /**
-     * Map of headers to be send as part of the request. Both
-     * key and value are serialized to string.
-     *
-     * Note: Depending on the HTTP method used (e.g. POST),
-     * additional headers may be set automagically.
-     *
-     * Also note: This property is deprecated. Please use
-     * {@link #setRequestHeader} instead.
-     *
-     * @deprecated since 1.6.
-     *
-     */
-    requestHeaders: {
-      check: "Map",
-      nullable: true
-    },
 
     /**
-     * Timeout limit in seconds. Default (0) means no limit.
+     * Timeout limit in milliseconds. Default (0) means no limit.
      */
     timeout: {
       check: "Number",
@@ -199,12 +182,12 @@ qx.Class.define("qx.io.request.AbstractRequest",
      * with unsafe characters escaped is internally generated and sent
      * as part of the request.
      *
-     * Depending on the underlying transport and it's configuration, the request
+     * Depending on the underlying transport and its configuration, the request
      * data is transparently included as URL query parameters or embedded in the
      * request body as form data.
      *
      * If a string is given the user must make sure it is properly formatted and
-     * escaped. See {@link qx.lang.Object#toUriParameter}.
+     * escaped. See {@link qx.util.Serializer#toUriParameter}.
      *
      */
     requestData: {
@@ -316,7 +299,7 @@ qx.Class.define("qx.io.request.AbstractRequest",
     /**
      * Get parsed response.
      *
-     * Is called in the {@link _onReadyStateChange} event handler
+     * Is called in the {@link #_onReadyStateChange} event handler
      * to parse and store the transport’s response.
      *
      * This method MUST be overridden.
@@ -376,7 +359,7 @@ qx.Class.define("qx.io.request.AbstractRequest",
         url = url.replace(/\#.*/, "");
       }
 
-      transport.timeout = this.getTimeout() * 1000;
+      transport.timeout = this.getTimeout();
 
       // Support transports with enhanced feature set
       method = this._getMethod();
@@ -450,12 +433,15 @@ qx.Class.define("qx.io.request.AbstractRequest",
      * @return {Map} All request headers.
      */
     _getAllRequestHeaders: function() {
-      var requestHeaders = qx.lang.Object.merge(
-        {},                                   // Merged into
-        this._getConfiguredRequestHeaders(),  // Transport specific headers
-        this.__getAuthRequestHeaders(),       // Authentication delegate
-        this.__requestHeadersDeprecated,      // requestHeaders property (deprecated)
-        this.__requestHeaders);
+      var requestHeaders = {};
+      // Transport specific headers
+      qx.lang.Object.mergeWith(requestHeaders, this._getConfiguredRequestHeaders());
+      // Authentication delegate
+      qx.lang.Object.mergeWith(requestHeaders, this.__getAuthRequestHeaders());
+      // User-defined, requestHeaders property (deprecated)
+      qx.lang.Object.mergeWith(requestHeaders, this.__requestHeadersDeprecated);
+      // User-defined
+      qx.lang.Object.mergeWith(requestHeaders, this.__requestHeaders);
 
       return requestHeaders;
     },
@@ -512,36 +498,6 @@ qx.Class.define("qx.io.request.AbstractRequest",
       }
     },
 
-    // DEPRECATION OF requestHeaders PROPERTY.
-
-    /**
-     * Sets the user value of the property <code>requestHeaders</code>.
-     *
-     * @deprecated since 1.6.
-     *
-     * @param value {Map} New value for property <code>requestHeaders</code>.
-     */
-    setRequestHeaders: function(value) {
-      qx.log.Logger.deprecatedMethodWarning(
-        arguments.callee, "Please use setRequestHeader() instead.");
-
-      qx.core.Assert.assertObject(value);
-      this.__requestHeadersDeprecated = value;
-    },
-
-    /**
-     * Returns the (computed) value of the property <code>requestHeaders</code>.
-     *
-     * @deprecated since 1.6.
-     *
-     * @return {Map} (Computed) value of <code>requestHeaders</code>.
-     */
-    getRequestHeaders: function() {
-      qx.log.Logger.deprecatedMethodWarning(
-        arguments.callee, "Please use getRequestHeader() instead.");
-
-      return this.__requestHeadersDeprecated;
-    },
 
     /*
     ---------------------------------------------------------------------------
@@ -663,6 +619,17 @@ qx.Class.define("qx.io.request.AbstractRequest",
     },
 
     /**
+     * Override the content type response header from response.
+     *
+     * @param contentType {String}
+     *   Content type for overriding.
+     * @see qx.bom.request.Xhr#overrideMimeType
+     */
+    overrideResponseContentType: function(contentType) {
+      return this._transport.overrideMimeType(contentType);
+    },
+
+    /**
      * Get the content type response header from response.
      *
      * @return {String}
@@ -718,8 +685,7 @@ qx.Class.define("qx.io.request.AbstractRequest",
      * Handle "readyStateChange" event.
      */
     _onReadyStateChange: function() {
-      var parsedResponse,
-          readyState = this.getReadyState();
+      var readyState = this.getReadyState();
 
       if (qx.core.Environment.get("qx.debug.io")) {
         this.debug("Fire readyState: " + readyState);
@@ -762,13 +728,19 @@ qx.Class.define("qx.io.request.AbstractRequest",
         if (qx.core.Environment.get("qx.debug.io")) {
           this.debug("Response is of type: '" + this.getResponseContentType() + "'");
         }
-        parsedResponse = this._getParsedResponse();
-        this._setResponse(parsedResponse);
+
+        this._setResponse(this._getParsedResponse());
 
         this._fireStatefulEvent("success");
 
       // Erroneous HTTP status
       } else {
+
+        try {
+          this._setResponse(this._getParsedResponse());
+        } catch (e) {
+          // ignore if it does not work
+        }
 
         // A remote error failure
         if (this.getStatus() !== 0) {
@@ -859,16 +831,17 @@ qx.Class.define("qx.io.request.AbstractRequest",
     },
 
     /**
-     * Serialize data
+     * Serialize data.
      *
      * @param data {String|Map|qx.core.Object} Data to serialize.
-     * @return {String} Serialized data.
+     * @return {String|null} Serialized data.
      */
     _serializeData: function(data) {
-      var isPost = typeof this.getMethod !== "undefined" && this.getMethod() == "POST";
+      var isPost = typeof this.getMethod !== "undefined" && this.getMethod() == "POST",
+          isJson = (/application\/.*\+?json/).test(this.getRequestHeader("Content-Type"));
 
       if (!data) {
-        return;
+        return null;
       }
 
       if (qx.lang.Type.isString(data)) {
@@ -879,39 +852,12 @@ qx.Class.define("qx.io.request.AbstractRequest",
         return qx.util.Serializer.toUriParameter(data);
       }
 
+      if (isJson && (qx.lang.Type.isObject(data) || qx.lang.Type.isArray(data))) {
+        return qx.lang.Json.stringify(data);
+      }
+
       if (qx.lang.Type.isObject(data)) {
-        return qx.lang.Object.toUriParameter(data, isPost);
-      }
-    },
-
-    /**
-     * Set request headers.
-     */
-    __setUserRequestHeaders: function() {
-      var requestHeaders;
-
-      requestHeaders = this._getAllRequestHeaders();
-      if (requestHeaders) {
-        for (var key in requestHeaders) {
-          this._transport.setRequestHeader(key, requestHeaders[key]);
-        }
-      }
-    },
-
-    /**
-     * Set request headers by reading the request headers property.
-     *
-     * @deprecated since 1.6
-     */
-    __setUserRequestHeadersDeprecated: function() {
-      var requestHeaders;
-
-      // Evaluate requestHeaders property.
-      requestHeaders = this.__requestHeadersDeprecated;
-      if (requestHeaders) {
-        for (var key in requestHeaders) {
-          this._transport.setRequestHeader(key, requestHeaders[key]);
-        }
+        return qx.util.Uri.toParameter(data, isPost);
       }
     }
   },
@@ -930,7 +876,10 @@ qx.Class.define("qx.io.request.AbstractRequest",
       transport.onreadystatechange = transport.onload = transport.onloadend =
       transport.onabort = transport.ontimeout = transport.onerror = noop;
 
-      transport.dispose();
+      // [BUG #8315] dispose asynchronously to work with Sinon.js fake server
+      window.setTimeout(function() {
+        transport.dispose();
+      }, 0);
     }
   }
 });

@@ -19,7 +19,7 @@
 
 /**
  * A form virtual widget which allows a single selection. Looks somewhat like
- * a normal button, but opens a virtual list of items to select when clicking
+ * a normal button, but opens a virtual list of items to select when tapping
  * on it.
  *
  * @childControl spacer {qx.ui.core.Spacer} Flexible spacer widget.
@@ -30,7 +30,7 @@
 qx.Class.define("qx.ui.form.VirtualSelectBox",
 {
   extend : qx.ui.form.core.AbstractVirtualBox,
-
+  implement : qx.data.controller.ISelection,
 
   construct : function(model)
   {
@@ -41,8 +41,8 @@ qx.Class.define("qx.ui.form.VirtualSelectBox",
     this._createChildControl("arrow");
 
     // Register listener
-    this.addListener("mouseover", this._onMouseOver, this);
-    this.addListener("mouseout", this._onMouseOut, this);
+    this.addListener("pointerover", this._onPointerOver, this);
+    this.addListener("pointerout", this._onPointerOut, this);
 
     this.__bindings = [];
     this.initSelection(this.getChildControl("dropdown").getSelection());
@@ -82,24 +82,37 @@ qx.Class.define("qx.ui.form.VirtualSelectBox",
   },
 
 
+  events : {
+    /**
+     * This event is fired as soon as the content of the selection property changes, but
+     * this is not equal to the change of the selection of the widget. If the selection
+     * of the widget changes, the content of the array stored in the selection property
+     * changes. This means you have to listen to the change event of the selection array
+     * to get an event as soon as the user changes the selected item.
+     * <pre class="javascript">obj.getSelection().addListener("change", listener, this);</pre>
+     */
+    "changeSelection" : "qx.event.type.Data"
+  },
+
+
   members :
   {
-    /** {String} The search value to {@link #__preselect} an item. */
+    /** @type {String} The search value to {@link #__preselect} an item. */
     __searchValue : "",
 
 
     /**
-     * {qx.event.Timer} The time which triggers the search for pre-selection.
+     * @type {qx.event.Timer} The time which triggers the search for pre-selection.
      */
     __searchTimer : null,
 
 
-    /** {Array} Contains the id from all bindings. */
+    /** @type {Array} Contains the id from all bindings. */
     __bindings : null,
 
 
     // overridden
-    syncWidget : function()
+    syncWidget : function(jobs)
     {
       this._removeBindings();
       this._addBindings();
@@ -211,12 +224,12 @@ qx.Class.define("qx.ui.form.VirtualSelectBox",
 
 
     // overridden
-    _handleMouse : function(event)
+    _handlePointer : function(event)
     {
       this.base(arguments, event);
 
       var type = event.getType();
-      if (type === "click") {
+      if (type === "tap") {
         this.toggle();
       }
     },
@@ -241,7 +254,7 @@ qx.Class.define("qx.ui.form.VirtualSelectBox",
 
 
     /**
-     * Listener method for "mouseover" event.
+     * Listener method for "pointerover" event.
      *
      * <ul>
      * <li>Adds state "hovered"</li>
@@ -249,9 +262,9 @@ qx.Class.define("qx.ui.form.VirtualSelectBox",
      *   is set)</li>
      * </ul>
      *
-     * @param event {Event} Mouse event
+     * @param event {qx.event.type.Pointer} Pointer event
      */
-    _onMouseOver : function(event)
+    _onPointerOver : function(event)
     {
       if (!this.isEnabled() || event.getTarget() !== this) {
         return;
@@ -268,7 +281,7 @@ qx.Class.define("qx.ui.form.VirtualSelectBox",
 
 
     /**
-     * Listener method for "mouseout" event.
+     * Listener method for "pointerout" event.
      *
      * <ul>
      * <li>Removes "hovered" state</li>
@@ -276,9 +289,9 @@ qx.Class.define("qx.ui.form.VirtualSelectBox",
      *   is set)</li>
      * </ul>
      *
-     * @param event {Event} Mouse event
+     * @param event {qx.event.type.Pointer} Pointer event
      */
-    _onMouseOut : function(event)
+    _onPointerOut : function(event)
     {
       if (!this.isEnabled() || event.getTarget() !== this) {
         return;
@@ -318,14 +331,14 @@ qx.Class.define("qx.ui.form.VirtualSelectBox",
 
     /**
      * Preselects an item in the drop-down, when item starts with the
-     * __seachValue value.
+     * __searchValue value.
      */
     __preselect : function()
     {
       this.__searchTimer.stop();
 
       var searchValue = this.__searchValue;
-      if (searchValue == null || searchValue == "") {
+      if (searchValue === null || searchValue === "") {
         return;
       }
 
@@ -340,20 +353,24 @@ qx.Class.define("qx.ui.form.VirtualSelectBox",
       {
         var row = (i + startRow) % length;
         var item = model.getItem(list._lookup(row));
+        if (!item) {
+          // group items aren't in the model
+          continue;
+        }
         var value = item;
 
-        if (this.getLabelPath() != null)
+        if (this.getLabelPath())
         {
-          value = qx.data.SingleValueBinding.getValueFromObject(item,
+          value = qx.data.SingleValueBinding.resolvePropertyChain(item,
             this.getLabelPath());
 
           var labelOptions = this.getLabelOptions();
-          if (labelOptions != null)
+          if (labelOptions)
           {
             var converter = qx.util.Delegate.getMethod(labelOptions,
               "converter");
 
-            if (converter != null) {
+            if (converter) {
               value = converter(value, item);
             }
           }
@@ -395,6 +412,6 @@ qx.Class.define("qx.ui.form.VirtualSelectBox",
 
     this.__searchTimer.removeListener("interval", this.__preselect, this);
     this.__searchTimer.dispose();
-    this.__searchTimer == null;
+    this.__searchTimer = null;
   }
 });

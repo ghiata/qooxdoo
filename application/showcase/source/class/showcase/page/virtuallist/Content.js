@@ -18,8 +18,11 @@
 ************************************************************************ */
 
 /* ************************************************************************
-#asset(showcase/virtuallist/imicons/*)
 ************************************************************************ */
+/**
+ *
+ * @asset(showcase/virtuallist/imicons/*)
+ */
 
 qx.Class.define("showcase.page.virtuallist.Content",
 {
@@ -175,7 +178,7 @@ qx.Class.define("showcase.page.virtuallist.Content",
       {
         var layout = new qx.ui.layout.Grid(5, 10);
 
-        var win = new qx.ui.window.Window("Add user", "icon/16/actions/list-add.png");
+        var win = new qx.ui.window.Window("Add user", "showcase/virtuallist/imicons/user_add.png");
 
         win.set({
           width : 165,

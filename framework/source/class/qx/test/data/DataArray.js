@@ -277,6 +277,16 @@ qx.Class.define("qx.test.data.DataArray",
     },
 
 
+    testLastIndexOf: function() {
+      this.__a.push("one");
+      this.__a.push("two");
+      this.__a.push("three");
+      this.assertEquals(3, this.__a.lastIndexOf("one"), "lastIndexOf does not work!");
+      this.assertEquals(4, this.__a.lastIndexOf("two"), "lastIndexOf does not work!");
+      this.assertEquals(5, this.__a.lastIndexOf("three"), "lastIndexOf does not work!");
+    },
+
+
     testCopy: function(attribute) {
       var a = this.__a.copy();
       // change the original array
@@ -364,8 +374,8 @@ qx.Class.define("qx.test.data.DataArray",
         self.assertEquals(0, e.getData().start, "Wrong start index in the event.");
         self.assertEquals(1, e.getData().end, "Wrong end index in the event.");
         self.assertEquals("remove", e.getData().type, "Wrong type in the event.");
-        self.assertEquals("a", e.getData().items[0]);
-        self.assertEquals("b", e.getData().items[1]);
+        self.assertEquals("a", e.getData().removed[0]);
+        self.assertEquals("b", e.getData().removed[1]);
       }, "Change event not fired!");
 
       this.assertEquals(0, this.__a.length, "RemoveAll does not work.");
@@ -447,7 +457,7 @@ qx.Class.define("qx.test.data.DataArray",
         self.assertEquals(1, e.getData().start, "Wrong start index in the event.");
         self.assertEquals(1, e.getData().end, "Wrong end index in the event.");
         self.assertEquals("remove", e.getData().type, "Wrong type in the event.");
-        self.assertEquals(3, e.getData().items[0], "Wrong removed array in the event.");
+        self.assertEquals(3, e.getData().removed[0], "Wrong removed array in the event.");
       }, "Change event not fired!");
       a.dispose();
     },
@@ -462,7 +472,7 @@ qx.Class.define("qx.test.data.DataArray",
         self.assertEquals(3, e.getData().start, "Wrong start index in the event.");
         self.assertEquals(3, e.getData().end, "Wrong end index in the event.");
         self.assertEquals("add", e.getData().type, "Wrong type in the event.");
-        self.assertEquals(4, e.getData().items[0], "Wrong item array in the event.");
+        self.assertEquals(4, e.getData().added[0], "Wrong item array in the event.");
       }, "Change event not fired!");
       a.dispose();
     },
@@ -477,8 +487,8 @@ qx.Class.define("qx.test.data.DataArray",
         self.assertEquals(3, e.getData().start, "Wrong start index in the event.");
         self.assertEquals(4, e.getData().end, "Wrong end index in the event.");
         self.assertEquals("add", e.getData().type, "Wrong type in the event.");
-        self.assertEquals(4, e.getData().items[0], "Wrong item array in the event.");
-        self.assertEquals(5, e.getData().items[1], "Wrong item array in the event.");
+        self.assertEquals(4, e.getData().added[0], "Wrong item array in the event.");
+        self.assertEquals(5, e.getData().added[1], "Wrong item array in the event.");
       }, "Change event not fired!");
       a.dispose();
     },
@@ -493,7 +503,7 @@ qx.Class.define("qx.test.data.DataArray",
         self.assertEquals(0, e.getData().start, "Wrong start index in the event.");
         self.assertEquals(1, e.getData().end, "Wrong end index in the event.");
         self.assertEquals("remove", e.getData().type, "Wrong type in the event.");
-        self.assertEquals(1, e.getData().items[0], "Wrong item in the event.");
+        self.assertEquals(1, e.getData().removed[0], "Wrong item in the event.");
       }, "Change event not fired!");
       a.dispose();
     },
@@ -508,37 +518,137 @@ qx.Class.define("qx.test.data.DataArray",
         self.assertEquals(0, e.getData().start, "Wrong start index in the event.");
         self.assertEquals(3, e.getData().end, "Wrong end index in the event.");
         self.assertEquals("add", e.getData().type, "Wrong type in the event.");
-        self.assertEquals(0, e.getData().items[0], "Wrong item in the event.");
+        self.assertEquals(0, e.getData().added[0], "Wrong item in the event.");
       }, "Change event not fired!");
       a.dispose();
     },
 
     testSpliceEvent: function() {
       // test for the event (remove)
-      var a = new qx.data.Array(1, 2, 3);
+      var a = new qx.data.Array("a", "b", "c", "d", "e");
       var self = this;
       this.assertEventFired(a, "change", function () {
-        a.splice(1, 1).dispose();
+        a.splice(1, 2).dispose();
       }, function(e) {
-        self.assertEquals(1, e.getData().start, "Wrong start index in the event.");
-        self.assertEquals(1, e.getData().end, "Wrong end index in the event.");
-        self.assertEquals("remove", e.getData().type, "Wrong type in the event.");
-        self.assertEquals(2, e.getData().items[0], "Wrong item in the event.");
+        self.assertEquals(1, e.getData().start, "Wrong start index in the event (remove).");
+        self.assertEquals(2, e.getData().end, "Wrong end index in the event (remove).");
+        self.assertEquals("remove", e.getData().type, "Wrong type in the event (remove).");
+        self.assertEquals("b", e.getData().removed[0], "Wrong item in the event (remove).");
+        self.assertEquals("c", e.getData().removed[1], "Wrong item in the event (remove).");
+        self.assertEquals(2, e.getData().removed.length, "Wrong item in the event (remove).");
+        self.assertEquals(0, e.getData().added.length, "Wrong item in the event (remove).");
       }, "Change event not fired!");
       a.dispose();
 
       // test for the event (add)
-      a = new qx.data.Array(1, 2, 3);
+      a = new qx.data.Array("a", "b", "c");
       this.assertEventFired(a, "change", function () {
-        a.splice(0, 0, 0).dispose();
+        a.splice(0, 0, "x").dispose();
       }, function(e) {
-        self.assertEquals(0, e.getData().start, "Wrong start index in the event.");
-        self.assertEquals(3, e.getData().end, "Wrong end index in the event.");
-        self.assertEquals("add", e.getData().type, "Wrong type in the event.");
-        self.assertNull(e.getData().items, "Wrong type in the event.");
+        self.assertEquals(0, e.getData().start, "Wrong start index in the event. (add)");
+        self.assertEquals(1, e.getData().end, "Wrong end index in the event. (add)");
+        self.assertEquals("add", e.getData().type, "Wrong type in the event. (add)");
+        self.assertEquals("x", e.getData().added[0], "Wrong items in the event. (add)");
+        self.assertEquals(1, e.getData().added.length, "Wrong amount of items in the event. (add)");
+        self.assertEquals(0, e.getData().removed.length, "Wrong amount of items in the event. (add)");
+      }, "Change event not fired!");
+      a.dispose();
+
+      // test for the event (add/remove)
+      a = new qx.data.Array("a", "b", "c");
+      this.assertEventFired(a, "change", function () {
+        a.splice(0, 1, "x").dispose();
+      }, function(e) {
+        self.assertEquals(0, e.getData().start, "Wrong start index in the event. (add/remove)");
+        self.assertEquals(0, e.getData().end, "Wrong end index in the event. (add/remove)");
+        self.assertEquals("add/remove", e.getData().type, "Wrong type in the event. (add/remove)");
+        self.assertEquals("x", e.getData().added[0], "Wrong items in the event. (add/remove)");
+        self.assertEquals(1, e.getData().added.length, "Wrong amount of items in the event. (add/remove)");
+        self.assertEquals("a", e.getData().removed[0], "Wrong items in the event. (add/remove)");
+        self.assertEquals(1, e.getData().removed.length, "Wrong amount of items in the event. (add/remove)");
       }, "Change event not fired!");
       a.dispose();
     },
+
+    testSpliceBubbleEvent: function() {
+      // test for the event (remove)
+      var a = new qx.data.Array("a", "b", "c", "d", "e");
+      var self = this;
+      this.assertEventFired(a, "changeBubble", function () {
+        a.splice(1, 2).dispose();
+      }, function(e) {
+        var data = e.getData();
+        self.assertEquals(0, data.value.length, "Wrong amount of item(s) added in the bubble event (remove).");
+        self.assertEquals(2, data.old.length, "Wrong amount of item(s) removed in the bubble event (remove).");
+        self.assertEquals("1-2", data.name, "Wrong name in the bubble event (remove).");
+      }, "changeBubble event not fired!");
+      a.dispose();
+
+      // test for the event (add)
+      a = new qx.data.Array("a", "b", "c");
+      this.assertEventFired(a, "changeBubble", function () {
+        a.splice(0, 0, "x").dispose();
+      }, function(e) {
+        var data = e.getData();
+        self.assertEquals(1, data.value.length, "Wrong amount of item(s) added in the bubble event (add).");
+        self.assertEquals(0, data.old.length, "Wrong amount of item(s) removed in the bubble event (add).");
+        self.assertEquals("0", data.name, "Wrong name in the bubble event (add).");
+      }, "changeBubble event not fired!");
+      a.dispose();
+
+      // test for the event (add/remove)
+      a = new qx.data.Array("a", "b", "c");
+      this.assertEventFired(a, "changeBubble", function () {
+        a.splice(0, 1, "x").dispose();
+      }, function(e) {
+        var data = e.getData();
+        self.assertEquals(1, data.value.length, "Wrong amount of item(s) added in the bubble event (add/remove).");
+        self.assertEquals(1, data.old.length, "Wrong amount of item(s) removed in the bubble event (add/remove).");
+        self.assertEquals("0", data.name, "Wrong name in the bubble event (add/remove).");
+      }, "changeBubble event not fired!");
+      a.dispose();
+    },
+
+
+    testSpliceEventNoChange: function() {
+      var a = new qx.data.Array(1, 2, 3);
+      this.assertEventNotFired(a, "change", function () {
+        a.splice(0, 0).dispose();
+      }, "Change event fired!");
+
+      a.dispose();
+    },
+
+
+    testSpliceEventEqualContent: function() {
+      var a = new qx.data.Array(1, 2, 3);
+      this.assertEventNotFired(a, "change", function () {
+        a.splice(0, 2, 1, 2).dispose();
+      }, "Change event fired!");
+
+      a.dispose();
+    },
+
+
+    testSpliceBubbleEventNoChange: function() {
+      var a = new qx.data.Array(1, 2, 3);
+      this.assertEventNotFired(a, "changeBubble", function () {
+        a.splice(0, 0).dispose();
+      }, "Change bubble event fired!");
+
+      a.dispose();
+    },
+
+
+    testSpliceBubbleEventEqualContent: function() {
+      var a = new qx.data.Array(1, 2, 3);
+      this.assertEventNotFired(a, "changeBubble", function () {
+        a.splice(0, 2, 1, 2).dispose();
+      }, "Change bubble event fired!");
+
+      a.dispose();
+    },
+
 
     testSetItemEvent: function() {
       // test for the event
@@ -550,8 +660,11 @@ qx.Class.define("qx.test.data.DataArray",
       }, function(e) {
         self.assertEquals(0, e.getData().start, "Wrong start index in the event.");
         self.assertEquals(0, e.getData().end, "Wrong end index in the event.");
-        self.assertEquals("add", e.getData().type, "Wrong type in the event.");
-        self.assertEquals(4, e.getData().items[0], "Wrong item in the event.");
+        self.assertEquals("add/remove", e.getData().type, "Wrong type in the event.");
+        self.assertEquals(4, e.getData().added[0], "Wrong item in the event.");
+        self.assertEquals(1, e.getData().added.length, "Wrong item in the event.");
+        self.assertEquals(1, e.getData().removed[0], "Wrong item in the event.");
+        self.assertEquals(1, e.getData().removed.length, "Wrong item in the event.");
       }, "Change event not fired!");
 
       // set the same thing again and check if we get a second event
@@ -617,6 +730,103 @@ qx.Class.define("qx.test.data.DataArray",
       this.__a.setAutoDisposeItems(true);
       this.__a.dispose();
       this.assertTrue(o.isDisposed());
+    },
+
+
+    testFilter : function() {
+      var self = this;
+      var b = this.__a.filter(function(item, index, array) {
+        self.assertEquals(self, this);
+        self.assertString(item);
+        self.assertNumber(index);
+        self.assertEquals(self.__a.toArray(), array);
+        return item == "one" || item == "three";
+      }, this);
+
+      this.assertEquals(2, b.length);
+      this.assertEquals("one", b.getItem(0));
+      this.assertEquals("three", b.getItem(1));
+
+      b.dispose();
+    },
+
+
+    testMap : function() {
+      var self = this;
+      var b = this.__a.map(function(item, index, array) {
+        self.assertEquals(self, this);
+        self.assertString(item);
+        self.assertNumber(index);
+        self.assertEquals(self.__a.toArray(), array);
+        return item + "!";
+      }, this);
+
+      this.assertEquals(3, b.length);
+      this.assertEquals("one!", b.getItem(0));
+      this.assertEquals("two!", b.getItem(1));
+      this.assertEquals("three!", b.getItem(2));
+
+      b.dispose();
+    },
+
+
+    testSome : function() {
+      var self = this;
+      this.assertTrue(this.__a.some(function(item, index, array) {
+        self.assertEquals(self, this);
+        self.assertString(item);
+        self.assertNumber(index);
+        self.assertEquals(self.__a.toArray(), array);
+        return item == "one";
+      }, this));
+
+      this.assertFalse(this.__a.some(function(item, index, array) {
+        return item == "xxx";
+      }, this));
+    },
+
+
+    testEvery : function() {
+      var self = this;
+      this.assertTrue(this.__a.every(function(item, index, array) {
+        self.assertEquals(self, this);
+        self.assertString(item);
+        self.assertNumber(index);
+        self.assertEquals(self.__a.toArray(), array);
+        return ["one", "two", "three"].indexOf(item) >= 0;
+      }, this));
+
+      this.assertFalse(this.__a.every(function(item, index, array) {
+        return item == "one";
+      }, this));
+    },
+
+
+    testReduce : function() {
+      var self = this;
+      var reduced = this.__a.reduce(function(previousValue, currentValue, index, array) {
+        self.assertString(previousValue);
+        self.assertString(currentValue);
+        self.assertNumber(index);
+        self.assertEquals(self.__a.toArray(), array);
+        return previousValue + currentValue;
+      }, "---");
+
+      this.assertEquals("---onetwothree", reduced);
+    },
+
+
+    testReduceRight : function() {
+      var self = this;
+      var reduced = this.__a.reduceRight(function(previousValue, currentValue, index, array) {
+        self.assertString(previousValue);
+        self.assertString(currentValue);
+        self.assertNumber(index);
+        self.assertEquals(self.__a.toArray(), array);
+        return previousValue + currentValue;
+      }, "---");
+
+      this.assertEquals("---threetwoone", reduced);
     }
   }
 });

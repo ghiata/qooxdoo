@@ -1,6 +1,12 @@
 Development
 ***********
 
+This section touches on various aspects and tools related to development
+activities with %{qooxdoo}. Topics range from the various %{qooxdoo} application
+types, over discussions of performance, unit testing and debugging, to
+internationalization and parts, a specific means to partition and lazily load
+application components.
+
 Application Creation
 ====================
 
@@ -8,6 +14,7 @@ Application Creation
   :maxdepth: 2
 
   development/skeletons
+  development/develop_how_to
 
 
 Debugging
@@ -38,9 +45,19 @@ Testing
 
    development/unit_testing
    development/frame_apps_testrunner
-   development/framework_unit_testing
    development/simulator
    development/simulator_locators
+
+
+Code Organisation
+=================
+
+.. toctree::
+   :maxdepth: 1
+
+   development/code_organisation
+   development/library_custom
+   development/contrib
 
 
 Parts
@@ -56,7 +73,7 @@ Parts
 Further Resources
 -----------------
 
-* :ref:`Generator Configuration <pages/tool/generator_config_ref#packages>`
+* :ref:`Generator Configuration <pages/tool/generator/generator_config_ref#packages>`
 * `qooxdoo API <http://demo.qooxdoo.org/%{version}/apiviewer/index.html#qx.io.PartLoader>`_
 
 
@@ -68,6 +85,18 @@ Internationalization
 
    Internationalization, Localization <development/internationalization>
 
+* :doc:`PO File Cheat Sheet <tool/translation/po_format>`
+
+
+Documenting Code
+=================
+
+.. toctree::
+   :maxdepth: 2
+
+   development/write_api_documentation
+   development/api_jsdoc_ref
+   development/api_jsdoc_at_ignore
 
 Miscellaneous
 =============
@@ -76,11 +105,7 @@ Miscellaneous
    :maxdepth: 2
 
    development/image_clipping_and_combining
-
-   development/write_api_documentation
    development/reporting_bugs
-
    development/aspects_template
-
    development/internet_explorer_specific_settings
 

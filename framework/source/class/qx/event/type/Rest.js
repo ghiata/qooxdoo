@@ -18,8 +18,6 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * Rest event object.
  */
 qx.Class.define("qx.event.type.Rest",
@@ -47,6 +45,13 @@ qx.Class.define("qx.event.type.Rest",
      */
     phase: {
       check: "String"
+    },
+
+    /**
+     * The id of the request.
+     */
+    id: {
+      check: "Number"
     }
   },
 
@@ -74,6 +79,9 @@ qx.Class.define("qx.event.type.Rest",
       this.setRequest(request);
       this.setAction(action);
       this.setPhase(phase);
+      this.setId(parseInt(request.toHashCode(), 10));
+
+      return this;
     },
 
     /**

@@ -39,12 +39,12 @@ qx.Class.define("qx.ui.popup.Manager",
   {
     this.base(arguments);
 
-    // Create data structure, use an array becasue order matters [BUG #4323]
+    // Create data structure, use an array because order matters [BUG #4323]
     this.__objects = [];
 
-    // Register mousedown handler
-    qx.event.Registration.addListener(document.documentElement, "mousedown",
-                                      this.__onMouseDown, this, true);
+    // Register pointerdown handler
+    qx.event.Registration.addListener(document.documentElement, "pointerdown",
+                                      this.__onPointerDown, this, true);
 
     // Hide all popups on window blur
     qx.bom.Element.addListener(window, "blur", this.hideAll, this);
@@ -97,10 +97,8 @@ qx.Class.define("qx.ui.popup.Manager",
         }
       }
 
-      if (this.__objects) {
-        qx.lang.Array.remove(this.__objects, obj)
-        this.__updateIndexes();
-      }
+      qx.lang.Array.remove(this.__objects, obj);
+      this.__updateIndexes();
     },
 
 
@@ -110,13 +108,12 @@ qx.Class.define("qx.ui.popup.Manager",
      */
     hideAll : function()
     {
-      var current;
-      var objects = this.__objects;
+      var l = this.__objects.length, current = {};
 
-      if (objects) {
-        for (var i = 0, l = objects.length; i < l; i++) {
-          var current = objects[i];
-          current.getAutoHide() && current.exclude();
+      while (l--) {
+        current = this.__objects[l];
+        if (current.getAutoHide()) {
+          current.exclude();
         }
       }
     },
@@ -134,7 +131,6 @@ qx.Class.define("qx.ui.popup.Manager",
      * Updates the zIndex of all registered items to push
      * newly added ones on top of existing ones
      *
-     * @return {void}
      */
     __updateIndexes : function()
     {
@@ -154,16 +150,16 @@ qx.Class.define("qx.ui.popup.Manager",
     */
 
     /**
-     * Event handler for mouse down events
+     * Event handler for pointer down events
      *
-     * @param e {qx.event.type.Mouse} Mouse event object
+     * @param e {qx.event.type.Pointer} Pointer event object
      */
-    __onMouseDown : function(e)
+    __onPointerDown : function(e)
     {
       // Get the corresponding widget of the target since we are dealing with
       // DOM elements here. This is necessary because we have to be aware of
       // Inline applications which are not covering the whole document and
-      // therefore are not able to get all mouse events when only the
+      // therefore are not able to get all pointer events when only the
       // application root is monitored.
       var target = qx.ui.core.Widget.getWidgetByElement(e.getTarget());
 
@@ -191,8 +187,8 @@ qx.Class.define("qx.ui.popup.Manager",
 
   destruct : function()
   {
-    qx.event.Registration.removeListener(document.documentElement, "mousedown",
-                                         this.__onMouseDown, this, true);
+    qx.event.Registration.removeListener(document.documentElement, "pointerdown",
+                                         this.__onPointerDown, this, true);
 
     this._disposeArray("__objects");
   }

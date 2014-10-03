@@ -26,6 +26,7 @@ qx.Class.define("qx.test.util.DateFormat",
 
   // result contain an object with what should be expected, the result to test the date against
   __dates : [
+    {'date' : new Date(2000, 2, 14), 'result' : {}},
     {'date' : new Date(2006, 2, 14), 'result' : {}},
     {'date' : new Date(2007, 3, 14), 'result' : {}},
     {'date' : new Date(2009, 10, 30), 'result' : {}},
@@ -45,7 +46,10 @@ qx.Class.define("qx.test.util.DateFormat",
     {'date' : new Date(2011,0,4,0,9,9), 'result' : {'h_hour': 12, 'K_hour': 0, 'H_hour': 0, 'k_hour': 24}},
     {'date' : new Date(2011,0,4,12,9,9), 'result' : {'h_hour': 12, 'K_hour': 0, 'H_hour': 12, 'k_hour': 12}},
     {'date' : new Date(2010,12,4,0,0,0), 'result' : {'h_hour': 12, 'K_hour': 0, 'H_hour': 0, 'k_hour': 24}},
-    {'date' : new Date(-20,10,14), 'result' : {'era': {'abbrev': 'BC', 'fullName': 'Before Christ', 'narrow': 'B'}}}
+    {'date' : new Date(-20,10,14), 'result' : {'era': {'abbrev': 'BC', 'fullName': 'Before Christ', 'narrow': 'B'}}},
+    {'date' : new Date(2012, 4, 24, 11, 49, 57, 1), 'result' : {}},
+    {'date' : new Date(2012, 4, 24, 11, 49, 57, 12), 'result' : {}},
+    {'date' : new Date(2012, 4, 24, 11, 49, 57, 123), 'result' : {}}
 
   ],
 
@@ -90,11 +94,7 @@ qx.Class.define("qx.test.util.DateFormat",
       dateFmt.dispose();
     },
 
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
+
     testDateParse : function()
     {
       for(var i=0; i<this.__dates.length; i++)
@@ -116,12 +116,65 @@ qx.Class.define("qx.test.util.DateFormat",
       }
 
     },
-    
+
     testInvalidDate : function()
     {
       var invalidDate = new Date("2011-11-32");
       var dateFmt = new qx.util.format.DateFormat();
       this.assertNull(dateFmt.format(invalidDate));
+      dateFmt.dispose();
+    },
+
+    testWeeksInDateParsing : function()
+    {
+      var dateFormat,
+          testDate,
+          parsedDate;
+
+      dateFormat = new qx.util.format.DateFormat("EEEE d MMMM yyyy ww");
+
+      testDate = (new Date(2014, 0, 1)).getTime();
+      parsedDate = dateFormat.parse("Wednesday 1 January 2014 01");
+      this.assertIdentical(testDate, parsedDate.getTime(), "ww - 01, should have been parsed");
+
+      try {
+        parsedDate = dateFormat.parse("Wednesday 1 January 2014 1");
+      } catch(e) {
+        parsedDate = new Date();
+      }
+
+      this.assertNotIdentical(testDate, parsedDate.getTime(), "ww - 1, should not have been parsed");
+
+      try {
+        parsedDate = dateFormat.parse("Wednesday 1 January 2014 ");
+      } catch(e) {
+        parsedDate = new Date();
+      }
+
+      this.assertNotIdentical(testDate, parsedDate.getTime(), "ww - '', should not have been parsed");
+
+      testDate = (new Date(2014, 4, 6)).getTime();
+      parsedDate = dateFormat.parse("Tuesday 6 May 2014 19");
+      this.assertIdentical(testDate, parsedDate.getTime(), "ww - 19, should have been parsed");
+
+      dateFormat = new qx.util.format.DateFormat("EEEE d MMMM yyyy w");
+      parsedDate = dateFormat.parse("Tuesday 6 May 2014 19");
+      this.assertIdentical(testDate, parsedDate.getTime(), "w - 19, should have been parsed");
+
+      testDate = (new Date(2014, 0, 1)).getTime();
+      parsedDate = dateFormat.parse("Wednesday 1 January 2014 01");
+      this.assertIdentical(testDate, parsedDate.getTime(), "w - 01, should have been parsed");
+
+      parsedDate = dateFormat.parse("Wednesday 1 January 2014 1");
+      this.assertIdentical(testDate, parsedDate.getTime(), "w - 1, should have been parsed");
+
+      try {
+        parsedDate = dateFormat.parse("Wednesday 1 January 2014 ");
+      } catch(e) {
+        parsedDate = new Date();
+      }
+
+      this.assertNotIdentical(testDate, parsedDate.getTime(), "w - '', should not have been parsed");
     },
 
     testTimeZone : function()
@@ -637,13 +690,8 @@ qx.Class.define("qx.test.util.DateFormat",
       for(var i=0; i<this.__dates.length; i++)
       {
         var date = this.__dates[i].date;
-        var msec = date.getMilliseconds() + "";
-        if(msec.length<2) {
-          msec = msec + "0";
-        }
-        if(msec.length<3) {
-          msec = msec + "00";
-        }
+        // pad milliseconds to become a fraction of second
+        var msec = this.__fillNumber(date.getMilliseconds(), 3);
 
         df = new qx.util.format.DateFormat("S");
         this.assertEquals(msec.substring(0,1), df.format(date));
@@ -655,6 +703,11 @@ qx.Class.define("qx.test.util.DateFormat",
 
         df = new qx.util.format.DateFormat("SSS");
         this.assertEquals(msec.substring(0,3), df.format(date));
+        df.dispose();
+
+        // check that remaining format specification is padded with zeros
+        df = new qx.util.format.DateFormat("SSSS");
+        this.assertEquals(msec.substring(0, 3) + "0", df.format(date));
         df.dispose();
       }
 

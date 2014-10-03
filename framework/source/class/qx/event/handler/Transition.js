@@ -76,10 +76,10 @@ qx.Class.define("qx.event.handler.Transition",
 
   statics :
   {
-    /** {Integer} Priority of this handler */
+    /** @type {Integer} Priority of this handler */
     PRIORITY : qx.event.Registration.PRIORITY_NORMAL,
 
-    /** {Map} Supported event types */
+    /** @type {Map} Supported event types */
     SUPPORTED_TYPES :
     {
       transitionEnd : 1,
@@ -88,55 +88,17 @@ qx.Class.define("qx.event.handler.Transition",
       animationIteration : 1
     },
 
-    /** {Integer} Which target check to use */
+    /** @type {Integer} Which target check to use */
     TARGET_CHECK : qx.event.IEventHandler.TARGET_DOMNODE,
 
-    /** {Integer} Whether the method "canHandleEvent" must be called */
+    /** @type {Integer} Whether the method "canHandleEvent" must be called */
     IGNORE_CAN_HANDLE : true,
 
     /** Mapping of supported event types to native event types */
-    TYPE_TO_NATIVE : qx.core.Environment.select("engine.name",
-    {
-      "webkit" :
-      {
-        transitionEnd : "webkitTransitionEnd",
-        animationEnd : "webkitAnimationEnd",
-        animationStart : "webkitAnimationStart",
-        animationIteration : "webkitAnimationIteration"
-      },
-
-      "gecko" :
-      {
-        transitionEnd : "mozTransitionEnd",
-        animationEnd : "mozAnimationEnd",
-        animationStart : "mozAnimationStart",
-        animationIteration : "mozAnimationIteration"
-      },
-
-      "default" : null
-    }),
+    TYPE_TO_NATIVE : null,
 
     /** Mapping of native event types to supported event types */
-    NATIVE_TO_TYPE : qx.core.Environment.select("engine.name",
-    {
-      "webkit" :
-      {
-        webkitTransitionEnd : "transitionEnd",
-        webkitAnimationEnd : "animationEnd",
-        webkitAnimationStart : "animationStart",
-        webkitAnimationIteration : "animationIteration"
-      },
-
-      "gecko" :
-      {
-        mozTransitionEnd : "transitionEnd",
-        mozAnimationEnd : "animationEnd",
-        mozAnimationStart : "animationStart",
-        mozAnimationIteration : "animationIteration"
-      },
-
-      "default" : null
-    })
+    NATIVE_TO_TYPE : null
   },
 
 
@@ -169,11 +131,49 @@ qx.Class.define("qx.event.handler.Transition",
 
     // interface implementation
     /**
+     * This method is called each time an event listener, for one of the
+     * supported events, is added using {@link qx.event.Manager#addListener}.
+     *
+     * @param target {var} The target to, which the event handler should
+     *     be attached
+     * @param type {String} event type
+     * @param capture {Boolean} Whether to attach the event to the
+     *         capturing phase or the bubbling phase of the event.
      * @signature function(target, type, capture)
      */
     registerEvent: qx.core.Environment.select("engine.name",
     {
-      "webkit|gecko" : function(target, type, capture)
+      "webkit" : function(target, type, capture)
+      {
+        var hash = qx.core.ObjectRegistry.toHashCode(target) + type;
+
+        var nativeType = qx.event.handler.Transition.TYPE_TO_NATIVE[type];
+
+        this.__registeredEvents[hash] =
+        {
+          target:target,
+          type : nativeType
+        };
+
+        qx.bom.Event.addNativeListener(target, nativeType, this.__onEventWrapper);
+      },
+
+      "gecko" : function(target, type, capture)
+      {
+        var hash = qx.core.ObjectRegistry.toHashCode(target) + type;
+
+        var nativeType = qx.event.handler.Transition.TYPE_TO_NATIVE[type];
+
+        this.__registeredEvents[hash] =
+        {
+          target:target,
+          type : nativeType
+        };
+
+        qx.bom.Event.addNativeListener(target, nativeType, this.__onEventWrapper);
+      },
+
+      "mshtml" : function(target, type, capture)
       {
         var hash = qx.core.ObjectRegistry.toHashCode(target) + type;
 
@@ -194,11 +194,54 @@ qx.Class.define("qx.event.handler.Transition",
 
     // interface implementation
     /**
+     * This method is called each time an event listener, for one of the
+     * supported events, is removed by using {@link qx.event.Manager#removeListener}
+     * and no other event listener is listening on this type.
+     *
+     * @param target {var} The target from, which the event handler should
+     *     be removed
+     * @param type {String} event type
+     * @param capture {Boolean} Whether to attach the event to the
+     *         capturing phase or the bubbling phase of the event.
      * @signature function(target, type, capture)
      */
     unregisterEvent: qx.core.Environment.select("engine.name",
     {
-      "webkit|gecko" : function(target, type, capture)
+      "webkit" : function(target, type, capture)
+      {
+        var events = this.__registeredEvents;
+
+        if (!events) {
+          return;
+        }
+
+        var hash = qx.core.ObjectRegistry.toHashCode(target) + type;
+
+        if (events[hash]) {
+          delete events[hash];
+        }
+
+        qx.bom.Event.removeNativeListener(target, qx.event.handler.Transition.TYPE_TO_NATIVE[type], this.__onEventWrapper);
+      },
+
+      "gecko" : function(target, type, capture)
+      {
+        var events = this.__registeredEvents;
+
+        if (!events) {
+          return;
+        }
+
+        var hash = qx.core.ObjectRegistry.toHashCode(target) + type;
+
+        if (events[hash]) {
+          delete events[hash];
+        }
+
+        qx.bom.Event.removeNativeListener(target, qx.event.handler.Transition.TYPE_TO_NATIVE[type], this.__onEventWrapper);
+      },
+
+      "mshtml" : function(target, type, capture)
       {
         var events = this.__registeredEvents;
 
@@ -274,6 +317,22 @@ qx.Class.define("qx.event.handler.Transition",
   */
 
   defer : function(statics) {
+    var aniEnv = qx.core.Environment.get("css.animation") || {};
+    var transEnv = qx.core.Environment.get("css.transition") || {};
+
+    var n2t = qx.event.handler.Transition.NATIVE_TO_TYPE = {};
+    var t2n = qx.event.handler.Transition.TYPE_TO_NATIVE = {
+      transitionEnd : transEnv["end-event"] || null,
+      animationStart : aniEnv["start-event"] || null,
+      animationEnd : aniEnv["end-event"] || null,
+      animationIteration : aniEnv["iteration-event"] || null
+    };
+
+    for (var type in t2n) {
+      var nate = t2n[type];
+      n2t[nate] = type;
+    }
+
     qx.event.Registration.addHandler(statics);
   }
 });

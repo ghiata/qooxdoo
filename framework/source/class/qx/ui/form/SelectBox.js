@@ -22,7 +22,22 @@
 
 /**
  * A form widget which allows a single selection. Looks somewhat like
- * a normal button, but opens a list of items to select when clicking on it.
+ * a normal button, but opens a list of items to select when tapping on it.
+ *
+ * Keep in mind that the SelectBox widget has always a selected item (due to the
+ * single selection mode). Right after adding the first item a <code>changeSelection</code>
+ * event is fired.
+ *
+ * <pre class='javascript'>
+ * var selectBox = new qx.ui.form.SelectBox();
+ *
+ * selectBox.addListener("changeSelection", function(e) {
+ *   // ...
+ * });
+ *
+ * // now the 'changeSelection' event is fired
+ * selectBox.add(new qx.ui.form.ListItem("Item 1"));
+ * </pre>
  *
  * @childControl spacer {qx.ui.core.Spacer} flexible spacer widget
  * @childControl atom {qx.ui.basic.Atom} shows the text and icon of the content
@@ -54,10 +69,10 @@ qx.Class.define("qx.ui.form.SelectBox",
     this._createChildControl("arrow");
 
     // Register listener
-    this.addListener("mouseover", this._onMouseOver, this);
-    this.addListener("mouseout", this._onMouseOut, this);
-    this.addListener("click", this._onClick, this);
-    this.addListener("mousewheel", this._onMouseWheel, this);
+    this.addListener("pointerover", this._onPointerOver, this);
+    this.addListener("pointerout", this._onPointerOut, this);
+    this.addListener("tap", this._onTap, this);
+
     this.addListener("keyinput", this._onKeyInput, this);
     this.addListener("changeSelection", this.__onChangeSelection, this);
   },
@@ -90,7 +105,7 @@ qx.Class.define("qx.ui.form.SelectBox",
 
   members :
   {
-    /** {qx.ui.form.ListItem} instance */
+    /** @type {qx.ui.form.ListItem} instance */
     __preSelectedItem : null,
 
 
@@ -229,15 +244,15 @@ qx.Class.define("qx.ui.form.SelectBox",
 
 
     /**
-     * Listener method for "mouseover" event
+     * Listener method for "pointerover" event
      * <ul>
      * <li>Adds state "hovered"</li>
      * <li>Removes "abandoned" and adds "pressed" state (if "abandoned" state is set)</li>
      * </ul>
      *
-     * @param e {Event} Mouse event
+     * @param e {qx.event.type.Pointer} Pointer event
      */
-    _onMouseOver : function(e)
+    _onPointerOver : function(e)
     {
       if (!this.isEnabled() || e.getTarget() !== this) {
         return;
@@ -252,16 +267,17 @@ qx.Class.define("qx.ui.form.SelectBox",
       this.addState("hovered");
     },
 
+
     /**
-     * Listener method for "mouseout" event
+     * Listener method for "pointerout" event
      * <ul>
      * <li>Removes "hovered" state</li>
      * <li>Adds "abandoned" and removes "pressed" state (if "pressed" state is set)</li>
      * </ul>
      *
-     * @param e {Event} Mouse event
+     * @param e {qx.event.type.Pointer} Pointer event
      */
-    _onMouseOut : function(e)
+    _onPointerOut : function(e)
     {
       if (!this.isEnabled() || e.getTarget() !== this) {
         return;
@@ -276,52 +292,16 @@ qx.Class.define("qx.ui.form.SelectBox",
       }
     },
 
+
     /**
      * Toggles the popup's visibility.
      *
-     * @param e {qx.event.type.Mouse} Mouse event
+     * @param e {qx.event.type.Pointer} Pointer event
      */
-    _onClick : function(e) {
+    _onTap : function(e) {
       this.toggle();
     },
 
-    /**
-     * Event handler for mousewheel event
-     *
-     * @param e {qx.event.type.Mouse} Mouse event
-     */
-    _onMouseWheel : function(e)
-    {
-      if (this.getChildControl("popup").isVisible()) {
-        return;
-      }
-
-      var direction = e.getWheelDelta("y") > 0 ? 1 : -1;
-      var children = this.getSelectables();
-      var selected = this.getSelection()[0];
-
-      if (!selected) {
-        selected = children[0];
-      }
-
-      var index = children.indexOf(selected) + direction;
-      var max = children.length - 1;
-
-      // Limit
-      if (index < 0) {
-        index = 0;
-      } else if (index >= max) {
-        index = max;
-      }
-
-      this.setSelection([children[index]]);
-
-      // stop the propagation
-      // prevent any other widget from receiving this event
-      // e.g. place a selectbox widget inside a scroll container widget
-      e.stopPropagation();
-      e.preventDefault();
-    },
 
     // overridden
     _onKeyPress : function(e)
@@ -360,8 +340,9 @@ qx.Class.define("qx.ui.form.SelectBox",
       this.getChildControl("list").dispatchEvent(clone);
     },
 
+
     // overridden
-    _onListMouseDown : function(e)
+    _onListPointerDown : function(e)
     {
       // Apply pre-selected item (translate quick selection to real selection)
       if (this.__preSelectedItem)
@@ -370,6 +351,7 @@ qx.Class.define("qx.ui.form.SelectBox",
         this.__preSelectedItem = null;
       }
     },
+
 
     // overridden
     _onListChangeSelection : function(e)
@@ -387,7 +369,7 @@ qx.Class.define("qx.ui.form.SelectBox",
 
       if (current.length > 0)
       {
-        // Ignore quick context (e.g. mouseover)
+        // Ignore quick context (e.g. pointerover)
         // and configure the new value when closing the popup afterwards
         var popup = this.getChildControl("popup");
         var list = this.getChildControl("list");

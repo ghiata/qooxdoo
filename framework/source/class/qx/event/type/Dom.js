@@ -30,16 +30,16 @@ qx.Class.define("qx.event.type.Dom",
 
   statics :
   {
-    /** {Integer} The modifier mask for the shift key. */
+    /** @type {Integer} The modifier mask for the shift key. */
     SHIFT_MASK : 1,
 
-    /** {Integer} The modifier mask for the control key. */
+    /** @type {Integer} The modifier mask for the control key. */
     CTRL_MASK  : 2,
 
-    /** {Integer} The modifier mask for the alt key. */
+    /** @type {Integer} The modifier mask for the alt key. */
     ALT_MASK   : 4,
 
-    /** {Integer} The modifier mask for the meta key (e.g. apple key on Macs). */
+    /** @type {Integer} The modifier mask for the meta key (e.g. apple key on Macs). */
     META_MASK  : 8
   },
 
@@ -135,7 +135,12 @@ qx.Class.define("qx.event.type.Dom",
      */
     isCtrlOrCommandPressed : function()
     {
-      if (qx.core.Environment.get("os.name") == "osx") {
+      // Opera seems to use ctrlKey for the cmd key so don't fix that for opera
+      // on mac [BUG #5884]
+      if (
+        qx.core.Environment.get("os.name") == "osx" &&
+        qx.core.Environment.get("engine.name") != "opera"
+      ) {
         return this._native.metaKey;
       } else {
         return this._native.ctrlKey;

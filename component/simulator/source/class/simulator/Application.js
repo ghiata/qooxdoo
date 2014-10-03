@@ -13,11 +13,11 @@
      See the LICENSE file in the project's top-level directory for details.
 
 ************************************************************************ */
-/* ************************************************************************
-#ignore(quit)
-************************************************************************ */
+
 /**
  * Simulator main application class.
+ *
+ * @deprecated{4.0}
  */
 qx.Class.define("simulator.Application", {
 
@@ -25,10 +25,6 @@ qx.Class.define("simulator.Application", {
 
   members :
   {
-
-    /**
-     * @lint ignoreUndefined(testrunner)
-     */
     main : function()
     {
       qx.log.Logger.register(qx.log.appender.RhinoConsole);
@@ -45,9 +41,9 @@ qx.Class.define("simulator.Application", {
       this._initLogFile();
       this.runner = new testrunner.runner.TestRunnerBasic();
       this.simulation = simulator.Simulation.getInstance();
-      
+
       this.runner.addListener("changeTestSuiteState", this._onChangeTestSuiteState, this);
-      
+
       // sync test suite loading
       if (this.runner.getTestSuiteState() === "ready") {
         this._runSuite();
@@ -56,15 +52,15 @@ qx.Class.define("simulator.Application", {
 
 
     /**
-     * Runs the suite once it's loaded. Also stops the Selenium session after 
+     * Runs the suite once it's loaded. Also stops the Selenium session after
      * the suite is finished or if there was an error during loading.
-     *  
-     * @lint ignoreUndefined(quit)
+     *
+     * @ignore(quit)
      * @param ev {qx.event.type.Data} The testrunner's changeTestSuiteState event
      */
     _onChangeTestSuiteState : function(ev) {
       var state = ev.getData();
-      
+
       switch(state) {
         // async test suite loading
         case "ready":
@@ -135,8 +131,8 @@ qx.Class.define("simulator.Application", {
         }
       }
     },
-    
-    
+
+
     /**
      * Creates a log file using {@link qx.log.appender.RhinoFile}
      */
@@ -154,7 +150,7 @@ qx.Class.define("simulator.Application", {
       }
     }
   },
-  
+
   /*
   *****************************************************************************
      DESTRUCTOR

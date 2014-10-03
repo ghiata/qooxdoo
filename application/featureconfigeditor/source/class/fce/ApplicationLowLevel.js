@@ -18,12 +18,13 @@
 ************************************************************************ */
 
 /* ************************************************************************
-#asset(fce/lowlevel/*)
-#use(feature-checks)
 ************************************************************************ */
 
 /**
  * Tool used to create configuration maps for feature-based builds
+ *
+ * @use(feature-checks)
+ * @asset(fce/lowlevel/*)
  */
 qx.Class.define("fce.ApplicationLowLevel",
 {
@@ -75,8 +76,8 @@ qx.Class.define("fce.ApplicationLowLevel",
     _applyFeatureSet : function(value, old)
     {
       if (value) {
-        var json = qx.lang.Json.stringify(value);
-        var htmlFormattedJson = json.replace(/{/, "{<br/>&nbsp;&nbsp;").replace(/}/, "<br/>}").replace(/,/g, ",<br/>&nbsp;&nbsp;").replace(/:/g, " : ");
+        var json = fce.Util.getFormattedJson(value);
+        var htmlFormattedJson = json.replace(/ /g, "&nbsp;").replace(/\n/g, "<br/>");
 
         var headerText = "qooxdoo detected client features for "
           + value["browser.name"] + " " + value["browser.version"]
@@ -84,19 +85,36 @@ qx.Class.define("fce.ApplicationLowLevel",
         var header = document.createElement("h1");
         header.innerHTML = headerText;
 
-        var out = document.createElement("div");
-        out.id = "out";
-        out.innerHTML = htmlFormattedJson;
-
-        var textFormattedJson = json.replace(/{/, "{\n  ").replace(/}/, "\n}").replace(/,/g, ",\n  ").replace(/:/g, " : ");
+        var mail = document.createElement("div");
         var mailTo = document.createElement("a");
         mailTo.innerHTML = "Send feature set data by email";
         var subject = encodeURIComponent(headerText);
-        var body = encodeURIComponent(navigator.userAgent + "\n\n" + textFormattedJson);
+        var body = encodeURIComponent("navigator.userAgent: " + navigator.userAgent + "\n\n" + json);
         mailTo.href = "mailto:?subject=" + subject + "&body=" + body;
+        mail.appendChild(mailTo);
+        var mailInfo = document.createTextNode(" (to an address of your choice)");
+        mail.appendChild(mailInfo);
+
+        var ria = document.createElement("div");
+        var riaLink = document.createElement("a");
+        riaLink.href = "?ria";
+        riaLink.innerHTML = "Launch full configuration editor";
+        ria.appendChild(riaLink);
+        var riaInfo = document.createTextNode(" (may not work on mobile devices)");
+        ria.appendChild(riaInfo);
+
+        var userAgent = document.createElement("div");
+        userAgent.className = "out";
+        userAgent.innerHTML = "navigator.userAgent: " + navigator.userAgent;
+
+        var out = document.createElement("div");
+        out.className = "out";
+        out.innerHTML = htmlFormattedJson;
 
         document.body.appendChild(header);
-        document.body.appendChild(mailTo);
+        document.body.appendChild(mail);
+        document.body.appendChild(ria);
+        document.body.appendChild(userAgent);
         document.body.appendChild(out);
       }
     }

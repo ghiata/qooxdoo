@@ -19,15 +19,16 @@
 #    * Andreas Ecker (ecker)
 #
 ################################################################################
+from __future__ import print_function
 
 import re, os, sys, shutil, logging, optparse
 import qxenviron
 from misc.ExtendAction import ExtendAction
 from misc import filetool, textutil, json
 from misc.ExtMap import ExtMap
-from ecmascript.frontend import tokenizer
-from ecmascript.frontend import treegenerator
-from ecmascript.backend  import pretty
+from ecmascript.frontend import tokenizer, lang
+from ecmascript.frontend import treegenerator_3 as treegenerator
+from ecmascript.backend  import formatter_3 as formatter_
 
 #sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), os.pardir, os.pardir, 'framework', 'tool'))
 
@@ -43,7 +44,7 @@ MIGRATION_ORDER = [
     "0.6.4",
     "0.6.5",
     "0.6.6",
-    "0.6.7",    
+    "0.6.7",
     "0.7-beta1",
     "0.7-beta2",
     "0.7-beta3",
@@ -75,9 +76,26 @@ MIGRATION_ORDER = [
     "1.4.1",
     "1.4.2",
     "1.5",
+    "1.5.1",
     "1.6",
+    "1.6.1",
+    "2.0",
+    "2.0.1",
+    "2.0.2",
+    "2.0.3",
+    "2.0.4",
+    "2.1",
+    "2.1.1",
+    "2.1.2",
+    "3.0",
+    "3.0.1",
+    "3.5",
+    "3.5.1",
+    "4.0",
+    "4.0.1"
 ]
 
+default_old_version = "3.5.1"
 
 LOGGING_READY = False
 
@@ -85,12 +103,20 @@ LOGGING_READY = False
 # QOOXDOO HEADER SUPPORT
 #
 
+def class_defines():
+    s = [r'(']
+    s.append('|'.join([re.escape(x) for x in lang.QX_CLASS_FACTORIES]))
+    s.append(r''')\s*\(\s*["'](%(id_chars)s+)["']?''' % {'id_chars': lang.IDENTIFIER_CHARS})
+    # r'''(qx.Class.define|...|q.define)\s*\(\s*["']((?u)[\.\w$]+)["']?'''
+    return re.compile(u''.join(s), re.M|re.U)
+
 QXHEAD = {
     # 0.6 class style
     "defineClass" : re.compile('qx.OO.defineClass\s*\(\s*["\']([\.a-zA-Z0-9_]+)["\'](\s*\,\s*([\.a-zA-Z0-9_]+))?', re.M),
 
     # 0.7 class style
-    "classDefine" : re.compile('qx.(Bootstrap|List|Class|Locale|Mixin|Interface|Theme).define\s*\(\s*["\']([\.a-zA-Z0-9_]+)["\']?', re.M),
+    #"classDefine" : re.compile('qx.(Bootstrap|List|Class|Locale|Mixin|Interface|Theme).define\s*\(\s*["\']([\.a-zA-Z0-9_]+)["\']?', re.M),
+    "classDefine" : class_defines(),
 
     # Loader hints
     "module"   : re.compile(r"^\s*#module\(\s*([\.a-zA-Z0-9_-]+?)\s*\)", re.M),
@@ -104,13 +130,6 @@ QXHEAD = {
     "embed"    : re.compile(r"^\s*#embed\(\s*([a-zA-Z0-9]+?)\.([a-zA-Z0-9]+?)/(.+?)\s*\)", re.M)
 }
 
-
-
-def extractFileContentId(data, fileId=""):
-    for item in QXHEAD["classDefine"].findall(data):
-        return item[1]
-
-    return None
 
 
 ##
@@ -204,14 +223,14 @@ def indexFile(filePath, filePathId, classPath, listIndex, classEncoding, classUr
         # Search for valid ID
         if fileContentId == None:
             if not filePathId.endswith("__init__"):
-                print "    - Could not extract ID from file: %s. Fallback to path %s!" % (filePath, filePathId)
+                print("    - Could not extract ID from file: {0}. Fallback to path {1}!".format(filePath, filePathId))
             fileId = filePathId
 
         else:
             fileId = fileContentId
 
         if fileId != filePathId:
-            print "    - ID mismatch: CONTENT=%s != PATH=%s" % (fileContentId, filePathId)
+            print("    - ID mismatch: CONTENT={0} != PATH={1}".format(fileContentId, filePathId))
             if not options.migrateSource:
                 sys.exit(1)
 
@@ -273,7 +292,7 @@ def extractLoadtimeDeps(data, fileId=""):
 
     for item in QXHEAD["require"].findall(data):
         if item == fileId:
-            print "    - Error: Self-referring load dependency: %s" % item
+            print("    - Error: Self-referring load dependency: {0}".format(item))
             sys.exit(1)
         else:
             deps.append(item)
@@ -286,7 +305,7 @@ def extractRuntimeDeps(data, fileId=""):
 
     for item in QXHEAD["use"].findall(data):
         if item == fileId:
-            print "    - Self-referring runtime dependency: %s" % item
+            print("    - Self-referring runtime dependency: {0}".format(item))
         else:
             deps.append(item)
 
@@ -365,9 +384,10 @@ def setupLogging(verbose=False):
 
 def entryCompiler(line):
     # protect escaped equal symbols
-    line = line.replace("\=", "----EQUAL----")
+    eq_sym = "----EQUAL----"
+    line = line.replace("\=", eq_sym)
 
-    splitLine = line.split("=")
+    splitLine = line.split("=", 1)
 
     if len(splitLine) < 2:
         logging.error("        - Malformed entry: %s" % line)
@@ -379,8 +399,8 @@ def entryCompiler(line):
     #print "%s :: %s" % (orig, value)
 
     # recover protected equal symbols
-    orig = orig.replace("----EQUAL----", "=")
-    repl = repl.replace("----EQUAL----", "=")
+    orig = orig.replace(eq_sym, "=")
+    repl = repl.replace(eq_sym, "=")
 
     return {"expr":re.compile(orig, re.M), "orig":orig, "repl":repl}
 
@@ -423,7 +443,7 @@ def getPatchDirectory():
 
 def getNeededUpdates(baseVersion):
     """
-    Returns an array of needed uptated to upgrade to the current version
+    Returns an array of needed updates to upgrade to the current version
     """
     return MIGRATION_ORDER[MIGRATION_ORDER.index(getNormalizedVersion(baseVersion))+1:]
 
@@ -473,7 +493,7 @@ def readPatchInfoFiles(baseDir):
     """
     Reads all patch/info files from a directory and compiles the containing
     regular expressions.
-    Retuns a list comiled RE (the output of entryCompiler)
+    Returns a list of compiled RE (the output of entryCompiler)
     """
     patchList = []
     emptyLine = re.compile("^\s*$")
@@ -544,7 +564,7 @@ def regtool(content, regs, patch, filePath):
 
 def migrateFile(
                 filePath, compiledPatches, compiledInfos,
-                hasPatchModule=False, options=None, encoding="UTF-8"):
+                patchFile, options=None, encoding="UTF-8"):
 
     logging.info("  - File: %s" % filePath)
 
@@ -556,16 +576,19 @@ def migrateFile(
     # Apply patches
     patchedContent = fileContent
 
-    if hasPatchModule and fileId is not None:
+    if patchFile and fileId is not None:
 
-        import patch
-        tree = treegenerator.createSyntaxTree(tokenizer.parseStream(fileContent))
+        #import patch
+        patch = {}
+        execfile(patchFile, patch)
+        tree = treegenerator.createFileTree(tokenizer.Tokenizer().parseStream(fileContent))
 
         # If there were any changes, compile the result
-        if patch.patch(fileId, tree):
+        if patch['patch'](fileId, tree):
             options.prettyPrint = True  # make sure it's set
             result = [u'']
-            result = pretty.prettyNode(tree, options, result)
+            #result = pretty.prettyNode(tree, options, result)
+            result = formatter_.formatNode(tree, options, result)
             patchedContent = u''.join(result)
 
     # apply RE patches
@@ -600,14 +623,14 @@ def migrate(fileList, options, migrationTarget,
 
 
     logging.debug("  * Searching for patch module...")
-    importedModule = False
     patchFile = getPatchModulePath(migrationTarget)
-    if patchFile is not None:
-        root = os.path.dirname(patchFile)
-        if not root in sys.path:
-            sys.path.insert(0, root)
+    #importedModule = False
+    #if patchFile is not None:
+    #    root = os.path.dirname(patchFile)
+    #    if not root in sys.path:
+    #        sys.path.insert(0, root)
 
-        importedModule = True
+    #    importedModule = True
 
     confPath = os.path.join(getPatchDirectory(), migrationTarget)
 
@@ -633,7 +656,7 @@ def migrate(fileList, options, migrationTarget,
         i = 0
         for filePath in fileList:
             migrateFile(filePath, compiledPatches, compiledInfos,
-                        importedModule, options=options,
+                        patchFile, options=options,
                         encoding=encodings[i])
             patchedFiles[os.path.abspath(filePath)] = True
             i += 1
@@ -750,9 +773,9 @@ def patchMakefile(makefilePath, newVersion, oldVersion):
 def migrateSingleFile(fileName, options, neededUpdates):
 
     if not os.path.isfile(fileName):
-        print """
-ERROR: The file '%s' could not be found.
-""" % fileName
+        print("""
+ERROR: The file '{0}' could not be found.
+""").format(fileName)
         sys.exit(1)
 
     #turn off logging
@@ -770,7 +793,7 @@ ERROR: The file '%s' could not be found.
     finally:
         # print migrated file
         for line in open(fileName):
-            print line,
+            print(line)
         #restore file
         shutil.copyfile(fileName + ".migration.bak", fileName)
 
@@ -796,8 +819,8 @@ def main():
     )
     migrator_options.add_option(
           "--from-version", dest="from_version",
-          metavar="VERSION", default="",
-          help="qooxdoo version used for the project e.g. '0.7.3'"
+          metavar="VERSION", default=str(default_old_version),
+          help="qooxdoo version used for the project e.g. '1.2.2'"
     )
     migrator_options.add_option(
           "--migrate-html",
@@ -838,29 +861,29 @@ def main():
     parser.add_option_group(pp_options)
 
     (options, args) = parser.parse_args()
-    pretty.defaultOptions(options)
+    #pretty.defaultOptions(options)
+    formatter_.defaultOptions(options)
 
-    default_old_version = "1.5"
-
-    while options.from_version == "":
+    from_version = ""
+    while from_version == "":
         choice = raw_input("""
 NOTE:    To apply only the necessary changes to your project, we
          need to know the qooxdoo version it currently works with.
 
-Please enter your current qooxdoo version [%s] : """ % default_old_version)
+Please enter your current qooxdoo version [%s] : """ % options.from_version)
 
         if choice == "":
-            options.from_version = default_old_version
+            from_version = options.from_version
         elif re.match(r'\d\.\d(\.\d)?', choice):
-            options.from_version = choice
+            from_version = options.from_version = choice
 
     if not isValidVersion(options.from_version):
-        print "\nERROR: The version '%s' is not a valid version string!\n" % options.from_version
+        print("\nERROR: The version '{0}' is not a valid version string!\n").format(options.from_version)
         sys.exit(1)
 
 
     if MIGRATION_ORDER[-1] == getNormalizedVersion(options.from_version):
-        print "\n Nothing to do. Your application is up to date!\n"
+        print("\n Nothing to do. Your application is up to date!\n")
         sys.exit()
 
     # to migrate a single file extract the class path
@@ -868,10 +891,10 @@ Please enter your current qooxdoo version [%s] : """ % default_old_version)
         options.classPath = [os.path.dirname(os.path.abspath(options.file))]
 
     if options.classPath == []:
-        print """
+        print("""
 ERROR: The class path is empty. Please specify the class pass using the
        --class-path option
-"""
+""")
         sys.exit(0)
 
 
@@ -905,21 +928,21 @@ ERROR: The class path is empty. Please specify the class pass using the
         listIndex += 1
 
 
-    print"""
+    print("""
 MIGRATION SUMMARY:
 
-Current qooxdoo version:   %s
-Upgrade path:              %s
+Current qooxdoo version:   {0}
+Upgrade path:              {1}
 
 Affected Classes:
-    %s""" % (options.from_version, " -> ".join(neededUpdates), "\n    ".join(fileDb.keys()))
+    {2}""".format(options.from_version, " -> ".join(neededUpdates), "\n    ".join(fileDb.keys())))
 
     if hasPatchModule:
-        print """
+        print("""
 WARNING: The JavaScript files will be pretty printed. You can customize the
          pretty printer using the PRETTY_PRINT_OPTIONS variable in your
          Makefile. You can find a complete list of pretty printing options
-         at http://qooxdoo.org/documentation/articles/code_style."""
+         at http://qooxdoo.org/documentation/articles/code_style.""")
 
     choice = raw_input("""
 NOTE:    It is advised to do a 'generate.py distclean' before migrating any files.
@@ -974,11 +997,11 @@ Do you want to start the migration now? [no] : """ % LOGFILE)
     if options.config is not None:
         patchConfig(options.config, neededUpdates)
 
-    print """
+    print("""
 
-The complete output of the migration process has been logged to the file '%s'.
+The complete output of the migration process has been logged to the file '{0}'.
 
-""" % LOGFILE
+""".format(LOGFILE))
 
 
 
@@ -991,6 +1014,6 @@ if __name__ == '__main__':
         main()
 
     except KeyboardInterrupt:
-        print
-        print "  * Keyboard Interrupt"
+        print()
+        print("  * Keyboard Interrupt")
         sys.exit(1)

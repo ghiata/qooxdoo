@@ -21,7 +21,7 @@
 /**
  * Cross browser abstractions to work with labels.
  */
-qx.Class.define("qx.bom.Label",
+qx.Bootstrap.define("qx.bom.Label",
 {
   /*
   *****************************************************************************
@@ -31,7 +31,7 @@ qx.Class.define("qx.bom.Label",
 
   statics :
   {
-    /** {Map} Contains all supported styles */
+    /** @type {Map} Contains all supported styles */
     __styles :
     {
       fontFamily : 1,
@@ -78,7 +78,7 @@ qx.Class.define("qx.bom.Label",
      */
     __createMeasureElement : function(html)
     {
-      var el = qx.bom.Element.create("div");
+      var el = qx.dom.Element.create("div");
       var style = el.style;
 
       style.width = style.height = "auto";
@@ -144,12 +144,7 @@ qx.Class.define("qx.bom.Label",
       {
         styles.overflow = "hidden";
         styles.whiteSpace = "nowrap";
-        styles.textOverflow = "ellipsis";
-
-        // Opera as of 9.2.x only supports -o-text-overflow
-        if ((qx.core.Environment.get("engine.name") == "opera")) {
-          styles.OTextOverflow = "ellipsis";
-        }
+        styles[qx.core.Environment.get("css.textoverflow")] = "ellipsis";
       }
 
       return styles;
@@ -182,7 +177,7 @@ qx.Class.define("qx.bom.Label",
 
       var el = win.document.createElement("div");
 
-      if (html) 
+      if (html)
       {
         el.useHtml = true;
       }
@@ -233,7 +228,6 @@ qx.Class.define("qx.bom.Label",
      *
      * @param element {Element} DOM element to modify.
      * @param value {String} Content to insert.
-     * @return {void}
      */
     setValue : function(element, value)
     {
@@ -338,20 +332,9 @@ qx.Class.define("qx.bom.Label",
       // detect size
       var size = qx.bom.element.Dimension.getSize(element);
 
-      // Under Mac at least with Firefox 3.0 alpha 6 and earlier
-      // there was an issue that the text size calculation returns
-      // a size which is a bit too small and results into ellipsis
-      // even under the measured size.
-      // Linux shows the same bug (FF 3.0.6)
-      // https://bugzilla.mozilla.org/show_bug.cgi?id=450422
-      // Also FF4 with Windows7 shows the same issue see bug #4961
-      if ((qx.core.Environment.get("engine.name") == "gecko")) {
-        size.width++;
-      }
-      // IE9 has problems with the text size calculation for details have a look at bug #4038
-      if ((qx.core.Environment.get("engine.name") == "mshtml") && parseFloat(qx.core.Environment.get("engine.version")) >= 9) {
-        size.width++;
-      }
+      // all modern browser are needing one more pixel for width
+      size.width++;
+
       return size;
     }
   }

@@ -33,23 +33,25 @@ qx.Class.define("playground.view.RiaPlayArea",
     this.setDecorator("main");
 
     // caption
-    var caption = new qx.ui.container.Composite();
-    caption.setLayout(new qx.ui.layout.HBox());
+    this._caption = new qx.ui.container.Composite();
+    this._caption.setBackgroundColor("white");
+    this._caption.setLayout(new qx.ui.layout.HBox());
 
     // caption label
     this.__captionLabel = new qx.ui.basic.Label().set({
       font       : "bold",
-      padding    : 5,
+      padding    : 7,
       allowGrowX : true,
       allowGrowY : true
     });
 
     // button for max / min the play area
-    var maxIcon = "decoration/window/maximize-inactive.png";
-    var restoreIcon = "decoration/window/restore-inactive.png";
-    var maxButton = new qx.ui.form.Button(null, "decoration/window/maximize-inactive.png");
+    var maxIcon = "decoration/window/maximize.gif";
+    var restoreIcon = "decoration/window/restore.gif";
+    var maxButton = new qx.ui.form.Button(null, maxIcon);
     maxButton.setAppearance("toolbar-button");
-    maxButton.setMarginRight(6);
+    maxButton.setMargin(6);
+    maxButton.setMinHeight(21);
     maxButton.setToolTipText(this.tr("Maximize"));
     maxButton.addListener("execute", function() {
       // toggle the icons
@@ -64,10 +66,14 @@ qx.Class.define("playground.view.RiaPlayArea",
     }, this)
 
     // combine all parts for the caption
-    caption.add(this.__captionLabel);
-    caption.add(new qx.ui.core.Spacer(), {flex: 1});
-    caption.add(maxButton);
-    this.add(caption);
+    this._caption.add(this.__captionLabel);
+    this._caption.add(new qx.ui.core.Spacer(), {flex: 1});
+    this._caption.add(maxButton);
+    this.add(this._caption);
+    this._caption.set({
+      minHeight: 32,
+      maxHeight: 32
+    });
 
     // playfield
     this.__playField = new qx.ui.container.Scroll();
@@ -90,6 +96,7 @@ qx.Class.define("playground.view.RiaPlayArea",
 
   members :
   {
+    _caption : null,
     __captionLabel : null,
     _dummy : null,
     _playRoot : null,
@@ -106,9 +113,9 @@ qx.Class.define("playground.view.RiaPlayArea",
       if (this._initialized) {
         return;
       }
-      qx.html.Element.flush();
+      qx.ui.core.queue.Manager.flush();
 
-      var playRootEl = this._dummy.getContainerElement().getDomElement();
+      var playRootEl = this._dummy.getContentElement().getDomElement();
       this._playRoot = new qx.ui.root.Inline(playRootEl);
       this._playRoot._setLayout(new qx.ui.layout.Canvas());
 
@@ -116,6 +123,10 @@ qx.Class.define("playground.view.RiaPlayArea",
       this._playRoot.getLayoutParent = function() { return self.__playField; };
       this.__playField.getChildren = this.__playField._getChildren =
         function() { return [self._playRoot]; };
+
+      // copy the initial size which is availbale due to the flush at the beginning
+      this._playRoot.setMinWidth(this.__playField.getBounds().width);
+      this._playRoot.setMinHeight(this.__playField.getBounds().height);
 
       this.__playField.addListener("resize", function(e) {
         var data = e.getData();

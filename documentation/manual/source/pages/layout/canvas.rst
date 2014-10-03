@@ -33,7 +33,7 @@ Description
 
 In addition to the Basic layout the Canvas layout adds support for ``right`` and ``bottom`` layout properties. These allows to position a child in distance from the right or bottom edge of the available space. The canvas also adds support for  :ref:`percent <pages/ui_layouting#percent>` locations and dimensions (layout properties ``width`` and ``height``). Percents are defined as a string value (otherwise using the same layout property) with a "%" postfix.
 
-It is possible to stretch a between the left and right edge by specifying layout properties for both ``left`` and ``right``. The same is of cause true for ``top`` and ``bottom``. To define a distance which is identially to each edge e.g. stretch a child to between all sides there is the ``edge`` property. This property accepts the same values are supported by the other location properties (including percents). Please keep in mind that often a Grow Layout might be the better choice when ``edge`` was planned to use in conjunction with a Canvas Layout.
+It is possible to stretch a between the left and right edge by specifying layout properties for both ``left`` and ``right``. The same is of cause true for ``top`` and ``bottom``. To define a distance which is identically to each edge e.g. stretch a child to between all sides there is the ``edge`` property. This property accepts the same values are supported by the other location properties (including percents). Please keep in mind that often a Grow Layout might be the better choice when ``edge`` was planned to use in conjunction with a Canvas Layout.
 
 The size hint of a widget configured with a Canvas layout is determined such that each child can be positioned at the specified location and can have its preferred size and margin. For this computation the layout ignores all widgets, which have a percent size or position, because These sizes depend on the actual rendered size and are not known upfront.
 
@@ -41,12 +41,13 @@ The size hint of a widget configured with a Canvas layout is determined such tha
 
 Layout properties
 -----------------
-* **left** *(Integer|String)*: The left coordinate in pixel or as a percent string e.g. ``20`` or ``30%``.
-* **top** *(Integer|String)*: The top coordinate in pixel or as a percent string e.g. ``20`` or ``30%``.
-* **right** *(Integer|String)*: The right coordinate in pixel or as a percent string e.g. ``20`` or ``30%``.
-* **bottom** *(Integer|String)*: The bottom coordinate in pixel or as a percent string e.g. ``20`` or ``30%``.
-* **width** *(String)*: A percent width e.g. ``40%``.
-* **height** *(String)*: A percent height e.g. ``60%``.
+* **left** *(Integer|String)*: The left coordinate in pixels or as a percent string, e.g. ``20`` or ``30%``.
+* **top** *(Integer|String)*: The top coordinate in pixels or as a percent string, e.g. ``20`` or ``30%``.
+* **right** *(Integer|String)*: The right coordinate in pixels or as a percent string, e.g. ``20`` or ``30%``.
+* **bottom** *(Integer|String)*: The bottom coordinate in pixels or as a percent string, e.g. ``20`` or ``30%``.
+* **edge** *(Integer|String)*: The coordinate in pixels or as a percent string to be used for all four edges.
+* **width** *(String)*: A percent width, e.g. ``40%``.
+* **height** *(String)*: A percent height, e.g. ``60%``.
 
 .. _pages/layout/canvas#demos:
 

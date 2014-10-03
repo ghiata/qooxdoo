@@ -5,7 +5,7 @@
    http://qooxdoo.org
 
    Copyright:
-     2004-2010 1&1 Internet AG, Germany, http://www.1und1.de
+     2004-2012 1&1 Internet AG, Germany, http://www.1und1.de
 
    License:
      LGPL: http://www.gnu.org/licenses/lgpl.html
@@ -20,11 +20,27 @@
 /**
  * The TestRunner is responsible for loading the test classes and keeping track
  * of the test suite's state.
+ *
  */
 qx.Class.define("testrunner.runner.TestRunnerBasic", {
 
   extend : qx.core.Object,
 
+  statics :
+  {
+    /**
+     * Load test suite defined by testrunner.define()
+     */
+    start : function()
+    {
+      var init = qx.core.Init ? qx.core.Init : qx.core.BaseInit;
+      var runner = init.getApplication().runner;
+      runner._loadExternalTests();
+      if (typeof runner.view.toggleAllTests == "function") {
+        runner.view.toggleAllTests(true);
+      }
+    }
+  },
 
   /*
   *****************************************************************************
@@ -41,6 +57,11 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
     this.__testsInView = [];
     var viewSetting = qx.core.Environment.get("testrunner.view");
     var viewClass = qx.Class.getByName(viewSetting);
+
+    if (qx.core.Environment.get("testrunner.performance")) {
+      qx.Class.include(viewClass, testrunner.view.MPerformance);
+    }
+
     this.view = new viewClass();
 
     // Connect view and controller
@@ -52,17 +73,10 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
     this.bind("testModel", this.view, "testModel");
     qx.data.SingleValueBinding.bind(this.view, "selectedTests", this, "selectedTests");
 
+    this._origin = qx.core.Environment.get("testrunner.testOrigin");
     this._testNameSpace = this._getTestNameSpace();
 
     this._loadTests();
-
-    // TODO: Check if any test parts are defined
-    this._testParts = [];
-    //var parts = qx.core.Environment.get("testrunner.testParts");
-    var parts = null;
-    if (parts) {
-      this._testParts = this._testParts.concat(parts);
-    }
   },
 
 
@@ -117,31 +131,62 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
 
   members :
   {
+    _origin : null,
     loader : null,
     _testParts : null,
     __testsInView : null,
     _testNameSpace : null,
+    _externalTestClasses : 0,
 
-    
+
+    /**
+     * Returns the configured base namespace of the current test suite
+     * @return {String} Test namespace
+     */
     _getTestNameSpace : function()
     {
+      // Test namespace set by URI parameter
+      if (typeof location !== "undefined" && location.search) {
+        var params = location.search;
+        if (params.indexOf("testclass=") > 0 ) {
+          return params.substr(params.indexOf("testclass=") + 10);
+        }
+      }
       return qx.core.Environment.get("qx.testNameSpace");
     },
-    
-    
+
+
+    /**
+     * Deletes the current test suite so a new one can be loaded
+     */
+    _resetSuite : function()
+    {
+      if (this.loader) {
+        this.loader.dispose();
+        this.loader = null;
+      }
+
+      this._externalTestClasses = 0;
+      this.setTestModel(null);
+      this.__testsInView = [];
+    },
+
+
+    /**
+     * Loads the test suite
+     */
     _loadTests : function()
     {
       var origin = qx.core.Environment.get("testrunner.testOrigin");
       switch(origin) {
         case "external":
-          this._loadExternalTests();
           break;
         default:
           this._loadInlineTests(this._testNameSpace);
       }
     },
-    
-    
+
+
     /**
      * Loads test classes that are a part of the TestRunner application.
      *
@@ -154,18 +199,97 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
       this._wrapAssertions();
       this._getTestModel();
     },
-    
-    
+
+
     /**
-     * Loads externally defined test code by calling the static function
-     * <code>testrunner.ready</code> which should return the common top-level 
-     * namespace (String) of the test classes.
+     * Creates a test class from the given members map and adds it to the suite
+     * @param membersMap {map} Map containing the class members (test methods etc.)
+     */
+    _addTestClass : function(membersMap)
+    {
+      if (qx.core.Environment.get("qx.debug")) {
+        qx.core.Assert.assertMap(membersMap);
+      }
+      this.setTestSuiteState("loading");
+
+      this._externalTestClasses += 1;
+      var testNameSpace = this._testNameSpace;
+      var prefix = "test";
+
+      var testClassName;
+      if (membersMap.classname) {
+        testClassName = membersMap.classname;
+        testClassName = prefix + "." + testClassName;
+
+        if (testClassName.indexOf(testNameSpace) !== 0) {
+          return;
+        }
+
+        delete membersMap.classname;
+      }
+      else {
+        testClassName = prefix + ".Test" + (this._externalTestClasses);
+      }
+      var testClass = this._defineTestClass(testClassName, membersMap);
+
+      if (this.loader) {
+        this.loader.getSuite().add(testClass);
+      }
+      else {
+        this.loader = new qx.dev.unit.TestLoaderBasic(testNameSpace);
+      }
+    },
+
+
+    /**
+     * Creates a test class from the given members map
+     *
+     * @param testClassName {String} Fully qualified name for the test class
+     * @param membersMap {map} Map containing the class members (test methods etc.)
+     * @return {qx.Class} Configured test class
+     */
+    _defineTestClass : function(testClassName, membersMap)
+    {
+      var qxClass = qx.Class;
+      return qxClass.define(testClassName,
+      {
+        extend : qx.dev.unit.TestCase,
+        members : membersMap
+      });
+    },
+
+
+    /**
+     * Create a test class from the given definition and add it to the model
+     *
+     * @param membersMap {Map} "members" section for the new test class
+     */
+    define : function(membersMap)
+    {
+      this._addTestClass(membersMap);
+      this._getTestModel();
+    },
+
+    /**
+     * Create a new test suite from the class definitions in
+     * window.testrunner.testDefinitions
+     *
+     * @ignore(testrunner.testDefinitions.*)
      */
     _loadExternalTests : function()
     {
-      if (testrunner.ready && typeof testrunner.ready == "function") {
-        var nameSpace = testrunner.ready();
-        this._loadInlineTests(nameSpace);
+      this._resetSuite();
+
+      if (window.testrunner.testDefinitions instanceof Array) {
+        for (var i=0,l=testrunner.testDefinitions.length; i<l; i++) {
+          this._addTestClass(testrunner.testDefinitions[i]);
+        }
+        window.testrunner.testDefinitions = [];
+        if (this.loader) {
+          //FIXME: Assertion wrapping causes weird errors
+          //this._wrapAssertions();
+          this._getTestModel();
+        }
       }
     },
 
@@ -203,8 +327,8 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
       this.setTestModel(null);
 
       var testRep = this.__getTestRep();
-      if (!testRep || testRep.length === 0 || 
-        (testRep.length === 1 && testRep[0].tests.length === 0)) 
+      if (!testRep || testRep.length === 0 ||
+        (testRep.length === 1 && testRep[0].tests.length === 0))
       {
         this.setTestSuiteState("error");
         return;
@@ -268,6 +392,9 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
     },
 
 
+    /**
+     * Run the selected tests
+     */
     _runTests : function() {
       if (this.getTestSuiteState() === "aborted") {
         this.setTestSuiteState("ready");
@@ -275,6 +402,10 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
       this.runTests();
     },
 
+
+    /**
+     * Stop executing tests
+     */
     _stopTests : function() {
       this.setTestSuiteState("aborted");
     },
@@ -285,6 +416,7 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
      */
     runTests : function()
     {
+      var self = this;
       var suiteState = this.getTestSuiteState();
       switch (suiteState) {
         case "loading":
@@ -294,39 +426,21 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
         case "finished":
           if (this.testList.length > 0) {
             this.setTestSuiteState("running");
-            break;
           } else {
             return;
           }
+          break;
         case "aborted":
         case "error":
           return;
       }
 
       if (this.testList.length == 0) {
-        /* TODO: Reactivate part loading
-        if (this._testParts && this._testParts.length > 0) {
-          var nextPart = this._testParts.shift();
-          qx.io.PartLoader.require([nextPart], function()
-          {
-            this._loadInlineTests(nextPart);
-            this.runTests();
-          }, this);
-          return;
-        }
-        else {
-        */
-          var self = this;
-          /*
-           * Ugly hack: Since the tests are run asynchronously we can't rely on
-           * the queue to determine when everything is done.
-           * TODO: de-uglify this.
-           */
-          window.setTimeout(function() {
-            self.setTestSuiteState("finished");
-          }, 250);
-          return;
-        //}
+        window.setTimeout(function() {
+          self.setTestSuiteState("finished");
+          self.exit();
+        }, 250);
+        return;
       }
 
       var currentTest = this.currentTestData = this.testList.shift();
@@ -336,13 +450,28 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
       var functionName = currentTest.getName();
       var testResult = this.__initTestResult(currentTest);
 
-      var self = this;
       window.setTimeout(function() {
         self.loader.runTests(testResult, className, functionName);
-      }, 0);
+      }, 5);
     },
 
 
+    /**
+     * Terminates the Java VM
+     */
+    exit : function()
+    {
+      if (qx.core.Environment.get("runtime.name") == "rhino") {
+        java.lang.System.exit(0);
+      }
+    },
+
+
+    /**
+     * Returns a new instance of the class that executes the tests
+     *
+     * @return {qx.dev.unit.TestResult} TestResult instance
+     */
     _getTestResult : function()
     {
       return new qx.dev.unit.TestResult();
@@ -360,10 +489,18 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
       testResult.addListener("startTest", function(e) {
         var test = e.getData();
 
-        if (this.currentTestData && this.currentTestData.fullName === test.getFullName()
-          && this.currentTestData.getState() == "wait") {
-          this.currentTestData.setState("start");
-          return;
+        if (this.currentTestData) {
+          if (this.currentTestData.fullName === test.getFullName() &&
+              this.currentTestData.getState() == "wait")
+          {
+            // test is in wait state, don't add it to the view again
+            this.currentTestData.setState(this.currentTestData.getPreviousState() || "start");
+            return;
+          }
+          else {
+            // test was executed before, clear old exceptions
+            this.currentTestData.setExceptions([]);
+          }
         }
 
         if (!qx.lang.Array.contains(this.__testsInView, this.currentTestData.fullName)) {
@@ -382,49 +519,76 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
 
       testResult.addListener("endTest", this._onTestEnd, this);
 
+      testResult.addListener("endMeasurement", this._onTestEndMeasurement, this);
+
       return testResult;
     },
-    
-    
+
+
+    /**
+     * Sets the "wait" state for async tests
+     *
+     * @param ev {qx.event.type.Data} "wait" event
+     */
     _onTestWait : function(ev)
     {
       this.currentTestData.setState("wait");
     },
-    
-    
+
+
+    /**
+     * Records any (assertion) exceptions that caused a test to fail
+     *
+     * @param ev {qx.event.type.Data} "failure" event
+     */
     _onTestFailure : function(ev)
     {
       this.__addExceptions(this.currentTestData, ev.getData());
-      
+
       if (this.currentTestData.getState() === "failure") {
         this.currentTestData.resetState();
       }
       this.currentTestData.setState("failure");
     },
-    
-    
+
+
+    /**
+     * Records any unexpected exceptions that occurred during test execution
+     *
+     * @param ev {qx.event.type.Data} "error" event
+     */
     _onTestError : function(ev)
     {
       this.__addExceptions(this.currentTestData, ev.getData());
-      
+
       if (this.currentTestData.getState() === "error") {
         this.currentTestData.resetState();
       }
       this.currentTestData.setState("error");
     },
-    
-    
+
+
+    /**
+     * Records any exceptions that caused a test to be skipped
+     *
+     * @param ev {qx.event.type.Data} "skip" event
+     */
     _onTestSkip : function(ev)
     {
       this.__addExceptions(this.currentTestData, ev.getData());
-      
+
       if (this.currentTestData.getState() === "skip") {
         this.currentTestData.resetState();
       }
       this.currentTestData.setState("skip");
     },
-    
-    
+
+
+    /**
+     * Starts the next test
+     *
+     * @param ev {qx.event.type.Data} "endTest" event
+     */
     _onTestEnd : function(ev)
     {
       var state = this.currentTestData.getState();
@@ -434,11 +598,42 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
 
       qx.event.Timer.once(this.runTests, this, 0);
     },
-    
+
+
+    /**
+     * Records any exceptions that occurred during a performance test
+     *
+     * @param ev {qx.event.type.Data} "endMeasurement" event
+     */
+    _onTestEndMeasurement : function(ev)
+    {
+      this.__addExceptions(this.currentTestData, ev.getData());
+
+      var url = qx.core.Environment.get("testrunner.reportPerfResultUrl");
+      if (url) {
+        var measureData = ev.getData()[0].exception.getData();
+        measureData.testname = this.currentTestData.getFullName();
+        measureData.browsername = qx.core.Environment.get("browser.name");
+        measureData.browserversion = qx.core.Environment.get("browser.version");
+        measureData.osname = qx.core.Environment.get("os.name") || "unknown";
+        measureData.osversion = qx.core.Environment.get("os.version") || "unknown";
+
+        var parsedUri = qx.util.Uri.parseUri(location.href);
+        if (parsedUri.queryKey && parsedUri.queryKey.branch) {
+          measureData.branch = parsedUri.queryKey.branch;
+        }
+
+        url += "?" + qx.util.Uri.toParameter(measureData, false);
+        var req = new qx.bom.request.Script();
+        req.open("GET", url);
+        req.send();
+      }
+    },
+
     /**
      * Adds exception information to an existing TestResult object, making sure
      * no duplicates are recorded.
-     * 
+     *
      * @param testResult {qx.dev.unit.TestResult} TestResult object
      * @param exceptions {Object[]} List of exception objects
      */
@@ -446,7 +641,7 @@ qx.Class.define("testrunner.runner.TestRunnerBasic", {
     {
       var oldEx = testResult.getExceptions();
       var newEx = oldEx.concat();
-      
+
       for (var i=0,l=exceptions.length; i<l; i++) {
         var newExMsg = exceptions[i].exception.toString();
         var dupe = false;

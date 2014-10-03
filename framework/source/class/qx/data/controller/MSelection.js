@@ -72,6 +72,18 @@ qx.Mixin.define("qx.data.controller.MSelection",
   },
 
 
+  events : {
+    /**
+     * This event is fired as soon as the content of the selection property changes, but
+     * this is not equal to the change of the selection of the widget. If the selection
+     * of the widget changes, the content of the array stored in the selection property
+     * changes. This means you have to listen to the change event of the selection array
+     * to get an event as soon as the user changes the selected item.
+     * <pre class="javascript">obj.getSelection().addListener("change", listener, this);</pre>
+     */
+    "changeSelection" : "qx.event.type.Data"
+  },
+
 
   /*
   *****************************************************************************
@@ -281,7 +293,7 @@ qx.Mixin.define("qx.data.controller.MSelection",
 
     /**
      * Helper-method returning true, if the target supports multi selection.
-     * @return {boolean} true, if the target supports multi selection.
+     * @return {Boolean} true, if the target supports multi selection.
      */
     __targetSupportsMultiSelection: function() {
       var targetClass = this.getTarget().constructor;
@@ -291,7 +303,7 @@ qx.Mixin.define("qx.data.controller.MSelection",
 
     /**
      * Helper-method returning true, if the target supports single selection.
-     * @return {boolean} true, if the target supports single selection.
+     * @return {Boolean} true, if the target supports single selection.
      */
     __targetSupportsSingleSelection: function() {
       var targetClass = this.getTarget().constructor;
@@ -326,6 +338,7 @@ qx.Mixin.define("qx.data.controller.MSelection",
      * Returns the list item storing the given model in its model property.
      *
      * @param model {var} The representing model of a selectable.
+     * @return {Object|null} List item or <code>null</code> if none was found
      */
     __getSelectableForModel : function(model)
     {
@@ -367,6 +380,7 @@ qx.Mixin.define("qx.data.controller.MSelection",
      * Helper-Method for checking the state of the selection modification.
      * {@link #_startSelectionModification}
      * {@link #_endSelectionModification}
+     * @return {Boolean} <code>true</code> if selection modification is active
      */
     _inSelectionModification: function() {
       return this._modifingSelection > 0;

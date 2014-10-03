@@ -18,6 +18,10 @@
 
 ************************************************************************ */
 
+/**
+ * @tag noPlayground
+ * @require(qx.event.handler.Gesture)
+ */
 qx.Class.define("demobrowser.demo.bom.Location",
 {
   extend : qx.application.Native,
@@ -30,7 +34,7 @@ qx.Class.define("demobrowser.demo.bom.Location",
 
       var links = document.getElementById("list").getElementsByTagName("a");
       for (var i=0, l=links.length; i<l; i++) {
-        links[i].onclick = demobrowser.demo.bom.Location.jump;
+        qx.event.Registration.addListener(links[i], "tap", demobrowser.demo.bom.Location.jump);
       }
     }
   },

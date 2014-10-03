@@ -22,8 +22,7 @@
 
 import os, re, sys, unicodedata as unidata
 
-from misc                         import filetool, Path
-from misc.NameSpace               import NameSpace
+from misc                         import filetool, Path, json
 from ecmascript.frontend          import lang, treeutil
 from generator.code.Class         import Class
 from generator.code.qcEnvClass    import qcEnvClass
@@ -35,6 +34,7 @@ from generator.config.Manifest    import Manifest
 from generator.config.ConfigurationError import ConfigurationError
 from generator                    import Context as context
 
+
 ##
 # pickle complains when I use NameSpace!?
 class C(object): pass
@@ -43,88 +43,92 @@ class C(object): pass
 # Represents a qooxdoo library
 class Library(object):
     # is called with a "library" entry from the config.json
-    def __init__(self, libconfig, console):
+    def __init__(self, manipath, console):
 
+        self.manipath = manipath  # manipath is absPath
         self._console = console
-
         self._classes = []
-        self._classesObj = []
         self._docs = {}
         self._translations = {}
         self.resources  = set()
+        self.uri = None
 
-        #self._init_from_manifest(libconfig)
-        self._libconfig = libconfig
-
-        #TODO: clean up the others later
-        self.categories = {}
-        self.categories["classes"] = {}
-        self.categories["translations"] = {}
-        self.categories["resources"] = {}
+        self.assets = {}
+        self.assets["classes"] = {}
+        self.assets["translations"] = {}
+        self.assets["resources"] = {}
         
         self.__youngest = (None, None) # to memoize youngest file in lib
+        self._dependencies = None  # for dependencies.json
 
 
-    def _init_from_manifest(self, libconfig=None):
-
-        if libconfig is None:
-            libconfig = self._libconfig
-
-        manipath = libconfig['manifest']
+    def _init_from_manifest(self):
 
         # check contrib:// URI
-        if manipath.startswith("contrib://"):
-            newmanipath = self._download_contrib(manipath)
+        if self.manipath.startswith(("contrib://", "http://", "https://")):
+            newmanipath = self._download_contrib(self.manipath)
             if not newmanipath:
-                raise RuntimeError("Unable to get contribution from internet: %s" % manipath)
+                raise RuntimeError("Unable to get contribution from internet: %s" % self.manipath)
             else:
-                manipath = newmanipath
+                self.manipath = context.config.absPath(os.path.normpath(newmanipath))
 
-        self.manifest = context.config.absPath(os.path.normpath(manipath))
-        manifest = Manifest(self.manifest)
+        manifest = Manifest(self.manipath)
+        self.manifest = manifest
         
-        self.path = os.path.dirname(self.manifest)
-        self.uri = libconfig.get("uri", None)
+        self.path = os.path.dirname(self.manipath)
         self.encoding = manifest.encoding
         self.classPath = manifest.classpath
         self.classUri  = manifest.classpath # TODO: ???
-        self.translationPath = manifest.translation
         self.resourcePath = manifest.resource
         self.namespace = manifest.namespace
 
-        self.categories["classes"]["path"]  = self.classPath
-        self.categories["translations"]["path"]  = self.translationPath
-        self.categories["resources"]["path"] = self.resourcePath
+        self.assets["classes"]["path"]  = self.classPath
+        self.assets["translations"]["path"]  = manifest.translation
+        self.assets["resources"]["path"] = self.resourcePath
 
         if not self.namespace: 
             raise RuntimeError
-        self._checkNamespace()
+
+        # ensure translation dir
+        #transPath = os.path.join(self.path, self.assets['translations']["path"])
+        #if not os.path.isdir(transPath):
+        #    os.makedirs(transPath)
+
+        self._dependencies_path = os.path.join(self.path, 
+            os.path.dirname(self.classPath),  # this is to come to 'source/script'
+            'script', 'dependencies.json')
+
+
+    def __repr__(self):
+        return "<Library:%s>" % self.manipath
+
+    def __str__(self):
+        return repr(self)
+
+
+    def __eq__(self, other):
+        return self.manipath == other.manipath
 
 
     def _download_contrib(self, contribUri):
-        manifest = contribUri.replace("contrib://", "")
-        contrib  = os.path.dirname(manifest)
-        manifile = os.path.basename(manifest)
         cacheMap = context.jobconf.getFeature("cache")
+        catalogBase = context.jobconf.getFeature("let/CONTRIB_CATALOG_BASEURL")
         if cacheMap and 'downloads' in cacheMap:
             contribCachePath = cacheMap['downloads']
             contribCachePath = context.config.absPath(contribCachePath)
         else:
             contribCachePath = "cache-downloads"
-
         self._console.info("Checking network-based contrib: %s" % contribUri)
         self._console.indent()
 
-        dloader = ContribLoader()
-        (updatedP, revNo) = dloader.download(contrib, contribCachePath)
+        dloader = ContribLoader(catalog_base_url=catalogBase)
+        (updatedP, revNo, manipath) = dloader.download(contribUri, contribCachePath)
 
         if updatedP:
-            self._console.info("downloaded contrib: %s" % contrib)
+            self._console.info("downloaded contrib: %s" % contribUri)
         else:
             self._console.debug("using cached version")
         self._console.outdent()
-
-        manipath = os.path.join(contribCachePath, contrib, manifile)
 
         return manipath
 
@@ -136,6 +140,7 @@ class Library(object):
         # the Log object (the StreamWriter for a potential log file) makes
         # problems on unpickling
         del d['_console']
+        d['_dependencies'] = None  # no need to pickle large Json, better restored with queries
         return d
 
 
@@ -146,24 +151,38 @@ class Library(object):
         self.__dict__ = d
 
 
-    def mostRecentlyChangedFile(self, force=False):
+    def mostRecentlyChangedFile(self, force=False, catList=None):
         if self.__youngest != (None,None) and not force:
             return self.__youngest
 
+        if catList is None:
+            catList = self.assets
+
         youngFiles = {} # {timestamp: "filepath"}
-        # for each interesting library part
-        for category in self.categories:
-            catPath = os.path.join(self.path, self.categories[category]["path"])
-            if category == "translation" and not os.path.isdir(catPath):
-                continue
-            # find youngest file
-            file_, mtime = filetool.findYoungest(catPath)
-            youngFiles[mtime] = file_
-            
         # also check the Manifest file
-        file_, mtime = filetool.findYoungest(self.manifest)
+        file_, mtime = filetool.findYoungest(self.manipath)
         youngFiles[mtime] = file_
-        
+
+        # for each interesting library part
+        for category in catList:
+            catsuffix = self.assets[category]['path']
+            if catsuffix is None:  # if this changed recently, the Manifest reflects it
+                continue
+            if not os.path.isdir(os.path.join(self.path, catsuffix)):
+                # this might be a recent change reflected in the parent dirs
+                for sepIdx in [0] + [mo.start() for mo in re.finditer("/", catsuffix)]: # check self.path, self.path + "/foo", self.path + "/foo/bar", ...
+                    pardir = os.path.join(self.path, catsuffix[:sepIdx])
+                    if not os.path.isdir(pardir):
+                        break
+                    else:
+                        mtime = os.stat(pardir).st_mtime
+                        youngFiles[mtime] = pardir
+            else:
+                catPath = os.path.join(self.path, catsuffix)
+                # find youngest file
+                file_, mtime = filetool.findYoungest(catPath)
+                youngFiles[mtime] = file_
+
         # and return the maximum of those
         youngest = sorted(youngFiles.keys())[-1]
         self.__youngest = (youngFiles[youngest], youngest) # ("filepath", mtime)
@@ -171,26 +190,22 @@ class Library(object):
         return self.__youngest
 
 
-    _codeExpr = re.compile(r'''qx.(Bootstrap|List|Class|Mixin|Interface|Theme).define\s*\(\s*["']((?u)[^"']+)["']''', re.M)
     _illegalIdentifierExpr = re.compile(lang.IDENTIFIER_ILLEGAL_CHARS)
-    _ignoredDirectories    = re.compile(r'%s' % '|'.join(filetool.VERSIONCONTROL_DIR_PATTS), re.I)
-    _docFilename           = "__init__.js"
+    _ignoredDirEntries = re.compile(r'%s' % '|'.join(filetool.VERSIONCONTROL_DIR_PATTS), re.I)
+    _docFilename = "__init__.js"
 
 
     def getClasses(self):
         return self._classes
 
-    def getClasses1(self):
-        return self._classesObj
-
-
     def getDocs(self):
         return self._docs
-
 
     def getTranslations(self):
         return self._translations
 
+    def translationPathSuffix(self):
+        return self.assets['translations']['path']
 
     def getNamespace(self):
         return self.namespace
@@ -205,38 +220,70 @@ class Library(object):
         scanres = self._scanClassPath(timeOfLastScan)
         self._classes = scanres[0]
         self._docs    = scanres[1]
-        self._scanTranslationPath(os.path.join(self.path, self.translationPath))
-        self._scanResourcePath(os.path.join(self.path, self.resourcePath))
+        self._translations = self._scanTranslationPath()
+        self.resources = self._scanResourcePath()
 
         self._console.outdent()
 
 
-    def _getCodeId1(self, fileContent):
-        for item in self._codeExpr.findall(fileContent):
-            illegal = self._illegalIdentifierExpr.search(item[1])
-            if illegal:
-                raise ValueError, "Item name '%s' contains illegal character '%s'" % (item[1],illegal.group(0))
-            #print "found", item[1]
-            return item[1]
+    def _get_dependencies(self):
+        deps = {}
+        if os.path.isfile(self._dependencies_path):
+            deps = json.load(self._dependencies_path)
+        return deps
 
-        return None
+    ##
+    # <check_file> is current against this library contents,
+    # ie. it is younger than all classes, resources, etc.
+    def file_is_current(self, check_file, force=False):
+        res = False
+        if os.path.isfile(check_file):
+            cstamp = os.stat(check_file).st_mtime
+            yfile, ystamp = self.mostRecentlyChangedFile(force=force) # new resources could be included with '*', msg keys changed in .po files
+                # we allow getting a cached yfile,ystamp result, as they should be
+                # good enough during *runtime* of this Library object (checking
+                # everythime, e.g. for deps.analysis, would be too expensive)
+            res = ystamp <= cstamp
+        return res
 
+    def getDependencies(self, classId):
+        deps = None
+        dstamp = None
+        if self.file_is_current(self._dependencies_path):
+            if self._dependencies is None:
+                self._dependencies = self._get_dependencies()
+            deps = self._dependencies.get(classId)
+            dstamp = os.stat(self._dependencies_path).st_mtime
+        return deps, dstamp
+
+    ##
+    # This is currently only a stub.
+    def putDependencies(self, classId, deps):
+        if self._dependencies is None:
+            self._dependencies = self._get_dependencies()
+        self._dependencies[classId] = deps
+        # should probably write back to file, with locking
+        return
 
     def _getCodeId(self, clazz):
+        className = None  # not-found return value
         tree     = clazz.tree()
         qxDefine = treeutil.findQxDefine (tree)
-        className = treeutil.getClassName (qxDefine)
+        if qxDefine:
+            className = treeutil.getClassName (qxDefine)
+            if not className:  # might be u''
+                className = None
+            else:
+                illegal = self._illegalIdentifierExpr.search(className)
+                if illegal:
+                    raise ValueError, "Item name '%s' contains illegal character '%s'" % (className,illegal.group(0))
 
-        illegal = self._illegalIdentifierExpr.search(className)
-        if illegal:
-            raise ValueError, "Item name '%s' contains illegal character '%s'" % (className,illegal.group(0))
-
-        #print "found", className
         return className
 
 
-    def _checkNamespace(self, ):
-        path = os.path.join(self.path, self.classPath)
+    def _checkNamespace(self, path=''):
+        if not path:
+            path = os.path.join(self.path, self.classPath)
         if not os.path.exists(path):
             raise ValueError("The given path does not contain a class folder: %s" % path)
 
@@ -244,7 +291,7 @@ class Library(object):
         files = os.listdir(path)
 
         for entry in files:
-            if entry.startswith(".") or self._ignoredDirectories.match(entry):
+            if entry.startswith(".") or self._ignoredDirEntries.match(entry):
                 continue
 
             full = os.path.join(path, entry)
@@ -257,31 +304,7 @@ class Library(object):
         if ns == None:
             raise ValueError("Namespace could not be detected!")
 
-
-    def _detectNamespace(self, path):
-        if not os.path.exists(path):
-            raise ValueError("The given path does not contain a class folder: %s" % path)
-
-        ns = None
-        files = os.listdir(path)
-
-        for entry in files:
-            if entry.startswith(".") or self._ignoredDirectories.match(entry):
-                continue
-
-            full = os.path.join(path, entry)
-            if os.path.isdir(full):
-                if ns != None:
-                    raise ValueError("Multiple namespaces per library are not supported (%s,%s)" % (full, ns))
-
-                ns = entry
-
-        if ns == None:
-            raise ValueError("Namespace could not be detected!")
-
-        self._console.debug("Detected namespace: %s" % ns)
-        self.namespace = ns
-
+        return ns
 
 
     def scanResourcePath(self):
@@ -291,10 +314,14 @@ class Library(object):
         return liblist
 
 
-    def _scanResourcePath(self, path):
-        if not os.path.exists(path):
-            raise ValueError("The given resource path does not exist: %s" % path)
+    def _scanResourcePath(self):
+        resources = set()
+        if self.resourcePath is None or not os.path.isdir(
+                os.path.join(self.path,self.resourcePath)):
+            self._console.info("Lib<%s>: Skipping non-existing resource path" % self.namespace)
+            return resources
 
+        path = os.path.join(self.path,self.resourcePath)
         self._console.debug("Scanning resource folder...")
 
         path = os.path.abspath(path)
@@ -305,10 +332,12 @@ class Library(object):
         for root, dirs, files in filetool.walk(path):
             # filter ignored directories
             for dir in dirs:
-                if self._ignoredDirectories.match(dir):
+                if self._ignoredDirEntries.match(dir):
                     dirs.remove(dir)
 
             for file in files:
+                if self._ignoredDirEntries.match(file):
+                    continue
                 fpath = os.path.join(root, file)
                 fpath = os.path.normpath(fpath)
                 if Image.isImage(fpath):
@@ -320,153 +349,108 @@ class Library(object):
                 else:
                     res = Resource(fpath)
                 
-                res.id = Path.posifyPath(fpath[lib_prefix_len:])
+                res.set_id(Path.posifyPath(fpath[lib_prefix_len:]))
                 res.library= self
 
-                self.resources.add(res)
+                resources.add(res)
 
-        return
+        self._console.indent()
+        self._console.debug("Found %s resources" % len(resources))
+        self._console.outdent()
+        return resources
 
 
 
     def _scanClassPath(self, timeOfLastScan=0):
 
-        codeIdFromTree = True  # switch between regex- and tree-based codeId search
+        ##
+        # check single subdirectory from class path
+        def check_multiple_namespaces(classRoot):
+            try:
+                self._checkNamespace(classRoot)
+            except ValueError:
+                self._console.warn ("The class path should contain exactly one namespace: '%s'" % (classRoot,))
 
-        # Check class path
-        classPath = os.path.join(self.path, self.classPath)
-        if not os.path.isdir(classPath):
-            raise ConfigurationError("Class path from Manifest doesn't exist: %s" % self.classPath)
+        ##
+        # check manifest namespace is on file system
+        def check_manifest_namespace(classRoot):
+            nsPrefix    = self.namespace.replace(".", os.sep)
+            classNSRoot = os.path.join(classRoot, nsPrefix)
+            if not os.path.isdir(classNSRoot):
+                raise ValueError ("Manifest namespace does not exist on file system:  '%s'" % (classNSRoot))
 
-        # Check multiple namespaces
-        if not len([d for d in os.listdir(classPath) if not d.startswith(".")]) == 1:
-            self._console.warn ("The class path must contain exactly one namespace; ignoring everything else: '%s'" % (classPath,))
+        # ----------------------------------------------------------------------
 
-        # Check Manifest namespace matches file system
-        nsPrefix    = self.namespace.replace(".", os.sep)
-        classNSRoot = os.path.join(classPath, nsPrefix)
-        if not os.path.isdir(classNSRoot):
-            raise ValueError ("Manifest namespace does not exist on file system:  '%s'" % (classNSRoot))
+        classList = []
+        docs = {}
+        if self.classPath is None or not os.path.isdir(
+                os.path.join(self.path,self.classPath)):
+            self._console.info("Lib<%s>: Skipping non-existend class path" % self.namespace)
+            return classList, docs
+
+        existClassIds = dict([(x.id,x) for x in self._classes])  # if we scanned before
+        classRoot   = os.path.join(self.path, self.classPath)
+
+        check_multiple_namespaces(classRoot)
+        check_manifest_namespace(classRoot)
             
         self._console.debug("Scanning class folder...")
 
-        classList = []
-        existClassIds = dict([(x.id,x) for x in self._classes])  # if we scanned before
-        docs = {}
-
-
-        # TODO: Clazz still relies on a context dict!
-        contextdict = {}
-        contextdict["console"] = context.console
-        contextdict["cache"] = context.cache
-        contextdict["jobconf"] = context.jobconf
-        contextdict["envchecksmap"] = {}
-
         # Iterate...
-        for root, dirs, files in filetool.walk(classNSRoot):
-            # Filter ignored directories
-            for ignoredDir in dirs:
-                if self._ignoredDirectories.match(ignoredDir):
-                    dirs.remove(ignoredDir)
+        #for root, dirs, files in filetool.walk(classRoot):
+        #    # Filter ignored directories
+        #    for ignoredDir in dirs:
+        #        if self._ignoredDirEntries.match(ignoredDir):
+        #            dirs.remove(ignoredDir)
 
-            # Add good directories
-            currNameSpace = root[len(classNSRoot+os.sep):]
-            currNameSpace = currNameSpace.replace(os.sep, ".")
-            
-            # Searching for files
-            for fileName in files:
-                # Ignore dot files
-                if fileName.startswith("."):
-                    continue
+        #    # Searching for files
+        #    for fileName in files:
+        #        # ignore dot files
+        #        if fileName.startswith(".") or self._ignoredDirEntries.match(fileName):
+        #            continue
+        for filePathId, filePath in self.classPathIterator():
                 self._console.dot()
 
-                # Process path data
-                filePath = os.path.join(root, fileName)
-                fileRel  = filePath.replace(classNSRoot + os.sep, "")
-                fileExt  = os.path.splitext(fileName)[-1]
-                fileStat = os.stat(filePath)
-                fileSize = fileStat.st_size
-                fileMTime= fileStat.st_mtime
+                # basic attributes
+                #filePath = os.path.join(root, fileName)    # /foo/bar/baz/source/class/my/space/AppClass.js
+                #filePathId = filePath.replace(classRoot + os.sep, '')  # my/space/AppClass.js
+                filePathId = os.path.splitext(filePathId)[0]  # strip pot. ".js" etc.
+                filePathId = filePathId.replace(os.sep, ".") # my.space.AppClass
 
-                # Compute full URI from relative path
-                fileUri = self.classUri + "/" + fileRel.replace(os.sep, "/")
+                p = self.getFileProps(filePathId, filePath)
 
-                # Compute identifier from relative path
-                filePathId = fileRel.replace(fileExt, "").replace(os.sep, ".")
-                filePathId = self.namespace + "." + filePathId
-                filePathId = unidata.normalize("NFC", filePathId)  # combine combining chars: o" -> ö
+                # ignore non-script
+                if p.fileExt != ".js":
+                    continue
 
                 # check if known and fresh
-                if (filePathId in existClassIds
-                    and fileMTime < timeOfLastScan):
+                if (p.filePathId in existClassIds
+                    and p.fileMTime < timeOfLastScan):
                     classList.append(existClassIds[filePathId])
-                    #print "re-using existing", filePathId
                     continue # re-use known class
 
-                # Extract package ID
-                filePackage = filePathId[:filePathId.rfind(".")]
-
-                # Handle doc files
-                if fileName == self._docFilename:
-                    fileFor = filePathId[:filePathId.rfind(".")]
-                    docs[filePackage] = {
-                        "relpath" : fileRel,
-                        "path" : filePath,
-                        "encoding" : self.encoding,
+                # handle doc files
+                if os.path.basename(filePath) == self._docFilename:
+                    docs[p.filePackage] = {
+                        "relpath"   : p.fileRel,
+                        "path"      : p.filePath,
+                        "encoding"  : p.fileEncoding,
                         "namespace" : self.namespace,
-                        "id" : filePathId,
-                        "package" : filePackage,
-                        "size" : fileSize
+                        "id"        : p.filePathId,
+                        "package"   : p.filePackage,
+                        "size"      : p.fileSize
                     }
-
-                    # Stop further processing
+                    # stop further processing
                     continue
 
-                # Ignore non-script
-                if os.path.splitext(fileName)[-1] != ".js":
-                    continue
+                clazz, fileCodeId = self.makeClassObj(p.filePathId, p.filePath, p)
 
-                if filePathId == "qx.core.Environment":
-                    clazz = qcEnvClass(filePathId, filePath, self, contextdict, self._classesObj)
-                else:
-                    clazz = Class(filePathId, filePath, self, contextdict, self._classesObj)
-
-                # Extract code ID (e.g. class name, mixin name, ...)
-                try:
-                    if codeIdFromTree:
-                        fileCodeId = self._getCodeId(clazz)
-                    else:
-                        # Read content
-                        fileContent = filetool.read(filePath, self.encoding)
-                        fileCodeId = self._getCodeId1(fileContent)
-                except ValueError, e:
-                    argsList = []
-                    for arg in e.args:
-                        argsList.append(arg)
-                    argsList[0] = argsList[0] + u' (%s)' % fileName
-                    e.args = tuple(argsList)
-                    raise e
-
-                # Ignore all data files (e.g. translation, doc files, ...)
+                # ignore all data files (e.g. translation, doc files, ...)
                 if fileCodeId == None:
                     continue
 
-                # Compare path and content
-                if fileCodeId != filePathId:
-                    self._console.error("Detected conflict between filename and classname!")
-                    self._console.indent()
-                    self._console.error("Classname: %s" % fileCodeId)
-                    self._console.error("Path: %s" % fileRel)
-                    self._console.outdent()
-                    raise RuntimeError()
-
-                # Store file data
-                self._console.debug("Adding class %s" % filePathId)
-                clazz.encoding = self.encoding
-                clazz.size     = fileSize     # dependency logging uses this
-                clazz.package  = filePackage  # Apiloader uses this
-                clazz.relpath  = fileRel      # Locale uses this
-                clazz.m_time_  = fileStat.st_mtime
+                # store file data
+                self._console.debug("Adding class %s" % p.filePathId)
                 classList.append(clazz)
 
         self._console.indent()
@@ -478,34 +462,39 @@ class Library(object):
         return classList, docs 
 
 
+    def _scanTranslationPath(self):
+        translations = {}  # reset
+        if self.assets['translations']['path'] is None or not os.path.isdir(
+                os.path.join(self.path,self.assets['translations']['path'])):
+            self._console.info("Lib<%s>: Skipping non-existing translation path" % self.namespace)
+            return translations
 
-    def _scanTranslationPath(self, path):
-        if not os.path.exists(path):
-            self._console.warn("The given path does not contain a translation folder: %s" % path)
-
+        path = os.path.join(self.path,self.assets['translations']['path'])
         self._console.debug("Scanning translation folder...")
 
         # Iterate...
         for root, dirs, files in filetool.walk(path):
             # Filter ignored directories
             for ignoredDir in dirs:
-                if self._ignoredDirectories.match(ignoredDir):
+                if self._ignoredDirEntries.match(ignoredDir):
                     dirs.remove(ignoredDir)
 
             # Searching for files
             for fileName in files:
-                # Ignore non-script and dot files
+                # Ignore non-po and dot files
                 if os.path.splitext(fileName)[-1] != ".po" or fileName.startswith("."):
                     continue
 
                 filePath = os.path.join(root, fileName)
                 fileLocale = os.path.splitext(fileName)[0]
 
-                self._translations[fileLocale] = self.translationEntry(fileLocale, filePath, self.namespace)
+                translations[fileLocale] = self.translationEntry(fileLocale, filePath, self.namespace)
 
         self._console.indent()
-        self._console.debug("Found %s translations" % len(self._translations))
+        self._console.debug("Found %s translations" % len(translations))
         self._console.outdent()
+
+        return translations
 
 
     @staticmethod
@@ -527,4 +516,131 @@ class Library(object):
             "variant" : variant,
             "namespace" : namespace
         }
+
+    
+    ##
+    # Given a dottedExpr ("foo.bar.baz.a.b.c"), check if there is a matching
+    # file (e.g. "foo/bar/baz.js") or directory ("foo/bar") and return the path,
+    # otherwise ''.
+    #
+    def findClass(self, dottedExpr, includeNamespaces=False):
+
+        def findClassR(nameParts, inDir, pathParts):
+            if not nameParts:
+                if includeNamespaces:
+                    return pathParts
+                else:
+                    return []
+            osListDir = os.listdir(inDir)
+            if nameParts[0] + ".js" in osListDir:
+                return pathParts + [nameParts[0] + ".js"]
+            elif nameParts[0] in osListDir:
+                return findClassR(nameParts[1:], os.path.join(inDir,nameParts[0]), 
+                    pathParts + [nameParts[0]])
+            else:
+                return []  # no matching class in this tree
+
+
+        # ----------------------------------------------------------------------
+
+        if self.classPath is None:
+            return '',''
+
+        classParts = dottedExpr.split(".")
+        classRoot = os.path.join(self.path, self.classPath)
+
+        classPathA = findClassR(classParts, classRoot, []) # e.g. ['qx','core','Object.js']
+        if not classPathA:
+            return ('','')
+        else:
+            classId = ".".join(classPathA)
+            if classId.endswith(".js"):
+                classId = classId[:-3]
+            return (classId, os.path.join(classRoot,*classPathA))
+
+
+    def makeClassObj(self, filePathId, filePath, props):
+        ##
+        # provide a default context dict
+        def get_contextdict():
+            contextdict = {}
+            contextdict["console"] = context.console
+            contextdict["cache"] = context.cache
+            contextdict["jobconf"] = context.jobconf
+            contextdict["envchecksmap"] = {}
+            return contextdict
+
+        # -----------------------------------------------------------------------
+        contextdict = get_contextdict() # TODO: Clazz() still relies on a context dict!
+        if filePathId == "qx.core.Environment":
+            clazz = qcEnvClass(filePathId, filePath, self, contextdict)
+        else:
+            clazz = Class(filePathId, filePath, self, contextdict)
+
+        # extract code ID (e.g. class name, mixin name, ...)
+        #fileCodeId = self.checkClassId(clazz, filePathId)  # involves parsing
+
+        clazz.encoding = props.fileEncoding
+        clazz.size     = props.fileSize     # dependency logging uses this
+        clazz.package  = props.filePackage  # Apiloader uses this
+        clazz.relpath  = props.fileRel       # Locale uses this
+        clazz.m_time_  = props.fileStat.st_mtime
+
+        return clazz, filePathId
+
+    def checkClassId(self, classObj, filePathId):
+        fileCodeId = u''
+        try:
+            fileCodeId = self._getCodeId(classObj)
+        except ValueError, e:
+            argsList = []
+            for arg in e.args:
+                argsList.append(arg)
+            argsList[0] = argsList[0] + u' (%s)' % props.fileName
+            e.args = tuple(argsList)
+            raise # raises e
+        # compare path and content
+        if fileCodeId and fileCodeId != filePathId:
+            errmsg = [
+                u"Detected conflict between filename and classname!\n",
+                u"    Classname: %s\n" % fileCodeId,
+                u"    Path: %s\n" % filePathId,
+            ]
+            raise RuntimeError(u''.join(errmsg))
+        return fileCodeId
+
+    def getFileProps(self, filePathId, filePath):
+        def p(): pass
+        p.filePathId = unidata.normalize("NFC", filePathId) # o" -> ö
+        p.filePath = filePath
+        p.fileEncoding = self.encoding
+        p.fileExt  = os.path.splitext(filePath)[-1]  # ".js"
+        p.fileRel  = p.filePathId.replace(".", "/") + p.fileExt  # my/space/AppClass.js
+        p.filePackage = p.filePathId[:p.filePathId.rfind(".")] if "." in p.filePathId else ""  # my.space
+        p.fileStat = os.stat(p.filePath)
+        p.fileSize = p.fileStat.st_size
+        p.fileMTime= p.fileStat.st_mtime
+        return p
+
+    ##
+    # Iterate over fileId's in class path, (my/space/AppClass.js, ...)
+    #
+    def classPathIterator(self):
+        if self.classPath is None:
+            return
+        classRoot = os.path.join(self.path, self.classPath)
+        for root, dirs, files in filetool.walk(classRoot):
+            # Filter ignored directories
+            for ignoredDir in dirs:
+                if self._ignoredDirEntries.match(ignoredDir):
+                    dirs.remove(ignoredDir)
+
+            # Searching for files
+            for fileName in files:
+                # ignore dot files
+                if fileName.startswith(".") or self._ignoredDirEntries.match(fileName):
+                    continue
+                filePath = os.path.join(root, fileName)
+                filePathId = filePath.replace(classRoot + os.sep, '')
+                yield (filePathId, filePath)
 

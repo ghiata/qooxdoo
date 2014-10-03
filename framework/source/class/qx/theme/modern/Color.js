@@ -57,9 +57,6 @@ qx.Theme.define("qx.theme.modern.Color",
     // tables, ...
     "background-odd" : "#E4E4E4",
 
-    // html area
-    "htmlarea-background" : "white",
-
     // progress bar
     "progressbar-background" : "white",
 
@@ -205,6 +202,7 @@ qx.Theme.define("qx.theme.modern.Color",
     */
     "selected-start" : "#004DAD",
     "selected-end" : "#00368A",
+    "background-selected" : "#00368A",
 
     "tabview-background" : "#07125A",
 

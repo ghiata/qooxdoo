@@ -17,19 +17,13 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#asset(qx/test/jsonp_primitive.php)
-#asset(qx/test/script.js)
-#asset(qx/test/xmlhttp/sample.txt)
-
-************************************************************************ */
-
-/* ************************************************************************
-
-#ignore(SCRIPT_LOADED)
-
-************************************************************************ */
+/**
+ *
+ * @asset(qx/test/jsonp_primitive.php)
+ * @asset(qx/test/script.js)
+ * @asset(qx/test/xmlhttp/sample.txt)
+ * @ignore(SCRIPT_LOADED)
+ */
 
 qx.Class.define("qx.test.bom.request.Script",
 {
@@ -42,8 +36,8 @@ qx.Class.define("qx.test.bom.request.Script",
   members :
   {
     setUp: function() {
-      var req = this.req = new qx.bom.request.Script(),
-          url = this.url = this.getUrl("qx/test/script.js");
+      var req = this.req = new qx.bom.request.Script();
+      this.url = this.getUrl("qx/test/script.js");
 
       // Assume timeout after 1s in Opera (no error!)
       if (qx.core.Environment.get("engine.name") === "opera") {
@@ -75,6 +69,14 @@ qx.Class.define("qx.test.bom.request.Script",
       this.assertFalse(this.isInDom(script));
     },
 
+
+    "test: isDisposed()": function() {
+      this.assertFalse(this.req.isDisposed());
+      this.req.dispose();
+      this.assertTrue(this.req.isDisposed());
+    },
+
+
     "test: allow many requests with same object": function() {
       var count = 0,
           that = this;
@@ -90,6 +92,26 @@ qx.Class.define("qx.test.bom.request.Script",
 
       this.request();
       this.wait();
+    },
+
+    //
+    // Event helper
+    //
+
+    "test: call event handler": function() {
+      var req = this.req;
+      req.onevent = this.spy();
+      req._emit("event");
+      this.assertCalled(req.onevent);
+    },
+
+    "test: fire event": function(){
+      var req = this.req;
+      var event = this.spy();
+      req.onevent = this.spy();
+      req.on("event", event);
+      req._emit("event");
+      this.assertCalled(event);
     },
 
     //
@@ -112,6 +134,9 @@ qx.Class.define("qx.test.bom.request.Script",
       this.wait();
     },
 
+    /**
+     * @ignore(SCRIPT_LOADED)
+     */
     "test: status indicates success when determineSuccess returns true": function() {
       var that = this;
 
@@ -224,8 +249,7 @@ qx.Class.define("qx.test.bom.request.Script",
     //
 
     "test: send() adds script element to DOM": function() {
-      var req = this.req,
-          url = this.url;
+      var req = this.req;
 
       // Helper triggers send()
       this.request();
@@ -256,12 +280,16 @@ qx.Class.define("qx.test.bom.request.Script",
     },
 
     "test: abort() makes request not fire load": function() {
-      var req = this.req,
-          that = this;
+      var req = this.req;
 
       this.spy(req, "onload");
 
-      this.request();
+      if (this.isIe()) {
+        this.request(this.noCache(this.url));
+      } else {
+        this.request();
+      }
+
       req.abort();
 
       this.wait(300, function() {
@@ -326,7 +354,12 @@ qx.Class.define("qx.test.bom.request.Script",
         }
       };
 
-      this.request();
+      if (this.isIe()) {
+        this.request(this.noCache(this.url));
+      } else {
+        this.request();
+      }
+
       this.wait();
     },
 
@@ -365,8 +398,7 @@ qx.Class.define("qx.test.bom.request.Script",
         this.skip();
       }
 
-      var that = this,
-          timerId;
+      var that = this;
 
       this.req.onload = function() {
         that.resume(function() {
@@ -479,8 +511,7 @@ qx.Class.define("qx.test.bom.request.Script",
     },
 
     "test: call onabort when request was aborted": function() {
-      var req = this.req,
-          that = this;
+      var req = this.req;
 
       this.spy(req, "onabort");
       this.request();
@@ -567,14 +598,18 @@ qx.Class.define("qx.test.bom.request.Script",
       return elem.parentNode ? true : false;
     },
 
+    isIe: function(version) {
+      return (qx.core.Environment.get("engine.name") === "mshtml");
+    },
+
     isIeBelow: function(version) {
       return qx.core.Environment.get("engine.name") === "mshtml" &&
-             qx.core.Environment.get("engine.version") < version;
+             qx.core.Environment.get("browser.documentmode") < version;
     },
 
     supportsErrorHandler: function() {
       var isLegacyIe = qx.core.Environment.get("engine.name") === "mshtml" &&
-        qx.core.Environment.get("engine.version") < 9;
+        qx.core.Environment.get("browser.documentmode") < 9;
 
       var isOpera = qx.core.Environment.get("engine.name") === "opera";
 

@@ -30,11 +30,14 @@
      License:
        MIT: http://www.opensource.org/licenses/mit-license.php
 
-************************************************************************ */
+   * Underscore.js
+     http://underscorejs.org
 
-/* ************************************************************************
+     Copyright:
+       2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
 
-#ignore(qx.data.IListData)
+     License:
+       MIT: http://www.opensource.org/licenses/mit-license.php
 
 ************************************************************************ */
 
@@ -43,31 +46,18 @@
  * methods like <code>remove</code> or <code>contains</code>.
  *
  * The native JavaScript Array is not modified by this class. However,
- * there are modifications to the native Array in {@link qx.lang.Core} for
- * browsers that do not support certain JavaScript 1.6 features natively .
+ * there are modifications to the native Array in {@link qx.lang.normalize.Array} for
+ * browsers that do not support certain JavaScript features natively .
  *
- * The string/array generics introduced in JavaScript 1.6 are supported by
- * {@link qx.lang.Generics}.
+ * @ignore(qx.data)
+ * @ignore(qx.data.IListData)
+ * @ignore(qx.Class.*)
+ * @require(qx.lang.normalize.Date)
  */
-qx.Class.define("qx.lang.Array",
+qx.Bootstrap.define("qx.lang.Array",
 {
   statics :
   {
-    /**
-     * Converts array like constructions like the <code>argument</code> object,
-     * node collections like the ones returned by <code>getElementsByTagName</code>
-     * or extended array objects like <code>qx.type.BaseArray</code> to an
-     * native Array instance.
-     *
-     * @param object {var} any array like object
-     * @param offset {Integer?0} position to start from
-     * @return {Array} New array with the content of the incoming object
-     */
-    toArray : function(object, offset) {
-      return this.cast(object, Array, offset);
-    },
-
-
     /**
      * Converts an array like object to any other array like
      * object.
@@ -87,7 +77,7 @@ qx.Class.define("qx.lang.Array",
       }
 
       if (qx.data && qx.data.IListData) {
-        if (qx.Class.hasInterface(object, qx.data.IListData)) {
+        if (qx.Class && qx.Class.hasInterface(object, qx.data.IListData)) {
           var object = object.toArray();
         }
       }
@@ -122,7 +112,7 @@ qx.Class.define("qx.lang.Array",
 
 
     /**
-     * Convert an arguments object into an array
+     * Convert an arguments object into an array.
      *
      * @param args {arguments} arguments object
      * @param offset {Integer?0} position to start from
@@ -141,8 +131,8 @@ qx.Class.define("qx.lang.Array",
      */
     fromCollection : function(coll)
     {
-      // Some collection is mshtml are not able to be sliced.
-      // This lines are a special workaround for this client.
+      // The native Array.slice cannot be used with some Array-like objects
+      // including NodeLists in older IEs
       if ((qx.core.Environment.get("engine.name") == "mshtml"))
       {
         if (coll.item)
@@ -220,7 +210,7 @@ qx.Class.define("qx.lang.Array",
 
 
     /**
-     * Insert an element into the array before a given second element
+     * Insert an element into the array before a given second element.
      *
      * @param arr {Array} the array
      * @param obj {var} object to be inserted
@@ -242,7 +232,7 @@ qx.Class.define("qx.lang.Array",
 
 
     /**
-     * Insert an element into the array after a given second element
+     * Insert an element into the array after a given second element.
      *
      * @param arr {Array} the array
      * @param obj {var} object to be inserted
@@ -294,7 +284,7 @@ qx.Class.define("qx.lang.Array",
      * @param arr1 {Array} the array
      * @param arr2 {Array} the elements of this array will be appended to other one
      * @return {Array} The modified array.
-     * @throws an exception if one of the arguments is not an array
+     * @throws {Error} if one of the arguments is not an array
      */
     append : function(arr1, arr2)
     {
@@ -318,7 +308,7 @@ qx.Class.define("qx.lang.Array",
      * @param arr1 {Array} the array
      * @param arr2 {Array} the elements of this array will be excluded from the other one
      * @return {Array} The modified array.
-     * @throws an exception if one of the arguments is not an array
+     * @throws {Error} if one of the arguments is not an array
      */
     exclude : function(arr1, arr2)
     {
@@ -343,7 +333,7 @@ qx.Class.define("qx.lang.Array",
 
 
     /**
-     * Remove an element from the array
+     * Remove an element from the array.
      *
      * @param arr {Array} the array
      * @param obj {var} element to be removed from the array
@@ -411,7 +401,9 @@ qx.Class.define("qx.lang.Array",
     {
       var result = 0;
       for (var i=0, l=arr.length; i<l; i++) {
-        result += arr[i];
+        if (arr[i] != undefined) {
+          result += arr[i];
+        }
       }
 
       return result;
@@ -473,18 +465,18 @@ qx.Class.define("qx.lang.Array",
     /**
      * Recreates an array which is free of all duplicate elements from the original.
      *
-     * This method do not modifies the original array!
+     * This method does not modify the original array!
      *
      * Keep in mind that this methods deletes undefined indexes.
      *
      * @param arr {Array} Incoming array
-     * @return {Array} Returns a copy with no duplicates or the original array if no duplicates were found
+     * @return {Array} Returns a copy with no duplicates
      */
     unique: function(arr)
     {
       var ret=[], doneStrings={}, doneNumbers={}, doneObjects={};
       var value, count=0;
-      var key = "qx" + qx.lang.Date.now();
+      var key = "qx" + Date.now();
       var hasNull=false, hasFalse=false, hasTrue=false;
 
       // Rebuild array and omit duplicates
@@ -558,7 +550,6 @@ qx.Class.define("qx.lang.Array",
       {
         try
         {
-          // TODO: The following delete seems to fail in IE7
           delete doneObjects[hash][key];
         }
         catch(ex)
@@ -567,7 +558,7 @@ qx.Class.define("qx.lang.Array",
           {
             doneObjects[hash][key] = null;
           }
-          catch(ex)
+          catch(ex1)
           {
             throw new Error("Cannot clean-up map entry doneObjects[" + hash + "][" + key + "]");
           }
@@ -575,6 +566,34 @@ qx.Class.define("qx.lang.Array",
       }
 
       return ret;
+    },
+
+    /**
+     * Returns a new array with integers from start to stop incremented or decremented by step.
+     *
+     * @param start {Integer} start of the new array, defaults to 0
+     * @param stop {Integer} stop of the new array
+     * @param step {Integer} increment / decrement - depends whether you use positive or negative values
+     * @return {Array} Returns a new array with integers
+     */
+    range : function(start, stop, step)
+    {
+      if (arguments.length <= 1) {
+        stop = start || 0;
+        start = 0;
+      }
+      step = arguments[2] || 1;
+
+      var length = Math.max(Math.ceil((stop - start) / step), 0);
+      var idx = 0;
+      var range = Array(length);
+
+      while (idx < length) {
+        range[idx++] = start;
+        start += step;
+      }
+
+      return range;
     }
   }
 });

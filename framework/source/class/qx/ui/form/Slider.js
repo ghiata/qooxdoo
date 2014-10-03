@@ -85,16 +85,16 @@ qx.Class.define("qx.ui.form.Slider",
 
     // Add listeners
     this.addListener("keypress", this._onKeyPress);
-    this.addListener("mousewheel", this._onMouseWheel);
-    this.addListener("mousedown", this._onMouseDown);
-    this.addListener("mouseup", this._onMouseUp);
-    this.addListener("losecapture", this._onMouseUp);
+    this.addListener("roll", this._onRoll);
+    this.addListener("pointerdown", this._onPointerDown);
+    this.addListener("pointerup", this._onPointerUp);
+    this.addListener("losecapture", this._onPointerUp);
     this.addListener("resize", this._onUpdate);
 
     // Stop events
     this.addListener("contextmenu", this._onStopEvent);
-    this.addListener("click", this._onStopEvent);
-    this.addListener("dblclick", this._onStopEvent);
+    this.addListener("tap", this._onStopEvent);
+    this.addListener("dbltap", this._onStopEvent);
 
     // Initialize orientation
     if (orientation != null) {
@@ -115,7 +115,10 @@ qx.Class.define("qx.ui.form.Slider",
     /**
      * Change event for the value.
      */
-    changeValue: 'qx.event.type.Data'
+    changeValue: 'qx.event.type.Data',
+
+    /** Fired as soon as the slide animation ended. */
+    slideAnimationEnd: 'qx.event.type.Event'
   },
 
 
@@ -237,6 +240,7 @@ qx.Class.define("qx.ui.form.Slider",
 
   members :
   {
+
     __sliderLocation : null,
     __knobLocation : null,
     __knobSize : null,
@@ -252,6 +256,9 @@ qx.Class.define("qx.ui.form.Slider",
     __lastValueEvent: null,
     __dragValue: null,
 
+    __scrollAnimationframe : null,
+
+
     // overridden
     /**
      * @lint ignoreReferenceField(_forwardStates)
@@ -259,6 +266,15 @@ qx.Class.define("qx.ui.form.Slider",
     _forwardStates : {
       invalid : true
     },
+
+
+    // overridden
+    renderLayout : function(left, top, width, height) {
+      this.base(arguments, left, top, width, height);
+      // make sure the layout engine does not override the knob position
+      this._updateKnobPosition();
+    },
+
 
     // overridden
     _createChildControlImpl : function(id, hash)
@@ -271,8 +287,8 @@ qx.Class.define("qx.ui.form.Slider",
           control = new qx.ui.core.Widget();
 
           control.addListener("resize", this._onUpdate, this);
-          control.addListener("mouseover", this._onMouseOver);
-          control.addListener("mouseout", this._onMouseOut);
+          control.addListener("pointerover", this._onPointerOver);
+          control.addListener("pointerout", this._onPointerOut);
           this._add(control);
           break;
       }
@@ -289,39 +305,44 @@ qx.Class.define("qx.ui.form.Slider",
 
 
     /**
-     * Event handler for mouseover events at the knob child control.
+     * Event handler for pointerover events at the knob child control.
      *
      * Adds the 'hovered' state
      *
-     * @param e {qx.event.type.Mouse} Incoming mouse event
+     * @param e {qx.event.type.Pointer} Incoming pointer event
      */
-    _onMouseOver : function(e) {
+    _onPointerOver : function(e) {
       this.addState("hovered");
     },
 
 
     /**
-     * Event handler for mouseout events at the knob child control.
+     * Event handler for pointerout events at the knob child control.
      *
      * Removes the 'hovered' state
      *
-     * @param e {qx.event.type.Mouse} Incoming mouse event
+     * @param e {qx.event.type.Pointer} Incoming pointer event
      */
-    _onMouseOut : function(e) {
+    _onPointerOut : function(e) {
       this.removeState("hovered");
     },
 
 
     /**
-     * Listener of mousewheel event
+     * Listener of roll event
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
-     * @return {void}
+     * @param e {qx.event.type.Roll} Incoming event object
      */
-    _onMouseWheel : function(e)
+    _onRoll : function(e)
     {
+      // only wheel
+      if (e.getPointerType() != "wheel") {
+        return;
+      }
+
       var axis = this.getOrientation() === "horizontal" ? "x" : "y";
-      var delta = e.getWheelDelta(axis);
+      var delta = e.getDelta()[axis];
+
       var direction =  delta > 0 ? 1 : delta < 0 ? -1 : 0;
       this.slideBy(direction * this.getSingleStep());
 
@@ -335,7 +356,6 @@ qx.Class.define("qx.ui.form.Slider",
      * Adds support for arrow keys, page up, page down, home and end keys.
      *
      * @param e {qx.event.type.KeySequence} Incoming keypress event
-     * @return {void}
      */
     _onKeyPress : function(e)
     {
@@ -354,19 +374,19 @@ qx.Class.define("qx.ui.form.Slider",
           break;
 
         case "PageDown":
-          this.slidePageForward();
+          this.slidePageForward(100);
           break;
 
         case "PageUp":
-          this.slidePageBack();
+          this.slidePageBack(100);
           break;
 
         case "Home":
-          this.slideToBegin();
+          this.slideToBegin(200);
           break;
 
         case "End":
-          this.slideToEnd();
+          this.slideToEnd(200);
           break;
 
         default:
@@ -379,12 +399,11 @@ qx.Class.define("qx.ui.form.Slider",
 
 
     /**
-     * Listener of mousedown event. Initializes drag or tracking mode.
+     * Listener of pointerdown event. Initializes drag or tracking mode.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
-     * @return {void}
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onMouseDown : function(e)
+    _onPointerDown : function(e)
     {
       // this can happen if the user releases the button while dragging outside
       // of the browser viewport
@@ -398,8 +417,21 @@ qx.Class.define("qx.ui.form.Slider",
       var locationProperty = isHorizontal ? "left" : "top";
 
       var cursorLocation = isHorizontal ? e.getDocumentLeft() : e.getDocumentTop();
+
+      var decorator = this.getDecorator();
+      decorator = qx.theme.manager.Decoration.getInstance().resolve(decorator);
+      if (isHorizontal) {
+        var decoratorPadding = decorator ? decorator.getInsets().left : 0;
+        var padding = (this.getPaddingLeft() || 0) + decoratorPadding;
+      } else {
+        var decoratorPadding = decorator ? decorator.getInsets().top : 0;
+        var padding = (this.getPaddingTop() || 0) + decoratorPadding;
+      }
+
       var sliderLocation = this.__sliderLocation = qx.bom.element.Location.get(this.getContentElement().getDomElement())[locationProperty];
-      var knobLocation = this.__knobLocation = qx.bom.element.Location.get(knob.getContainerElement().getDomElement())[locationProperty];
+      sliderLocation += padding;
+
+      var knobLocation = this.__knobLocation = qx.bom.element.Location.get(knob.getContentElement().getDomElement())[locationProperty];
 
       if (e.getTarget() === knob)
       {
@@ -444,7 +476,7 @@ qx.Class.define("qx.ui.form.Slider",
       }
 
       // Register move listener
-      this.addListener("mousemove", this._onMouseMove);
+      this.addListener("pointermove", this._onPointerMove);
 
       // Activate capturing
       this.capture();
@@ -455,13 +487,12 @@ qx.Class.define("qx.ui.form.Slider",
 
 
     /**
-     * Listener of mouseup event. Used for cleanup of previously
+     * Listener of pointerup event. Used for cleanup of previously
      * initialized modes.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
-     * @return {void}
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onMouseUp : function(e)
+    _onPointerUp : function(e)
     {
       if (this.__dragMode)
       {
@@ -481,9 +512,9 @@ qx.Class.define("qx.ui.form.Slider",
         // remove state
         this.getChildControl("knob").removeState("pressed");
 
-        // it's necessary to check whether the mouse cursor is over the knob widget to be able to
+        // it's necessary to check whether the cursor is over the knob widget to be able to
         // to decide whether to remove the 'hovered' state.
-        if (e.getType() === "mouseup")
+        if (e.getType() === "pointerup")
         {
           var deltaSlider;
           var deltaPosition;
@@ -526,22 +557,21 @@ qx.Class.define("qx.ui.form.Slider",
       }
 
       // Remove move listener again
-      this.removeListener("mousemove", this._onMouseMove);
+      this.removeListener("pointermove", this._onPointerMove);
 
       // Stop event
-      if (e.getType() === "mouseup") {
+      if (e.getType() === "pointerup") {
         e.stopPropagation();
       }
     },
 
 
     /**
-     * Listener of mousemove event for the knob. Only used in drag mode.
+     * Listener of pointermove event for the knob. Only used in drag mode.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
-     * @return {void}
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onMouseMove : function(e)
+    _onPointerMove : function(e)
     {
       if (this.__dragMode)
       {
@@ -553,7 +583,7 @@ qx.Class.define("qx.ui.form.Slider",
       }
       else if (this.__trackingMode)
       {
-        // Update tracking end on mousemove
+        // Update tracking end on pointermove
         this.__computeTrackingEnd(e);
       }
 
@@ -567,7 +597,6 @@ qx.Class.define("qx.ui.form.Slider",
      * in tracking sequences.
      *
      * @param e {qx.event.type.Event} Incoming event object
-     * @return {void}
      */
     _onInterval : function(e)
     {
@@ -581,7 +610,7 @@ qx.Class.define("qx.ui.form.Slider",
         value = this.getMaximum();
       }
 
-      // Stop at tracking position (where the mouse is pressed down)
+      // Stop at tracking position (where the pointer is pressed down)
       var slideBack = this.__trackingDirection == -1;
       if ((slideBack && value <= this.__trackingEnd) || (!slideBack && value >= this.__trackingEnd)) {
         value = this.__trackingEnd;
@@ -596,7 +625,6 @@ qx.Class.define("qx.ui.form.Slider",
      * Listener of resize event for both the slider itself and the knob.
      *
      * @param e {qx.event.type.Data} Incoming event object
-     * @return {void}
      */
     _onUpdate : function(e)
     {
@@ -627,12 +655,12 @@ qx.Class.define("qx.ui.form.Slider",
     ---------------------------------------------------------------------------
     */
 
-    /** {Boolean} Whether the slider is laid out horizontally */
+    /** @type {Boolean} Whether the slider is laid out horizontally */
     __isHorizontal : false,
 
 
     /**
-     * {Integer} Available space for knob to slide on, computed on resize of
+     * @type {Integer} Available space for knob to slide on, computed on resize of
      * the widget
      */
     __slidingSpace : 0,
@@ -640,10 +668,9 @@ qx.Class.define("qx.ui.form.Slider",
 
     /**
      * Computes the value where the tracking should end depending on
-     * the current mouse position.
+     * the current pointer position.
      *
-     * @param e {qx.event.type.Mouse} Incoming mouse event
-     * @return {void}
+     * @param e {qx.event.type.Pointer} Incoming pointer event
      */
     __computeTrackingEnd : function(e)
     {
@@ -764,7 +791,6 @@ qx.Class.define("qx.ui.form.Slider",
      * value. Useful on reflows where the dimensions of the slider
      * itself have been modified.
      *
-     * @return {void}
      */
     _updateKnobPosition : function() {
       this._setKnobPosition(this._valueToPosition(this.getValue()));
@@ -776,29 +802,27 @@ qx.Class.define("qx.ui.form.Slider",
      *
      * @param position {Integer} Any valid position (needs to be
      *   greater or equal than zero)
-     * @return {void}
      */
     _setKnobPosition : function(position)
     {
-      // Use DOM Element
-      var container = this.getChildControl("knob").getContainerElement();
+      // Use the DOM Element to prevent unnecessary layout recalculations
+      var knob = this.getChildControl("knob");
+      var dec = this.getDecorator();
+      dec = qx.theme.manager.Decoration.getInstance().resolve(dec);
+      var content = knob.getContentElement();
       if (this.__isHorizontal) {
-        container.setStyle("left", position+"px", true);
+        if (dec && dec.getPadding()) {
+          position += dec.getPadding().left;
+        }
+        position += this.getPaddingLeft() || 0;
+        content.setStyle("left", position+"px", true);
       } else {
-        container.setStyle("top", position+"px", true);
+        if (dec && dec.getPadding()) {
+          position += dec.getPadding().top;
+        }
+        position += this.getPaddingTop() || 0;
+        content.setStyle("top", position+"px", true);
       }
-
-      // Alternative: Use layout system
-      // Not used because especially in IE7/Firefox2 the
-      // direct element manipulation is a lot faster
-
-      /*
-      if (this.__isHorizontal) {
-        this.getChildControl("knob").setLayoutProperties({left:position});
-      } else {
-        this.getChildControl("knob").setLayoutProperties({top:position});
-      }
-      */
     },
 
 
@@ -806,7 +830,6 @@ qx.Class.define("qx.ui.form.Slider",
      * Reconfigures the size of the knob depending on
      * the optionally defined {@link #knobFactor}.
      *
-     * @return {void}
      */
     _updateKnobSize : function()
     {
@@ -842,28 +865,25 @@ qx.Class.define("qx.ui.form.Slider",
 
     /**
      * Slides backward to the minimum value
-     *
-     * @return {void}
+     * @param duration {Number} The time in milliseconds the slide to should take.
      */
-    slideToBegin : function() {
-      this.slideTo(this.getMinimum());
+    slideToBegin : function(duration) {
+      this.slideTo(this.getMinimum(), duration);
     },
 
 
     /**
      * Slides forward to the maximum value
-     *
-     * @return {void}
+     * @param duration {Number} The time in milliseconds the slide to should take.
      */
-    slideToEnd : function() {
-      this.slideTo(this.getMaximum());
+    slideToEnd : function(duration) {
+      this.slideTo(this.getMaximum(), duration);
     },
 
 
     /**
      * Slides forward (right or bottom depending on orientation)
      *
-     * @return {void}
      */
     slideForward : function() {
       this.slideBy(this.getSingleStep());
@@ -873,7 +893,6 @@ qx.Class.define("qx.ui.form.Slider",
     /**
      * Slides backward (to left or top depending on orientation)
      *
-     * @return {void}
      */
     slideBack : function() {
       this.slideBy(-this.getSingleStep());
@@ -882,21 +901,19 @@ qx.Class.define("qx.ui.form.Slider",
 
     /**
      * Slides a page forward (to right or bottom depending on orientation)
-     *
-     * @return {void}
+     * @param duration {Number} The time in milliseconds the slide to should take.
      */
-    slidePageForward : function() {
-      this.slideBy(this.getPageStep());
+    slidePageForward : function(duration) {
+      this.slideBy(this.getPageStep(), duration);
     },
 
 
     /**
      * Slides a page backward (to left or top depending on orientation)
-     *
-     * @return {void}
+     * @param duration {Number} The time in milliseconds the slide to should take.
      */
-    slidePageBack : function() {
-      this.slideBy(-this.getPageStep());
+    slidePageBack : function(duration) {
+      this.slideBy(-this.getPageStep(), duration);
     },
 
 
@@ -906,10 +923,10 @@ qx.Class.define("qx.ui.form.Slider",
      * This method works with the value, not with the coordinate.
      *
      * @param offset {Integer} Offset to scroll by
-     * @return {void}
+     * @param duration {Number} The time in milliseconds the slide to should take.
      */
-    slideBy : function(offset) {
-      this.slideTo(this.getValue() + offset);
+    slideBy : function(offset, duration) {
+      this.slideTo(this.getValue() + offset, duration);
     },
 
 
@@ -920,10 +937,48 @@ qx.Class.define("qx.ui.form.Slider",
      *
      * @param value {Integer} Scroll to a value between the defined
      *   minimum and maximum.
-     * @return {void}
+     * @param duration {Number} The time in milliseconds the slide to should take.
      */
-    slideTo : function(value)
+    slideTo : function(value, duration)
     {
+      this.stopSlideAnimation();
+
+      if (duration) {
+        this.__animateTo(value, duration);
+      } else {
+        this.updatePosition(value);
+      }
+    },
+
+
+    /**
+     * Updates the position property considering the minimum and maximum values.
+     * @param value {Number} The new position.
+     */
+    updatePosition : function(value) {
+      this.setValue(this.__normalizeValue(value));
+    },
+
+
+    /**
+     * In case a slide animation is currently running, it will be stopped.
+     * If not, the method does nothing.
+     */
+    stopSlideAnimation : function() {
+      if (this.__scrollAnimationframe) {
+        this.__scrollAnimationframe.cancelSequence();
+        this.__scrollAnimationframe = null;
+      }
+    },
+
+
+    /**
+     * Internal helper to normalize the given value concerning the minimum
+     * and maximum value.
+     * @param value {Number} The value to normalize.
+     * @return {Number} The normalized value.
+     */
+    __normalizeValue : function(value) {
       // Bring into allowed range or fix to single step grid
       if (value < this.getMinimum()) {
         value = this.getMinimum();
@@ -932,12 +987,33 @@ qx.Class.define("qx.ui.form.Slider",
       } else {
         value = this.getMinimum() + Math.round((value - this.getMinimum()) / this.getSingleStep()) * this.getSingleStep()
       }
-
-      // Sync with property
-      this.setValue(value);
+      return value;
     },
 
 
+    /**
+     * Animation helper which takes care of the animated slide.
+     * @param to {Number} The target value.
+     * @param duration {Number} The time in milliseconds the slide to should take.
+     */
+    __animateTo : function(to, duration) {
+      to = this.__normalizeValue(to);
+      var from = this.getValue();
+
+      this.__scrollAnimationframe = new qx.bom.AnimationFrame();
+
+      this.__scrollAnimationframe.on("frame", function(timePassed) {
+        this.setValue(parseInt(timePassed/duration * (to - from) + from));
+      }, this);
+
+      this.__scrollAnimationframe.on("end", function() {
+        this.setValue(to);
+        this.__scrollAnimationframe = null;
+        this.fireEvent("slideAnimationEnd");
+      }, this);
+
+      this.__scrollAnimationframe.startSequence(duration);
+    },
 
 
     /*

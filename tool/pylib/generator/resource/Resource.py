@@ -33,28 +33,14 @@ class Resource(object):
     
     def __init__(self, path=None):
         self.path   = path
-        self.id     = u''
+        self.set_id(unicode(id(self)))  # this is just a default, to have something
         self.library= None
         self.m_time_= None  # last-modified time stamp
 
-
-    def _id_get(s):
-        if hasattr(s, '_id'):
-            return s._id
-        else:   # this can happen on unpickling
-            return u''
-
-    def _id_set(s,v):
-        # id's are often derived from file names, which might encode ö as o\u0308, etc.
-        # but they have to match strings from *within* files (e.g. class id's)
-        s._id = unidata.normalize("NFC", v)
-
-    id = property(_id_get, _id_set)
-
-    def __getstate__(self):
-        d = self.__dict__.copy()
-        d['_id'] = self.id
-        return d
+    ##
+    # <id> -- must be type unicode()
+    def set_id(self, id):
+        self.id = unidata.normalize("NFC", id)
 
     def __str__(self):
         return self.id
@@ -70,7 +56,8 @@ class Resource(object):
     ##
     # make the .id significant for set() operations
     def __hash__(self):
-        if self.id:
+        #return self.hash
+        if hasattr(self, 'id'):
             return hash(self.id)
         else:
             return id(self)
@@ -84,4 +71,3 @@ class Resource(object):
         if not self.m_time_ or force:
             self.m_time_ = os.stat(self.path).st_mtime
         return self.m_time_
-

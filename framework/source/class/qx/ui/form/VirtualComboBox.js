@@ -117,19 +117,19 @@ qx.Class.define("qx.ui.form.VirtualComboBox",
 
   members :
   {
-    /** {var} Binding id between local value and text field value. */
+    /** @type {var} Binding id between local value and text field value. */
     __localBindId : null,
 
 
-    /** {var} Binding id between text field value and local value. */
+    /** @type {var} Binding id between text field value and local value. */
     __textFieldBindId : null,
 
 
-    /** {qx.data.Array} the drop-down selection. */
+    /** @type {qx.data.Array} the drop-down selection. */
     __selection : null,
 
 
-    /** {Boolean} Indicator to ignore selection changes from the list. */
+    /** @type {Boolean} Indicator to ignore selection changes from the list. */
     __ignoreChangeSelection : null,
 
 
@@ -247,6 +247,7 @@ qx.Class.define("qx.ui.form.VirtualComboBox",
           control.setFocusable(false);
           control.setKeepActive(true);
           control.addState("inner");
+          control.addListener("execute", this.toggle, this);
           this._add(control);
           break;
       }
@@ -302,21 +303,15 @@ qx.Class.define("qx.ui.form.VirtualComboBox",
 
 
     // overridden
-    _handleMouse : function(event)
-    {
+    _handlePointer : function(event) {
       this.base(arguments, event);
 
       var type = event.getType();
-      if (type !== "click") {
+      if (type !== "tap") {
         return;
       }
 
-      var target = event.getTarget();
-      if (target == this.getChildControl("button")) {
-        this.toggle();
-      } else {
-        this.close();
-      }
+      this.close();
     },
 
 
@@ -331,9 +326,10 @@ qx.Class.define("qx.ui.form.VirtualComboBox",
       }
 
       var selected = this.__selection.getItem(0);
-      selected = this.__convertValue(selected);
-
-      this.setValue(selected);
+      if(selected){
+        selected = this.__convertValue(selected);
+        this.setValue(selected);
+      }
     },
 
 
@@ -406,7 +402,7 @@ qx.Class.define("qx.ui.form.VirtualComboBox",
       var result = null;
 
       if (labelPath != null) {
-        result = qx.data.SingleValueBinding.getValueFromObject(modelItem, labelPath);
+        result = qx.data.SingleValueBinding.resolvePropertyChain(modelItem, labelPath);
       } else if (qx.lang.Type.isString(modelItem)) {
         result = modelItem;
       }

@@ -81,7 +81,6 @@ qx.Class.define("qx.ui.table.model.Filtered",
      * @param target {String}
      *    The text value of the column to compare against.
      *
-     * @return {void}
      *
      * @throws {Error} If the filter can not recognized or one of the values
      * is null.
@@ -117,7 +116,6 @@ qx.Class.define("qx.ui.table.model.Filtered",
      * @param target {String}
      *    The text value of the column to compare against.
      *
-     * @return {void}
      *
      * @throws {Error} If the filter can not recognized or the target is null.
      */
@@ -150,10 +148,9 @@ qx.Class.define("qx.ui.table.model.Filtered",
      * @param target {String}
      *    The text value of the column to compare against.
      *
-     * @param ignorecase {boolean}
+     * @param ignorecase {Boolean}
      *    If true, the regular expression will ignore case.
      *
-     * @return {void}
      *
      * @throws {Error} If the regex is not valid.
      */
@@ -183,10 +180,9 @@ qx.Class.define("qx.ui.table.model.Filtered",
      * @param target {String}
      *    The text value of the column to compare against.
      *
-     * @param ignorecase {boolean}
+     * @param ignorecase {Boolean}
      *    If true, the regular expression will ignore case.
      *
-     * @return {void}
      *
      * @throws {Error} If the regex is null.
      */
@@ -289,7 +285,7 @@ qx.Class.define("qx.ui.table.model.Filtered",
               break;
 
             case "!between":
-              if (compareValue < this.Filters[i][1] &&
+              if (compareValue < this.Filters[i][1] ||
                   compareValue > this.Filters[i][2]) {
                 filter_test = true;
               }
@@ -346,7 +342,6 @@ qx.Class.define("qx.ui.table.model.Filtered",
      * @param dispatchEvent {Boolean?true} Whether a model change event should
      *    be fired.
      *
-     * @return {void}
      */
     hideRows : function(rowNum, numOfRows, dispatchEvent)
     {
@@ -389,7 +384,6 @@ qx.Class.define("qx.ui.table.model.Filtered",
      * Return the table to the original state with all rows shown and clears
      * all filters.
      *
-     * @return {void}
      */
     resetHiddenRows : function()
     {

@@ -676,7 +676,7 @@ qx.Class.define("qx.util.fsm.State",
      *
      * @param value {var} Value passed to setter
      * @return {var} the final value
-     * @throws when an invalid value is detected
+     * @throws {Error} when an invalid value is detected
      */
     __transformName : function(value)
     {
@@ -695,7 +695,7 @@ qx.Class.define("qx.util.fsm.State",
      *
      * @param value {var} Current value
      * @return {var} the final value
-     * @throws when an invalid value is detected
+     * @throws {Error} when an invalid value is detected
      */
     __transformOnentry : function(value)
     {
@@ -721,7 +721,7 @@ qx.Class.define("qx.util.fsm.State",
      *
      * @param value {var} Current value
      * @return {var} the final value
-     * @throws when an invalid value is detected
+     * @throws {Error} when an invalid value is detected
      */
     __transformOnexit : function(value)
     {
@@ -738,7 +738,6 @@ qx.Class.define("qx.util.fsm.State",
 
         default:
           throw new Error("Invalid onexit type: " + typeof (value));
-          return null;
       }
     },
 
@@ -748,7 +747,7 @@ qx.Class.define("qx.util.fsm.State",
      *
      * @param value {var} Current value
      * @return {var} the final value
-     * @throws when an invalid value is detected
+     * @throws {Error} when an invalid value is detected
      */
     __transformEvents : function(value)
     {
@@ -880,13 +879,13 @@ qx.Class.define("qx.util.fsm.State",
     /**
      * If given a function, bind it to a specified context.
      *
-     * @param f {Function|Any}
+     * @param f {Function|var}
      *   The (possibly) function to be bound to the specified context.
      *
-     * @param context
+     * @param context {Object}
      *   The context to bind the function to.
      *
-     * @return
+     * @return {Function}
      *   If f was a function, the return value is f wrapped such that it will
      *   be called in the specified context. Otherwise, f is returned
      *   unaltered.
@@ -912,7 +911,6 @@ qx.Class.define("qx.util.fsm.State",
      *   An object of class qx.util.fsm.Transition representing a transition
      *   which is to be a part of this state.
      *
-     * @return {void}
      */
     addTransition : function(trans)
     {

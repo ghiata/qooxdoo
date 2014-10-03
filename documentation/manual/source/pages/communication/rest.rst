@@ -1,11 +1,23 @@
 REST (Representational State Transfer)
 **************************************
 
+``qx.io.rest.Resource`` allows to encapsulate the specifics of a REST
+interface. Rather than requesting URLs with a specific HTTP method manually, a
+resource representing the remote resource is instantiated and **actions** are
+invoked on this resource. A resource with its actions can be configured
+declaratively or programmatically.
+
 .. note::
 
-  This is an experimental feature.
+  When to use ``qx.bom.rest.Resource``? Mostly ``qx.io.rest.Resource`` delegates
+  to ``qx.bom.rest.Resource`` and adds some features on top. For **qx.Desktop**
+  apps you probably want to use ``qx.io.rest.Resource`` but when developing an
+  app/website with **qx.Website** only ``qx.bom.rest.Resource`` is available
+  (i.e. exposed as website module).
 
-``qx.io.rest.Resource`` allows to encapsulate the specifics of a REST interface. Rather than requesting URLs with a specific HTTP method manually, a resource representing the remote resource is instantiated and **actions** are invoked on this resource. A resource with its actions can be configured declaratively or programatically.
+  See the package description for a detailed comparison:
+  `qx.bom.rest <http://demo.qooxdoo.org/%{version}/apiviewer/#qx.bom.rest>`_ .
+
 
 Configuring actions
 ===================
@@ -14,9 +26,9 @@ Given a REST-like interface with URLs that comply to the following pattern.
 
 ::
 
-  GET      /photos/{id}
-  PUT      /photos/{id}
-  DELETE   /photos/{id}
+  GET      /photo/{id}
+  PUT      /photo/{id}
+  DELETE   /photo/{id}
 
   GET      /photos
   POST     /photos
@@ -25,7 +37,8 @@ Note ``{id}`` stands for a placeholder.
 
 This interface comprises of two resources: ``photo`` and ``photos``.
 
-To declare the specifics of the REST interface declaratively, pass a description to the constructor.
+To declare the specifics of the REST interface declaratively, pass a description
+to the constructor.
 
 ::
 
@@ -40,6 +53,12 @@ To declare the specifics of the REST interface declaratively, pass a description
     // Update photo
     put: {
       method: "POST",
+      url: "/photo/{id}"
+    },
+
+    // Delete photo
+    del: {
+      method: "DELETE",
       url: "/photo/{id}"
     }
   });
@@ -59,17 +78,18 @@ To declare the specifics of the REST interface declaratively, pass a description
     }
   });
 
-Or programatically, for each action.
+Or programmatically, for each action.
 
 ::
 
   var photo = new qx.io.rest.Resource();
-  photos.map("get", "GET", "/photo/{id}");
+  photo.map("get", "GET", "/photo/{id}");
 
 Invoking actions
 ================
 
-Once configured, actions can be invoked. They are invoked by calling a method that is dynamically added to the resource on configuration of the action.
+Once configured, actions can be invoked. They are invoked by calling a method
+that is dynamically added to the resource on configuration of the action.
 
 ::
 
@@ -86,12 +106,15 @@ When an action is invoked, an appropriate request is configured and send automat
 Parameters
 ==========
 
-Parameters are optional unless a check is defined. A default value can be provided.
+If the URL contains parameters, the position where the parameters should be
+inserted can be specified by using `URI templates
+<http://tools.ietf.org/html/draft-gregorio-uritemplate-07>`_. Parameters are
+optional unless a check is defined. A default value can be provided.
 
 ::
 
   var photo = new qx.io.rest.Resource();
-  photo.map("get", "GET", "/photo/{id}/{size=medium}", {id: true});
+  photo.map("get", "GET", "/photo/{id}/{size=medium}", {id:  qx.io.rest.Resource.REQUIRED});
 
   photo.get({id: 1, size: "large"});
   // --> GET /photo/1/large
@@ -102,10 +125,37 @@ Parameters are optional unless a check is defined. A default value can be provid
   photo.get();
   // --> Error: Missing parameter 'id'
 
+Data
+====
+
+Data that should be included in the request's body can be given as second
+parameter. All types accepted by `qx.io.request.AbstractRequest#requestData
+<http://demo.qooxdoo.org/%{version}/apiviewer/#qx.io.request.AbstractRequest~requestData>`_
+are supported.
+
+::
+
+  photo.put({id: 1}, {title: "Monkey"}); // URL encoded
+  photo.put({id: 1}, "title=monkey"); // Raw
+
+Note that the behavior changes when the request body content type is switched to ``application/json``.
+
+::
+
+  photos.configureRequest(function(req) {
+    req.setRequestHeader("Content-Type", "application/json");
+  });
+
+  photos.map("post", "POST", "/photos/{id}");
+  photos.post({id: 1}, {location: "Karlsruhe"}); // JSON.stringify
+
 Events
 ======
 
-Events are fired by the resource when the request was sucessful or any kind of error occured. There are general resource events and action specific events. Handlers receive a ``qx.event.type.Rest`` event that, among other properties, includes the response.
+Events are fired by the resource when the request was successful or any kind of
+error occurred. There are general resource events and action specific events.
+Handlers receive a ``qx.event.type.Rest`` event that, among other properties,
+includes the response.
 
 ::
 
@@ -124,6 +174,20 @@ Events are fired by the resource when the request was sucessful or any kind of e
     // --> "get"
   });
 
+If the same action should be invoked multiple times and the events fired for
+each request be handled differently, it is possible to remember the id of the
+action's invocation. The ``Rest`` event includes this id.
+
+::
+
+  var getPhotoId = photo.get({id: 1});
+  var getLargePhotoId = photo.get({id: 1, size: "large"});
+  photo.addListener("getSuccess", function(e) {
+    if (e.getId() === getLargePhotoId) {
+      // Handle large photo
+    }
+  });
+
 Helpers
 =======
 
@@ -136,11 +200,14 @@ Helpers make it easy to accomplish common tasks when working with requests.
 Data binding
 ============
 
-A ``qx.data.store.Rest`` store can be attached to an action. Whenever a response is received, the model property of the store is updated with the marshaled response.
+A ``qx.data.store.Rest`` store can be attached to an action. Whenever a response
+is received, the model property of the store is updated with the marshaled
+response.
 
 ::
 
   var store = new qx.data.store.Rest(photos, "get");
-  var controller = new qx.data.controller.List();
+  var list = new qx.ui.form.List();
+  var controller = new qx.data.controller.List(null, list);
   store.bind("model", controller, "model");
   photos.longPoll("get");

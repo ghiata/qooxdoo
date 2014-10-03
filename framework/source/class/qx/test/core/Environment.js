@@ -17,13 +17,10 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.bom.htmlarea.HtmlArea)
-#require(qx.io.remote.Request)
-#require(qx.ui.core.scroll.MScrollBarFactory)
-
-************************************************************************ */
+/**
+ * @require(qx.io.remote.Request)
+ * @require(qx.ui.core.scroll.MScrollBarFactory)
+ */
 
 qx.Class.define("qx.test.core.Environment",
 {
@@ -36,18 +33,18 @@ qx.Class.define("qx.test.core.Environment",
     // ////////////////////////////// //
     testGet : function() {
       // fake the check
-      qx.core.Environment._checks["affe"] = function() {
+      qx.core.Environment.getChecks()["affe"] = function() {
         return "affe";
       };
       this.assertEquals("affe", qx.core.Environment.get("affe"));
       // clear the fake check
-      delete qx.core.Environment._checks["affe"];
+      delete qx.core.Environment.getChecks()["affe"];
       qx.core.Environment.invalidateCacheKey("affe");
     },
 
     testGetAsync : function() {
       // fake the check
-      qx.core.Environment._asyncChecks["affe"] = function(clb, self) {
+      qx.core.Environment.getAsyncChecks()["affe"] = function(clb, self) {
         window.setTimeout(function() {
           clb.call(self, "affe");
         }, 0);
@@ -57,7 +54,7 @@ qx.Class.define("qx.test.core.Environment",
         this.resume(function() {
           this.assertEquals("affe", result);
           // clear the fake check
-          delete qx.core.Environment._asyncChecks["affe"];
+          delete qx.core.Environment.getAsyncChecks()["affe"];
           qx.core.Environment.invalidateCacheKey("affe");
         }, this);
       }, this);
@@ -67,7 +64,7 @@ qx.Class.define("qx.test.core.Environment",
 
     testSelect : function() {
       // fake the check
-      qx.core.Environment._checks["affe"] = function() {
+      qx.core.Environment.getChecks()["affe"] = function() {
         return "affe";
       };
       var test;
@@ -77,13 +74,13 @@ qx.Class.define("qx.test.core.Environment",
 
       this.assertEquals(test, "affe");
       // clear the fake check
-      delete qx.core.Environment._checks["affe"];
+      delete qx.core.Environment.getChecks()["affe"];
       qx.core.Environment.invalidateCacheKey("affe");
     },
 
     testSelectDefault : function() {
       // fake the check
-      qx.core.Environment._checks["affe"] = function() {
+      qx.core.Environment.getChecks()["affe"] = function() {
         return "affe";
       };
       var test;
@@ -93,7 +90,7 @@ qx.Class.define("qx.test.core.Environment",
 
       this.assertEquals(test, "affe");
       // clear the fake check
-      delete qx.core.Environment._checks["affe"];
+      delete qx.core.Environment.getChecks()["affe"];
       qx.core.Environment.invalidateCacheKey("affe");
     },
 
@@ -111,7 +108,7 @@ qx.Class.define("qx.test.core.Environment",
         "affe" : function(result) {
           this.resume(function() {
             // clear the fake check
-            delete qx.core.Environment._checks["affe"];
+            delete qx.core.Environment.getChecks()["affe"];
             qx.core.Environment.invalidateCacheKey("affe");
             this.assertEquals("AFFE", result);
           }, this);
@@ -124,12 +121,12 @@ qx.Class.define("qx.test.core.Environment",
 
     testCache: function() {
       // fake the check
-      qx.core.Environment._checks["affe"] = function() {
+      qx.core.Environment.getChecks()["affe"] = function() {
         return "affe";
       };
       this.assertEquals("affe", qx.core.Environment.get("affe"));
       // clear the fake check
-      delete qx.core.Environment._checks["affe"];
+      delete qx.core.Environment.getChecks()["affe"];
 
       this.assertEquals("affe", qx.core.Environment.get("affe"));
 
@@ -138,7 +135,7 @@ qx.Class.define("qx.test.core.Environment",
 
     testCacheInvalidation: function() {
       // fake the check
-      qx.core.Environment._checks["affe"] = function() {
+      qx.core.Environment.getChecks()["affe"] = function() {
         return "affe";
       };
       this.assertEquals("affe", qx.core.Environment.get("affe"));
@@ -146,13 +143,13 @@ qx.Class.define("qx.test.core.Environment",
       qx.core.Environment.invalidateCacheKey("affe");
 
       // fake another check
-      qx.core.Environment._checks["affe"] = function() {
+      qx.core.Environment.getChecks()["affe"] = function() {
         return "affe2";
       };
       this.assertEquals("affe2", qx.core.Environment.get("affe"));
 
       // clear the fake check
-      delete qx.core.Environment._checks["affe"];
+      delete qx.core.Environment.getChecks()["affe"];
       qx.core.Environment.invalidateCacheKey("affe");
     },
 
@@ -165,7 +162,7 @@ qx.Class.define("qx.test.core.Environment",
       this.assertEquals("AFFE", qx.core.Environment.get("affe"));
 
       // clear the check
-      delete qx.core.Environment._checks["affe"];
+      delete qx.core.Environment.getChecks()["affe"];
       qx.core.Environment.invalidateCacheKey("affe");
     },
 
@@ -176,7 +173,7 @@ qx.Class.define("qx.test.core.Environment",
       this.assertEquals("AFFE", qx.core.Environment.get("affe"));
 
       // clear the check
-      delete qx.core.Environment._checks["affe"];
+      delete qx.core.Environment.getChecks()["affe"];
       qx.core.Environment.invalidateCacheKey("affe");
     },
 
@@ -192,7 +189,7 @@ qx.Class.define("qx.test.core.Environment",
         this.resume(function() {
           this.assertEquals("AFFE", result);
           // clear the fake check
-          delete qx.core.Environment._asyncChecks["affe"];
+          delete qx.core.Environment.getAsyncChecks()["affe"];
           qx.core.Environment.invalidateCacheKey("affe");
         }, this);
       }, this);
@@ -203,13 +200,13 @@ qx.Class.define("qx.test.core.Environment",
 
     testFilter : function() {
       // fake the checks
-      qx.core.Environment._checks["affe1"] = function() {
+      qx.core.Environment.getChecks()["affe1"] = function() {
         return true;
       };
-      qx.core.Environment._checks["affe2"] = function() {
+      qx.core.Environment.getChecks()["affe2"] = function() {
         return false;
       };
-      qx.core.Environment._checks["affe3"] = function() {
+      qx.core.Environment.getChecks()["affe3"] = function() {
         return true;
       };
 
@@ -224,9 +221,9 @@ qx.Class.define("qx.test.core.Environment",
       this.assertEquals(3, array[1]);
 
       // clear the fake check
-      delete qx.core.Environment._checks["affe1"];
-      delete qx.core.Environment._checks["affe2"];
-      delete qx.core.Environment._checks["affe3"];
+      delete qx.core.Environment.getChecks()["affe1"];
+      delete qx.core.Environment.getChecks()["affe2"];
+      delete qx.core.Environment.getChecks()["affe3"];
       qx.core.Environment.invalidateCacheKey("affe1");
       qx.core.Environment.invalidateCacheKey("affe2");
       qx.core.Environment.invalidateCacheKey("affe3");
@@ -270,6 +267,11 @@ qx.Class.define("qx.test.core.Environment",
       // just make sure the call is working
       this.assertBoolean(qx.core.Environment.get("plugin.quicktime"));
       qx.core.Environment.get("plugin.quicktime.version");
+    },
+
+    testSkype : function() {
+      // just make sure the call is working
+      this.assertBoolean(qx.core.Environment.get("plugin.skype"));
     },
 
     testWmv : function() {
@@ -340,6 +342,7 @@ qx.Class.define("qx.test.core.Environment",
       this.assertString(qx.core.Environment.get("html.video.webm"));
       this.assertBoolean(qx.core.Environment.get("html.storage.local"));
       this.assertBoolean(qx.core.Environment.get("html.storage.session"));
+      this.assertBoolean(qx.core.Environment.get("html.storage.userdata"));
       this.assertBoolean(qx.core.Environment.get("html.classlist"));
       this.assertBoolean(qx.core.Environment.get("html.xpath"));
       this.assertBoolean(qx.core.Environment.get("html.xul"));
@@ -347,16 +350,20 @@ qx.Class.define("qx.test.core.Environment",
       this.assertBoolean(qx.core.Environment.get("html.svg"));
       this.assertBoolean(qx.core.Environment.get("html.vml"));
       this.assertBoolean(qx.core.Environment.get("html.console"));
-      
+
       this.assertBoolean(qx.core.Environment.get("html.stylesheet.createstylesheet"));
       this.assertBoolean(qx.core.Environment.get("html.stylesheet.insertrule"));
       this.assertBoolean(qx.core.Environment.get("html.stylesheet.deleterule"));
       this.assertBoolean(qx.core.Environment.get("html.stylesheet.addimport"));
       this.assertBoolean(qx.core.Environment.get("html.stylesheet.removeimport"));
-      
+
       this.assertBoolean(qx.core.Environment.get("html.element.contains"));
       this.assertBoolean(qx.core.Environment.get("html.element.compareDocumentPosition"));
       this.assertBoolean(qx.core.Environment.get("html.element.textcontent"));
+      this.assertBoolean(qx.core.Environment.get("html.image.naturaldimensions"));
+      this.assertBoolean(qx.core.Environment.get("html.history.state"));
+      this.assertString(qx.core.Environment.get("html.selection"));
+      this.assertBoolean(qx.core.Environment.get("html.node.isequalnode"));
     },
 
     testXml : function()
@@ -384,8 +391,6 @@ qx.Class.define("qx.test.core.Environment",
     testCss : function() {
       this.assertNotEquals("", qx.core.Environment.get("css.boxmodel"));
       this.assertBoolean(qx.core.Environment.get("css.placeholder"));
-      this.assertBoolean(qx.core.Environment.get("css.gradients"));
-      this.assertBoolean(qx.core.Environment.get("css.translate3d"));
       this.assertBoolean(qx.core.Environment.get("css.rgba"));
       var boxShadow = qx.core.Environment.get("css.boxshadow");
       this.assert(typeof boxShadow === "string" || boxShadow === null);
@@ -393,10 +398,14 @@ qx.Class.define("qx.test.core.Environment",
       this.assert(typeof borderRadius == "string" || borderRadius === null);
       var borderImage = qx.core.Environment.get("css.borderimage");
       this.assert(typeof borderImage == "string" || borderImage === null);
+      var borderImageSyntax = qx.core.Environment.get("css.borderimage.standardsyntax");
+      this.assert(typeof borderImageSyntax == "boolean" || borderImageSyntax === null);
       var textOverflow = qx.core.Environment.get("css.textoverflow");
       this.assert(typeof textOverflow == "string" || textOverflow === null);
       var userSelect = qx.core.Environment.get("css.userselect");
       this.assert(typeof userSelect == "string" || userSelect === null);
+      var userSelectNone = qx.core.Environment.get("css.userselect.none");
+      this.assert(typeof userSelectNone == "string" || userSelectNone === null);
       var userModify = qx.core.Environment.get("css.usermodify");
       this.assert(typeof userModify == "string" || userModify === null);
       var appearance = qx.core.Environment.get("css.appearance");
@@ -405,6 +414,17 @@ qx.Class.define("qx.test.core.Environment",
       this.assert(floatProp === "cssFloat" || floatProp === "styleFloat");
       var boxSizing = qx.core.Environment.get("css.boxsizing");
       this.assert(typeof boxSizing == "string" || boxSizing === null);
+      var inlineBlock = qx.core.Environment.get("css.inlineblock");
+      this.assert(typeof inlineBlock == "string" || inlineBlock === null);
+      this.assertBoolean(qx.core.Environment.get("css.opacity"));
+      var linearGradient = qx.core.Environment.get("css.gradient.linear");
+      this.assert(typeof linearGradient == "string" || linearGradient === null);
+      this.assertBoolean(qx.core.Environment.get("css.gradient.filter"));
+      var radialGradient = qx.core.Environment.get("css.gradient.radial");
+      this.assert(typeof radialGradient == "string" || radialGradient === null);
+      this.assertBoolean(qx.core.Environment.get("css.gradient.legacywebkit"));
+      this.assertBoolean(qx.core.Environment.get("css.alphaimageloaderneeded"));
+      this.assertBoolean(qx.core.Environment.get("css.pointerevents"));
     },
 
     testPhoneGap : function() {
@@ -414,12 +434,30 @@ qx.Class.define("qx.test.core.Environment",
 
     testEvent : function() {
       this.assertBoolean(qx.core.Environment.get("event.touch"));
-      this.assertBoolean(qx.core.Environment.get("event.pointer"));
       this.assertBoolean(qx.core.Environment.get("event.help"));
+      this.assertBoolean(qx.core.Environment.get("event.hashchange"));
+      this.assertBoolean(qx.core.Environment.get("event.dispatchevent"));
+      this.assertBoolean(qx.core.Environment.get("event.customevent"));
+      this.assertBoolean(qx.core.Environment.get("event.mouseevent"));
     },
 
     testEcmaScript : function() {
-      this.assertBoolean(qx.core.Environment.get("ecmascript.objectcount"));
+      var stackTrace = qx.core.Environment.get("ecmascript.error.stacktrace");
+      this.assert(typeof stackTrace == "string" || stackTrace === null);
+
+      this.assertBoolean(qx.core.Environment.get("ecmascript.array.indexof"));
+      this.assertBoolean(qx.core.Environment.get("ecmascript.array.lastindexof"));
+      this.assertBoolean(qx.core.Environment.get("ecmascript.array.foreach"));
+      this.assertBoolean(qx.core.Environment.get("ecmascript.array.filter"));
+      this.assertBoolean(qx.core.Environment.get("ecmascript.array.map"));
+      this.assertBoolean(qx.core.Environment.get("ecmascript.array.some"));
+      this.assertBoolean(qx.core.Environment.get("ecmascript.array.every"));
+      this.assertBoolean(qx.core.Environment.get("ecmascript.array.reduce"));
+      this.assertBoolean(qx.core.Environment.get("ecmascript.array.reduceright"));
+      this.assertBoolean(qx.core.Environment.get("ecmascript.function.bind"));
+      this.assertBoolean(qx.core.Environment.get("ecmascript.object.keys"));
+      this.assertBoolean(qx.core.Environment.get("ecmascript.date.now"));
+      this.assertBoolean(qx.core.Environment.get("ecmascript.error.toString"));
     },
 
     testDataUrl : function() {
@@ -435,29 +473,44 @@ qx.Class.define("qx.test.core.Environment",
       this.assertString(qx.core.Environment.get("device.name"));
     },
 
+    testDeviceType : function() {
+      this.assertString(qx.core.Environment.get("device.type"));
+    },
+
+    testDevicePixelRatio : function() {
+      this.assertNumber(qx.core.Environment.get("device.pixelRatio"));
+    },
+
     testJson : function() {
       this.assertBoolean(qx.core.Environment.get("json"));
     },
 
-    testOldSettings : function() {
+    testQx : function() {
       this.assertBoolean(qx.core.Environment.get("qx.allowUrlSettings"), "1");
       this.assertBoolean(qx.core.Environment.get("qx.allowUrlVariants"), "2");
       this.assertString(qx.core.Environment.get("qx.application"), "3");
-      this.assertBoolean(qx.core.Environment.get("qx.bom.htmlarea.HtmlArea.debug"), "4");
-      this.assertNumber(qx.core.Environment.get("qx.disposerDebugLevel"), "5");
+      this.assertNumber(qx.core.Environment.get("qx.debug.dispose.level"), "5");
       this.assertBoolean(qx.core.Environment.get("qx.globalErrorHandling"), "6");
-      this.assertBoolean(qx.core.Environment.get("qx.ioRemoteDebug"), "7");
-      this.assertBoolean(qx.core.Environment.get("qx.ioRemoteDebugData"), "8");
+      this.assertBoolean(qx.core.Environment.get("qx.debug.io.remote"), "7");
+      this.assertBoolean(qx.core.Environment.get("qx.debug.io.remote.data"), "8");
       this.assertBoolean(qx.core.Environment.get("qx.nativeScrollBars"), "9");
-      this.assertNumber(qx.core.Environment.get("qx.propertyDebugLevel"), "10");
+      this.assertNumber(qx.core.Environment.get("qx.debug.property.level"), "10");
+      this.assertBoolean(qx.core.Environment.get("qx.debug"), "11");
+      this.assertBoolean(qx.core.Environment.get("qx.aspects"), "12");
+      this.assertBoolean(qx.core.Environment.get("qx.dynlocale"), "13");
+      this.assertBoolean(qx.core.Environment.get("qx.mobile.nativescroll"), "15");
+      this.assertBoolean(qx.core.Environment.get("qx.dynlocale"), "17");
     },
 
-    testOldVariants : function() {
-      this.assertBoolean(qx.core.Environment.get("qx.debug"), "1");
-      this.assertBoolean(qx.core.Environment.get("qx.aspects"), "2");
-      this.assertBoolean(qx.core.Environment.get("qx.dynlocale"), "3");
-      this.assertBoolean(qx.core.Environment.get("qx.mobile.emulatetouch"), "4");
-      this.assertBoolean(qx.core.Environment.get("qx.mobile.nativescroll"), "5");
+
+    testAnimationTransformTransition : function() {
+      // smoke test... make sure the method is doing something
+      qx.core.Environment.get("css.animation");
+      qx.core.Environment.get("css.transform");
+      qx.core.Environment.get("css.transition");
+
+      // 3d transform support
+      this.assertBoolean(qx.core.Environment.get("css.transform.3d"));
     }
   }
 });

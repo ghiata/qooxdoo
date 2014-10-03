@@ -51,7 +51,7 @@ qx.Interface.define("qx.ui.window.IDesktop",
     /**
      * Block direct child widgets with a zIndex below <code>zIndex</code>
      *
-     * @param zIndex {zIndex} All child widgets with a zIndex below this value
+     * @param zIndex {Integer} All child widgets with a zIndex below this value
      *     will be blocked
      */
     blockContent : function(zIndex) {
@@ -59,15 +59,15 @@ qx.Interface.define("qx.ui.window.IDesktop",
     },
 
     /**
-     * Remove the content blocker.
+     * Remove the blocker.
      */
-    unblockContent : function() {},
+    unblock : function() {},
 
     /**
-     * Whether the content is currently blocked
+     * Whether the widget is currently blocked
      *
-     * @return {Boolean} whether the content is blocked.
+     * @return {Boolean} whether the widget is blocked.
      */
-    isContentBlocked : function() {}
+    isBlocked : function() {}
   }
 });

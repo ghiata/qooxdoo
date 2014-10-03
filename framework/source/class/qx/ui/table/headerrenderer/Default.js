@@ -20,8 +20,6 @@
 
 /**
  * The default header cell renderer.
- *
- * @state hovered {table-header-cell}
  */
 qx.Class.define("qx.ui.table.headerrenderer.Default",
 {
@@ -41,13 +39,13 @@ qx.Class.define("qx.ui.table.headerrenderer.Default",
   statics :
   {
     /**
-     * {String} The state which will be set for header cells of sorted columns.
+     * @type {String} The state which will be set for header cells of sorted columns.
      */
     STATE_SORTED           : "sorted",
 
 
     /**
-     * {String} The state which will be set when sorting is ascending.
+     * @type {String} The state which will be set when sorting is ascending.
      */
     STATE_SORTED_ASCENDING : "sortedAscending"
   },
@@ -64,7 +62,7 @@ qx.Class.define("qx.ui.table.headerrenderer.Default",
   properties :
   {
     /**
-     * ToolTip to show if the mouse hovers of the icon
+     * ToolTip to show if the pointer hovers of the icon
      */
     toolTip :
     {

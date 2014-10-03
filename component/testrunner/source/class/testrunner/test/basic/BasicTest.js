@@ -21,6 +21,8 @@ qx.Class.define("testrunner.test.basic.BasicTest", {
 
   extend : qx.dev.unit.TestCase,
 
+  include : [qx.dev.unit.MRequirementsBasic],
+
   members :
   {
     testSuccess : function()
@@ -32,6 +34,16 @@ qx.Class.define("testrunner.test.basic.BasicTest", {
     testFail: function ()
     {
       this.assertTrue(false, "Well, what did you expect?");
+    },
+
+    hasNodeJs : function()
+    {
+      return qx.core.Environment.get("runtime.name") == "node.js";
+    },
+
+    testNodeJs : function()
+    {
+      this.require(["nodeJs"]);
     }
   }
 });

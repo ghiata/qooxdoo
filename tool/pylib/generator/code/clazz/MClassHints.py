@@ -23,8 +23,9 @@
 # generator.code.Class Mixin: class compile hints (#asset, #require, ...)
 ##
 
-import sys, os, types, re, string
+import re
 from ecmascript.frontend import lang
+from ecmascript.transform.check import jshints
 from misc import filetool
 
 class MClassHints(object):
@@ -96,13 +97,13 @@ class MClassHints(object):
             deps = []
             #asset_reg = re.compile("^[\$\.\*a-zA-Z0-9/{}_-]+$")
             asset_reg = re.compile(r"^[\$\.\*\w/{}-]+$", re.U)  # have to include "-", which is permissible in paths, e.g. "folder-open.png"
-            
+
             for item in self.HEAD["asset"].findall(data):
                 if not asset_reg.match(item):
                     raise ValueError, "Illegal asset declaration: %s" % item
                 if not item in deps:
                     deps.append(item)
-            
+
             return deps
 
         def _extractCLDRDeps(data):
@@ -127,68 +128,69 @@ class MClassHints(object):
 
             return unknown_keys
 
+        def get_hint_meta():
+            meta = {}
+
+            console.indent()
+
+            content = filetool.read(filePath, fileEntry.encoding)
+
+            meta["loadtimeDeps"] = _extractLoadtimeDeps(content, fileId)
+            meta["runtimeDeps"]  = _extractRuntimeDeps(content, fileId)
+            meta["optionalDeps"] = _extractOptionalDeps(content)
+            meta["ignoreDeps"]   = _extractIgnoreDeps(content)
+            try:
+                meta["assetDeps"]    = _extractAssetDeps(content)
+            except ValueError, e:
+                e.args = (e.args[0] + u' in: %r' % filePath,) + e.args[1:]
+                raise e
+            meta["cldr"]         = _extractCLDRDeps(content)
+
+            # warn unknown compiler hints
+            _unknown_  = _extractUnknownDeps(content)
+            for item in _unknown_:
+                console.warn(u"Unknown compiler hint '#%s' in %s" % (item, self.id))
+
+            console.outdent()
+
+            return meta
+
+
+        ##
+        # Currently only adds @asset, @cldr
+        def get_hint_jsdocs(meta):
+            tree = self.tree()
+            if not hasattr(tree, 'hint'):
+                tree = jshints.create_hints_tree(tree)
+            for hint in tree.hint.iterator():
+                for target,hintKey in (('assetDeps','asset'), ('cldr','cldr')):
+                    if hintKey in hint.hints:
+                        #meta[target].extend(hint.hints[hintKey][None])
+                        # for now only use HintArgument.source, to comply with old #asset hints
+                        if hint.hints[hintKey][None]:
+                            meta[target].extend([x.source for x in hint.hints[hintKey][None]])
+            return meta
+
         # ----------------------------------------------------------
 
         fileEntry = self
         filePath = fileEntry.path
         fileId   = self.id
-        cacheId = "meta-%s" % filePath
-        cache   = self.context['cache']
         console = self.context['console']
 
-        meta, _ = cache.readmulti(cacheId, filePath)
-        if meta != None:
-            if metatype:
-                return meta[metatype]
-            else:
-                return meta
-
-        meta = {}
-
-        console.indent()
-
-        content = filetool.read(filePath, fileEntry.encoding)
-
-        meta["loadtimeDeps"] = _extractLoadtimeDeps(content, fileId)
-        meta["runtimeDeps"]  = _extractRuntimeDeps(content, fileId)
-        meta["optionalDeps"] = _extractOptionalDeps(content)
-        meta["ignoreDeps"]   = _extractIgnoreDeps(content)
-        try:
-            meta["assetDeps"]    = _extractAssetDeps(content)
-        except ValueError, e:
-            e.args = (e.args[0] + u' in: %r' % filePath,) + e.args[1:]
-            raise e
-        meta["cldr"]         = _extractCLDRDeps(content)
-
-        # warn unknown compiler hints
-        _unknown_  = _extractUnknownDeps(content)
-        for item in _unknown_:
-            console.error(u"Unknown compiler hint '#%s' in %s" % (item, self.id))
-
-        console.outdent()
-
-        cache.writemulti(cacheId, meta)
+        classInfo, _ = self._getClassCache()
+        if 'hint_meta' in classInfo:
+            meta = classInfo['hint_meta']
+        else:
+            # no cached information? => build hint meta data now
+            meta = classInfo['hint_meta'] = get_hint_meta()
+            meta = get_hint_jsdocs(meta)  # update with JSDoc hints
+            self._writeClassCache(classInfo)
+            #from pprint import pprint
+            #print self.id,
+            #pprint(meta)
 
         if metatype:
             return meta[metatype]
         else:
             return meta
-
-
-    def getOptionals(self, includeWithDeps):
-        result = []
-
-        for classId in includeWithDeps:
-            try:
-                for optional in self.getHints(classId)["optionalDeps"]:
-                    if not optional in includeWithDeps and not optional in result:
-                        result.append(optional)
-
-            # Not all meta data contains optional infos
-            except KeyError:
-                continue
-
-        return result
-
-
-

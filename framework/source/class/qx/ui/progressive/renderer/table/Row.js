@@ -47,14 +47,7 @@ qx.Class.define("qx.ui.progressive.renderer.table.Row",
     this.__progressive = null;
 
     this.__colors = {};
-
-    // link to color theme
-    var colorMgr = qx.theme.manager.Color.getInstance();
-    this.__colors.bgcol = [];
-    this.__colors.bgcol[0] =
-      colorMgr.resolve("progressive-table-row-background-even");
-    this.__colors.bgcol[1] =
-      colorMgr.resolve("progressive-table-row-background-odd");
+    this.__linkColors();
 
     // This layout is not connected to a widget but to this class. This class
     // must implement the method "getLayoutChildren", which must return all
@@ -65,6 +58,13 @@ qx.Class.define("qx.ui.progressive.renderer.table.Row",
     // as in the widget code.
     this.__layout = new qx.ui.layout.HBox();
     this.__layout.connectToWidget(this);
+
+    // dynamic theme switch
+    if (qx.core.Environment.get("qx.dyntheme")) {
+      qx.theme.manager.Meta.getInstance().addListener(
+        "changeTheme", this.__linkColors, this
+      );
+    }
   },
 
 
@@ -94,8 +94,9 @@ qx.Class.define("qx.ui.progressive.renderer.table.Row",
         "  top: 0px;" +
         "  height: 100%;" +
         "  overflow:hidden;" +
-        "  text-overflow:ellipsis;" +
-        "  -o-text-overflow: ellipsis;" +
+        (qx.core.Environment.get("css.textoverflow") ?
+        qx.bom.Style.getCssName(qx.core.Environment.get("css.textoverflow")) +
+        ':ellipsis;' : "") +
         "  white-space:nowrap;" +
         "  border-right:1px solid #f2f2f2;" +
         "  border-bottom:1px solid #eeeeee;" +
@@ -103,9 +104,10 @@ qx.Class.define("qx.ui.progressive.renderer.table.Row",
         "  cursor:default;" +
         "  font-size: 11px;" +
         "  font-family: 'Segoe UI', Corbel, Calibri, Tahoma, 'Lucida Sans Unicode', sans-serif;" +
-        ((qx.core.Environment.get("engine.name") == "mshtml")
-         ? ''
-         : ';-moz-user-select:none;')
+        (qx.core.Environment.get("css.userselect") ?
+        qx.bom.Style.getCssName(qx.core.Environment.get("css.userselect")) +
+        ':' + qx.core.Environment.get("css.userselect.none") + ';'
+        : '')
   },
 
 
@@ -130,6 +132,21 @@ qx.Class.define("qx.ui.progressive.renderer.table.Row",
     __defaultCellRenderer : null,
     __colors : null,
     __layout : null,
+
+
+    /**
+     * Helper to link the theme colors to the current class
+     */
+    __linkColors : function() {
+      // link to color theme
+      var colorMgr = qx.theme.manager.Color.getInstance();
+      this.__colors.bgcol = [];
+      this.__colors.bgcol[0] =
+        colorMgr.resolve("progressive-table-row-background-even");
+      this.__colors.bgcol[1] =
+        colorMgr.resolve("progressive-table-row-background-odd");
+    },
+
 
     // overridden
     join : function(progressive, name)
@@ -201,10 +218,9 @@ qx.Class.define("qx.ui.progressive.renderer.table.Row",
      * @param column {Integer}
      *   The column number for which the cell renderer applies
      *
-     * @param renderer {@link qx.ui.progressive.renderer.table.cell.Abstract}
+     * @param renderer {qx.ui.progressive.renderer.table.cell.Abstract}
      *   The cell renderer for the specified column.
      *
-     * @return {void}
      */
     addRenderer : function(column, renderer)
     {
@@ -227,7 +243,6 @@ qx.Class.define("qx.ui.progressive.renderer.table.Row",
      * @param column {Integer}
      *   The column for which the cell renderer is to be removed.
      *
-     * @return {void}
      */
     removeRenderer : function(column)
     {
@@ -394,14 +409,13 @@ qx.Class.define("qx.ui.progressive.renderer.table.Row",
      * @param e {qx.event.type.Event}
      *   Ignored
      *
-     * @return {void}
      */
     _resizeColumns : function(e)
     {
       var pane = this.__progressive.getStructure().getPane();
 
       var width =
-        pane.getBounds().width - qx.bom.element.Overflow.getScrollbarWidth();
+        pane.getBounds().width - qx.bom.element.Scroll.getScrollbarWidth();
 
       // Get the style sheet rule name for this row
       var stylesheet = ".qx-progressive-" + this.__hash + "-row";
@@ -422,7 +436,7 @@ qx.Class.define("qx.ui.progressive.renderer.table.Row",
                                  rule);
 
       // Compute the column widths
-      this.__layout.renderLayout(width, 100);
+      this.__layout.renderLayout(width, 100, {top: 0, right: 0, bottom: 0, left: 0});
 
       // Get the column data
       var columnData = this.__columnWidths.getData();
@@ -490,6 +504,11 @@ qx.Class.define("qx.ui.progressive.renderer.table.Row",
 
   destruct : function()
   {
+    // remove dynamic theme listener
+    qx.theme.manager.Meta.getInstance().removeListener(
+      "changeTheme", this.__linkColors, this
+    );
+
     var name;
 
     for (name in this.__renderers)

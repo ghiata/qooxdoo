@@ -37,8 +37,14 @@ qx.Class.define("qx.ui.form.Form",
     this.__groups = [];
     this._buttons = [];
     this._buttonOptions = [];
-    this._validationManager = new qx.ui.form.validation.Manager();
-    this._resetter = new qx.ui.form.Resetter();
+    this._validationManager = this._createValidationManager();
+    this._resetter = this._createResetter();
+  },
+
+
+  events : {
+    /** Fired as soon as something changes in the form.*/
+    "change" : "qx.event.type.Event"
   },
 
 
@@ -97,6 +103,8 @@ qx.Class.define("qx.ui.form.Form",
       this._validationManager.add(item, validator, validatorContext);
       // add the item to the reset manager
       this._resetter.add(item);
+      // fire the change event
+      this.fireEvent("change");
     },
 
 
@@ -117,6 +125,8 @@ qx.Class.define("qx.ui.form.Form",
         title: title, items: [], labels: [], names: [],
         options: [], headerOptions: options
       });
+      // fire the change event
+      this.fireEvent("change");
     },
 
 
@@ -132,6 +142,8 @@ qx.Class.define("qx.ui.form.Form",
     addButton : function(button, options) {
       this._buttons.push(button);
       this._buttonOptions.push(options || null);
+      // fire the change event
+      this.fireEvent("change");
     },
 
 
@@ -143,6 +155,121 @@ qx.Class.define("qx.ui.form.Form",
     __isFirstAdd : function() {
       return this.__groups.length === 0;
     },
+
+
+    /*
+    ---------------------------------------------------------------------------
+       REMOVE
+    ---------------------------------------------------------------------------
+    */
+
+
+    /**
+     * Removes the given item from the form.
+     *
+     * @param item {qx.ui.form.IForm} A supported form item.
+     * @return {Boolean} <code>true</code>, if the item could be removed.
+     */
+    remove : function(item) {
+      for (var i = 0; i < this.__groups.length; i++) {
+        var group = this.__groups[i];
+        for (var j = 0; j < group.items.length; j++) {
+          var storedItem = group.items[j];
+          if (storedItem === item) {
+            // remove all stored data
+            group.items.splice(j, 1);
+            group.labels.splice(j, 1);
+            group.names.splice(j, 1);
+            group.options.splice(j, 1);
+
+            // remove the item to the validation manager
+            this._validationManager.remove(item);
+            // remove the item to the reset manager
+            this._resetter.remove(item);
+
+            // fire the change event
+            this.fireEvent("change");
+            return true;
+          }
+        }
+      }
+      return false;
+    },
+
+
+    /**
+     * Removes the given group header from the form. All items in the group will be moved to
+     * another group (usually the previous group). If there is more than one group with
+     * the same title, only the first group will be removed.
+     *
+     * @param title {String} The title.
+     * @return {Boolean} <code>true</code>, if the header could be removed.
+     */
+    removeGroupHeader : function(title) {
+      for (var i = 0; i < this.__groups.length; i++) {
+        var group = this.__groups[i];
+        if (group.title === title) {
+          var targetGroup;
+
+          // if it's the first group
+          if (i == 0) {
+            // if it's the only group
+            if (this.__groups.length == 1) {
+              // remove the title and the header options
+              group.title = null;
+              group.headerOptions = {};
+              // fire the change event
+              this.fireEvent("change");
+              return true;
+            } else {
+              // add to the next
+              targetGroup = this.__groups[i+1];
+            }
+          } else {
+            // add to the previous group
+            targetGroup = this.__groups[i-1];
+          }
+
+          // copy the data over
+          targetGroup.items = targetGroup.items.concat(group.items);
+          targetGroup.labels = targetGroup.labels.concat(group.labels);
+          targetGroup.names = targetGroup.names.concat(group.names);
+          targetGroup.options = targetGroup.options.concat(group.options);
+
+          // delete the group
+          this.__groups.splice(i, 1);
+
+          this._groupCounter--;
+
+          // fire the change event
+          this.fireEvent("change");
+          return true;
+        }
+      }
+      return false;
+    },
+
+
+    /**
+     * Removes the given button from the form.
+     *
+     * @param button {qx.ui.form.Button} The button to remove.
+     * @return {Boolean} <code>true</code>, if the button could be removed.
+     */
+    removeButton : function(button) {
+      for (var i = 0; i < this._buttons.length; i++) {
+        var storedButton = this._buttons[i];
+        if (storedButton === button) {
+          this._buttons.splice(i, 1);
+          this._buttonOptions.splice(i, 1);
+          // fire the change event
+          this.fireEvent("change");
+          return true;
+        }
+      }
+      return false;
+    },
+
 
 
     /*
@@ -164,10 +291,21 @@ qx.Class.define("qx.ui.form.Form",
      * Redefines the values used for resetting. It calls
      * {@link qx.ui.form.Resetter#redefine} to get that.
      */
-    redefineResetter : function()
-    {
+    redefineResetter : function() {
       this._resetter.redefine();
     },
+
+
+    /**
+     * Redefines the value used for resetting of the given item. It calls
+     * {@link qx.ui.form.Resetter#redefineItem} to get that.
+     *
+     * @param item {qx.ui.core.Widget} The item to redefine.
+     */
+    redefineResetterItem : function(item) {
+      this._resetter.redefineItem(item);
+    },
+
 
 
     /*
@@ -265,6 +403,26 @@ qx.Class.define("qx.ui.form.Form",
         }
       }
       return items;
+    },
+
+
+    /**
+     * Creates and returns the used validation manager.
+     *
+     * @return {qx.ui.form.validation.Manager} The validation manager.
+     */
+    _createValidationManager : function() {
+      return new qx.ui.form.validation.Manager();
+    },
+
+
+    /**
+     * Creates and returns the used resetter.
+     *
+     * @return {qx.ui.form.Resetter} the resetter class.
+     */
+    _createResetter : function() {
+      return new qx.ui.form.Resetter();
     }
   },
 

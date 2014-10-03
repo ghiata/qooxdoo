@@ -19,7 +19,7 @@
 
 /**
  * The Canvas widget embeds the HMTL canvas element
- * [<a href="http://www.whatwg.org/specs/web-apps/current-work/multipage/the-canvas.html#the-canvas">W3C-HTML5</a>]
+ * [<a href="http://www.whatwg.org/specs/web-apps/current-work/multipage/the-canvas-element.html#the-canvas">W3C-HTML5</a>]
  *
  * Note: This widget does not work in Internet Explorer < 9!
  * Check for browser support with qx.core.Environment.get("html.canvas").
@@ -64,7 +64,7 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/widget/canvas.html' target='_blank'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/widget/canvas.html' target='_blank'>
  * Documentation of this widget in the qooxdoo manual.</a>
  */
 qx.Class.define("qx.ui.embed.Canvas",
@@ -162,7 +162,7 @@ qx.Class.define("qx.ui.embed.Canvas",
 
   members :
   {
-    /** {qx.util.DeferredCall} */
+    /** @type {qx.util.DeferredCall} */
     __deferredDraw : null,
 
     /*
@@ -243,7 +243,7 @@ qx.Class.define("qx.ui.embed.Canvas",
 
     /**
      * Get the native canvas 2D rendering context
-     * [<a href="http://www.whatwg.org/specs/web-apps/current-work/multipage/the-canvas.html#canvasrenderingcontext2d">W3C-HTML5</a>].
+     * [<a href="http://www.whatwg.org/specs/web-apps/current-work/multipage/the-canvas-element.html#canvasrenderingcontext2d">W3C-HTML5</a>].
      * All drawing operations are performed on this context.
      *
      * @return {CanvasRenderingContext2D} The 2D rendering context.

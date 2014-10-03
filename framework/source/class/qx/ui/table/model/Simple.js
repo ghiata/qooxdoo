@@ -206,6 +206,7 @@ qx.Class.define("qx.ui.table.model.Simple",
      * Gets the whole data as an array of maps.
      *
      * Note: Individual items are retrieved by {@link #getRowDataAsMap}.
+     * @return {Map[]} Array of row data maps
      */
     getDataAsMapArray: function() {
       var len = this.getRowCount();
@@ -224,7 +225,6 @@ qx.Class.define("qx.ui.table.model.Simple",
      * Sets all columns editable or not editable.
      *
      * @param editable {Boolean} whether all columns are editable.
-     * @return {void}
      */
     setEditable : function(editable)
     {
@@ -243,7 +243,6 @@ qx.Class.define("qx.ui.table.model.Simple",
      *
      * @param columnIndex {Integer} the column of which to set the editable state.
      * @param editable {Boolean} whether the column should be editable.
-     * @return {void}
      */
     setColumnEditable : function(columnIndex, editable)
     {
@@ -374,7 +373,6 @@ qx.Class.define("qx.ui.table.model.Simple",
      *   about 1000 rows, you will likely want to provide a map with a custom
      *   "descending" sort function as well as the "ascending" one.</i>
      *
-     * @return {void}
      */
     setSortMethods : function(columnIndex, compare)
     {
@@ -516,7 +514,6 @@ qx.Class.define("qx.ui.table.model.Simple",
      *          row-array contains the values in that row in the order of the columns
      *          in this model.
      * @param clearSorting {Boolean ? true} Whether to clear the sort state.
-     * @return {void}
      */
     setData : function(rowArr, clearSorting)
     {
@@ -582,7 +579,6 @@ qx.Class.define("qx.ui.table.model.Simple",
      * @param startIndex {Integer ? null} The index where to insert the new rows. If null,
      *          the rows are appended to the end.
      * @param clearSorting {Boolean ? true} Whether to clear the sort state.
-     * @return {void}
      */
     addRows : function(rowArr, startIndex, clearSorting)
     {
@@ -642,7 +638,6 @@ qx.Class.define("qx.ui.table.model.Simple",
      * @param startIndex {Integer ? null} The index where to insert the new rows. If null,
      *          the rows are set from the beginning (0).
      * @param clearSorting {Boolean ? true} Whether to clear the sort state.
-     * @return {void}
      */
     setRows : function(rowArr, startIndex, clearSorting)
     {
@@ -651,7 +646,7 @@ qx.Class.define("qx.ui.table.model.Simple",
       }
 
       // Prepare the rowArr so it can be used for apply
-      rowArr.splice(0, 0, startIndex, rowArr.length);
+      rowArr.splice(0, 0, startIndex, Math.max(this.__rowArr.length, rowArr.length));
 
       // Replace rows
       Array.prototype.splice.apply(this.__rowArr, rowArr);
@@ -697,7 +692,6 @@ qx.Class.define("qx.ui.table.model.Simple",
      * @param startIndex {Integer} the index of the first row to remove.
      * @param howMany {Integer} the number of rows to remove.
      * @param clearSorting {Boolean ? true} Whether to clear the sort state.
-     * @return {void}
      */
     removeRows : function(startIndex, howMany, clearSorting)
     {

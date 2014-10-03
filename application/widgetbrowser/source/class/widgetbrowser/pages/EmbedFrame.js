@@ -19,7 +19,6 @@
 
 /* ************************************************************************
 
-#asset(widgetbrowser/blank.html)
 
 ************************************************************************ */
 
@@ -28,6 +27,8 @@
  *
  * Iframe
  * ThemedIframe
+ *
+ * @asset(widgetbrowser/blank.html)
  */
 
 qx.Class.define("widgetbrowser.pages.EmbedFrame",
@@ -52,6 +53,8 @@ qx.Class.define("widgetbrowser.pages.EmbedFrame",
       var url = qx.util.ResourceManager.getInstance().toUri("widgetbrowser/blank.html");
 
       var splitPane = new qx.ui.splitpane.Pane("horizontal");
+      // remove the background color for a better look
+      splitPane.getChildControl("splitter").setBackgroundColor(null);
       this.add(splitPane);
 
       // Iframe

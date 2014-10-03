@@ -20,7 +20,7 @@
 
 /**
  * The menu is a popup like control which supports buttons. It comes
- * with full keyboard navigation and an improved timeout based mouse
+ * with full keyboard navigation and an improved timeout based pointer
  * control behavior.
  *
  * This class is the container for all derived instances of
@@ -49,9 +49,9 @@ qx.Class.define("qx.ui.menu.Menu",
     var root = this.getApplicationRoot();
     root.add(this);
 
-    // Register mouse listeners
-    this.addListener("mouseover", this._onMouseOver);
-    this.addListener("mouseout", this._onMouseOut);
+    // Register pointer listeners
+    this.addListener("pointerover", this._onPointerOver);
+    this.addListener("pointerout", this._onPointerOut);
 
     // add resize listener
     this.addListener("resize", this._onResize, this);
@@ -266,7 +266,7 @@ qx.Class.define("qx.ui.menu.Menu",
     __scheduledOpen : null,
     __onAfterSlideBarAdd : null,
 
-    /** {qx.ui.core.Blocker} blocker for background blocking */
+    /** @type {qx.ui.core.Blocker} blocker for background blocking */
     _blocker : null,
 
     /*
@@ -282,11 +282,15 @@ qx.Class.define("qx.ui.menu.Menu",
     {
       if (this.getOpener() != null)
       {
-        this.placeToWidget(this.getOpener());
-        this.__updateSlideBar();
-        this.show();
+        var isPlaced = this.placeToWidget(this.getOpener(), true);
+        if(isPlaced) {
+          this.__updateSlideBar();
+          this.show();
 
-        this._placementTarget = this.getOpener();
+          this._placementTarget = this.getOpener();
+        } else {
+          this.warn("Could not open menu instance because 'opener' widget is not visible");
+        }
       } else {
         this.warn("The menu instance needs a configured 'opener' widget!");
       }
@@ -294,13 +298,29 @@ qx.Class.define("qx.ui.menu.Menu",
 
 
     /**
-     * Opens the menu at the mouse cursor position
+     * Opens the menu at the mouse position
      *
      * @param e {qx.event.type.Mouse}  Mouse event to align to
+     * @deprecated {4.0}
      */
     openAtMouse : function(e)
     {
-      this.placeToMouse(e);
+      if (qx.core.Environment.get("qx.debug")) {
+        qx.log.Logger.deprecatedMethodWarning(arguments.callee,
+          "Please use '_onPointerOver' instead.");
+      }
+      this.openAtPointer(e);
+    },
+
+
+    /**
+     * Opens the menu at the pointer position
+     *
+     * @param e {qx.event.type.Pointer} Pointer event to align to
+     */
+    openAtPointer : function(e)
+    {
+      this.placeToPointer(e);
       this.__updateSlideBar();
       this.show();
 
@@ -447,8 +467,8 @@ qx.Class.define("qx.ui.menu.Menu",
       }
       else
       {
-        if (this._blocker.isContentBlocked()) {
-          this._blocker.unblockContent();
+        if (this._blocker.isBlocked()) {
+          this._blocker.unblock();
         }
       }
     },
@@ -595,6 +615,7 @@ qx.Class.define("qx.ui.menu.Menu",
     /**
      * Computes the size of the menu. This method is used by the
      * {@link qx.ui.core.MPlacement} mixin.
+     * @return {Map} The menu bounds
      */
     _computePlacementSize : function() {
       return this._getMenuBounds();
@@ -646,6 +667,8 @@ qx.Class.define("qx.ui.menu.Menu",
      * after the slidebar has been added.
      *
      * @param callback {Function} the callback to call
+     * @return {var|undefined} The return value of the callback if the slidebar
+     * already exists, or <code>undefined</code> if it doesn't
      */
     _assertSlideBar : function(callback)
     {
@@ -659,7 +682,7 @@ qx.Class.define("qx.ui.menu.Menu",
 
 
     // overridden
-    syncWidget : function()
+    syncWidget : function(jobs)
     {
       this.getChildControl("slidebar");
       if (this.__onAfterSlideBarAdd)
@@ -685,9 +708,9 @@ qx.Class.define("qx.ui.menu.Menu",
       {
         var target = this._placementTarget;
         if (!target) {
-          return
+          return;
         } else if (target instanceof qx.ui.core.Widget) {
-          this.placeToWidget(target);
+          this.placeToWidget(target, true);
         } else if (target.top !== undefined) {
           this.placeToPoint(target);
         } else {
@@ -699,12 +722,11 @@ qx.Class.define("qx.ui.menu.Menu",
 
 
     /**
-     * Event listener for mouseover event.
+     * Event listener for pointerover event.
      *
-     * @param e {qx.event.type.Mouse} mouseover event
-     * @return {void}
+     * @param e {qx.event.type.Pointer} pointerover event
      */
-    _onMouseOver : function(e)
+    _onPointerOver : function(e)
     {
       // Cache manager
       var mgr = qx.ui.menu.Manager.getInstance();
@@ -754,12 +776,11 @@ qx.Class.define("qx.ui.menu.Menu",
 
 
     /**
-     * Event listener for mouseout event.
+     * Event listener for pointerout event.
      *
-     * @param e {qx.event.type.Mouse} mouseout event
-     * @return {void}
+     * @param e {qx.event.type.Pointer} pointerout event
      */
-    _onMouseOut : function(e)
+    _onPointerOut : function(e)
     {
       // Cache manager
       var mgr = qx.ui.menu.Manager.getInstance();
@@ -788,6 +809,7 @@ qx.Class.define("qx.ui.menu.Menu",
       }
     }
   },
+
 
   /*
   *****************************************************************************

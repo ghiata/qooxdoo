@@ -19,14 +19,17 @@
 
 /* ************************************************************************
 
-#asset(qx/test/UnitTestFlash.swf)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/test/UnitTestFlash.swf)
+ */
 
 qx.Class.define("qx.test.ui.embed.Flash",
 {
   extend : qx.test.ui.LayoutTestCase,
-  include : qx.dev.unit.MMock,
+  include : [qx.dev.unit.MMock, qx.dev.unit.MRequirements],
 
   statics :
   {
@@ -51,6 +54,7 @@ qx.Class.define("qx.test.ui.embed.Flash",
 
     setUp : function()
     {
+      this.require(["plugin.flash"]);
       this.flush();
       this.__params = {
         wmode : "opaque",
@@ -161,7 +165,8 @@ qx.Class.define("qx.test.ui.embed.Flash",
         that.assertIdentical("flashmovie", flash.id);
 
         // object attribute tests for IE or other browser
-        if ((qx.core.Environment.get("engine.name") == "mshtml"))
+        if ((qx.core.Environment.get("engine.name") == "mshtml") &&
+          qx.core.Environment.get("browser.documentmode") < 11)
         {
           that.assertIdentical("clsid:D27CDB6E-AE6D-11cf-96B8-444553540000", flash.classid);
         }

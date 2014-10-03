@@ -70,7 +70,7 @@ qx.Class.define("qx.ui.layout.Atom",
     /** The position of the icon in relation to the text */
     iconPosition :
     {
-      check : [ "left", "top", "right", "bottom", "top-left", "bottom-left" ],
+      check : ["left", "top", "right", "bottom", "top-left", "bottom-left", "top-right", "bottom-right"],
       init : "left",
       apply  : "_applyLayoutChange"
     },
@@ -78,7 +78,12 @@ qx.Class.define("qx.ui.layout.Atom",
 
     /**
      * Whether the content should be rendered centrally when to much space
-     * is available. Affects both axis.
+     * is available. Enabling this property centers in both axis. The behavior
+     * when disabled of the centering depends on the {@link #iconPosition} property.
+     * If the icon position is <code>left</code> or <code>right</code>, the X axis
+     * is not centered, only the Y axis. If the icon position is <code>top</code>
+     * or <code>bottom</code>, the Y axis is not centered. In case of e.g. an
+     * icon position of <code>top-left</code> no axis is centered.
      */
     center :
     {
@@ -117,21 +122,24 @@ qx.Class.define("qx.ui.layout.Atom",
 
 
     // overridden
-    renderLayout : function(availWidth, availHeight)
+    renderLayout : function(availWidth, availHeight, padding)
     {
+      var left = padding.left;
+      var top = padding.top;
       var Util = qx.ui.layout.Util;
 
       var iconPosition = this.getIconPosition();
       var children = this._getLayoutChildren();
       var length = children.length;
 
-      var left, top, width, height;
+      var width, height;
       var child, hint;
       var gap = this.getGap();
       var center = this.getCenter();
 
       // reverse ordering
-      if (iconPosition === "bottom" || iconPosition === "right")
+      var allowedPositions = ["bottom", "right", "top-right", "bottom-right"];
+      if (allowedPositions.indexOf(iconPosition) != -1)
       {
         var start = length-1;
         var end = -1;
@@ -164,13 +172,10 @@ qx.Class.define("qx.ui.layout.Atom",
             }
           }
 
-          top = Math.round((availHeight - allocatedHeight) / 2);
-        }
-        else
-        {
-          top = 0;
+          top += Math.round((availHeight - allocatedHeight) / 2);
         }
 
+        var childTop = top;
         for (var i=start; i!=end; i+=increment)
         {
           child = children[i];
@@ -179,12 +184,12 @@ qx.Class.define("qx.ui.layout.Atom",
           width = Math.min(hint.maxWidth, Math.max(availWidth, hint.minWidth));
           height = hint.height;
 
-          left = Util.computeHorizontalAlignOffset("center", width, availWidth);
-          child.renderLayout(left, top, width, height);
+          left = Util.computeHorizontalAlignOffset("center", width, availWidth) + padding.left;
+          child.renderLayout(left, childTop, width, height);
 
           // Ignore pseudo invisible elements
           if (height > 0) {
-            top += height + gap;
+            childTop = top + height + gap;
           }
         }
       }
@@ -228,9 +233,7 @@ qx.Class.define("qx.ui.layout.Atom",
         }
 
         if (center && remainingWidth > 0) {
-          left = Math.round(remainingWidth / 2);
-        } else {
-          left = 0;
+          left += Math.round(remainingWidth / 2);
         }
 
         for (var i=start; i!=end; i+=increment)
@@ -247,13 +250,13 @@ qx.Class.define("qx.ui.layout.Atom",
           }
 
           var align = "middle";
-          if(iconPosition == "top-left"){
+          if(iconPosition == "top-left" || iconPosition == "top-right"){
             align = "top";
-          } else if (iconPosition == "bottom-left") {
+          } else if (iconPosition == "bottom-left" || iconPosition == "bottom-right") {
             align = "bottom";
           }
-          top = Util.computeVerticalAlignOffset(align, hint.height, availHeight);
-          child.renderLayout(left, top, width, height);
+          var childTop = top + Util.computeVerticalAlignOffset(align, hint.height, availHeight);
+          child.renderLayout(left, childTop, width, height);
 
           // Ignore pseudo invisible childs for gap e.g.
           // empty text or unavailable images

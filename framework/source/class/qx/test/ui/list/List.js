@@ -17,11 +17,9 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#asset(qx/icon/Tango/16/places/folder.png)
-
-************************************************************************ */
+/**
+ * @asset(qx/icon/Tango/16/places/folder.png)
+ */
 
 qx.Class.define("qx.test.ui.list.List",
 {
@@ -60,7 +58,7 @@ qx.Class.define("qx.test.ui.list.List",
     testNullModel : function()
     {
       this._list.setModel(null);
-      
+
       this.assertEquals(0, this._list.getPane().getRowConfig().getItemCount());
       this.assertEquals(0, this._list.getSelection().getLength());
     },
@@ -298,6 +296,19 @@ qx.Class.define("qx.test.ui.list.List",
       this.assertCalledOnce(spy);
       this.assertCalledWith(spy, widget);
       widget.dispose();
+    },
+
+
+    testMultiSelectionMode : function()
+    {
+      var model = qx.data.marshal.Json.createModel(["a", "b", "c"]);
+      this._list.setModel(model);
+      this._list.setSelectionMode('multi');
+      this._list.getSelection().push(model.getItem(0));
+
+      this._list.getSelection().removeAll();
+      this.assertNull(this._list._manager.getLeadItem());
+      model.dispose();
     }
   }
 });

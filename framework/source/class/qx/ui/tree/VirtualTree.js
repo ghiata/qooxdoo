@@ -66,7 +66,7 @@
 qx.Class.define("qx.ui.tree.VirtualTree",
 {
   extend : qx.ui.virtual.core.Scroller,
-  implement : qx.ui.tree.core.IVirtualTree,
+  implement : [qx.ui.tree.core.IVirtualTree, qx.data.controller.ISelection],
   include : [
     qx.ui.virtual.selection.MModel,
     qx.ui.core.MContentPadding
@@ -91,7 +91,7 @@ qx.Class.define("qx.ui.tree.VirtualTree",
     }
 
     if (childProperty != null) {
-      this.setChildProperty(childProperty)
+      this.setChildProperty(childProperty);
     }
 
     if(model != null) {
@@ -164,13 +164,13 @@ qx.Class.define("qx.ui.tree.VirtualTree",
 
 
     /**
-     * Control whether clicks or double clicks should open or close the clicked
+     * Control whether tap or double tap should open or close the tapped
      * item.
      */
     openMode :
     {
-      check: ["click", "dblclick", "none"],
-      init: "dblclick",
+      check: ["tap", "dbltap", "none"],
+      init: "dbltap",
       apply: "_applyOpenMode",
       event: "changeOpenMode",
       themeable: true
@@ -303,44 +303,44 @@ qx.Class.define("qx.ui.tree.VirtualTree",
 
   members :
   {
-    /** {qx.ui.tree.provider.WidgetProvider} Provider for widget rendering. */
+    /** @type {qx.ui.tree.provider.WidgetProvider} Provider for widget rendering. */
     _provider : null,
 
 
-    /** {qx.ui.virtual.layer.Abstract} Layer which contains the items. */
+    /** @type {qx.ui.virtual.layer.Abstract} Layer which contains the items. */
     _layer : null,
 
 
     /**
-     * {qx.data.Array} The internal lookup table data structure to get the model item
+     * @type {qx.data.Array} The internal lookup table data structure to get the model item
      * from a row.
      */
     __lookupTable : null,
 
 
-    /** {Array} HashMap which contains all open nodes. */
+    /** @type {Array} HashMap which contains all open nodes. */
     __openNodes : null,
 
 
     /**
-     * {Array} The internal data structure to get the nesting level from a
+     * @type {Array} The internal data structure to get the nesting level from a
      * row.
      */
     __nestingLevel : null,
 
 
     /**
-     * {qx.util.DeferredCall} Adds this instance to the widget queue on a
+     * @type {qx.util.DeferredCall} Adds this instance to the widget queue on a
      * deferred call.
      */
     __deferredCall : null,
 
 
-    /** {Integer} Holds the max item width from a rendered widget. */
-    __itemWidth : 0,
+    /** @type {Integer} Holds the max item width from a rendered widget. */
+    _itemWidth : 0,
 
 
-    /** {Array} internal parent chain form the last selected node */
+    /** @type {Array} internal parent chain form the last selected node */
     __parentChain : null,
 
 
@@ -352,7 +352,7 @@ qx.Class.define("qx.ui.tree.VirtualTree",
 
 
     // overridden
-    syncWidget : function()
+    syncWidget : function(jobs)
     {
       var firstRow = this._layer.getFirstRow();
       var rowSize = this._layer.getRowSizes().length;
@@ -361,11 +361,11 @@ qx.Class.define("qx.ui.tree.VirtualTree",
       {
         var widget = this._layer.getRenderedCellWidget(row, 0);
         if (widget != null) {
-          this.__itemWidth = Math.max(this.__itemWidth, widget.getSizeHint().width);
+          this._itemWidth = Math.max(this._itemWidth, widget.getSizeHint().width);
         }
       }
-      var paneWidth = this.getPane().getBounds().width;
-      this.getPane().getColumnConfig().setItemSize(0, Math.max(this.__itemWidth, paneWidth));
+      var paneWidth = this.getPane().getInnerSize().width;
+      this.getPane().getColumnConfig().setItemSize(0, Math.max(this._itemWidth, paneWidth));
     },
 
 
@@ -374,6 +374,20 @@ qx.Class.define("qx.ui.tree.VirtualTree",
     {
       this.__openNode(node);
       this.buildLookupTable();
+    },
+
+
+    // Interface implementation
+    openNodeWithoutScrolling : function(node)
+    {
+      var autoscroll = this.getAutoScrollIntoView();
+      // suspend automatically scrolling selection into view
+      this.setAutoScrollIntoView(false);
+
+      this.openNode(node);
+
+      // re set to original value
+      this.setAutoScrollIntoView(autoscroll);
     },
 
 
@@ -412,6 +426,20 @@ qx.Class.define("qx.ui.tree.VirtualTree",
 
 
     // Interface implementation
+    closeNodeWithoutScrolling : function(node)
+    {
+      var autoscroll = this.getAutoScrollIntoView();
+      // suspend automatically scrolling selection into view
+      this.setAutoScrollIntoView(false);
+
+      this.closeNode(node);
+
+      // re set to original value
+      this.setAutoScrollIntoView(autoscroll);
+    },
+
+
+    // Interface implementation
     isNodeOpen : function(node) {
       return qx.lang.Array.contains(this.__openNodes, node);
     },
@@ -445,6 +473,11 @@ qx.Class.define("qx.ui.tree.VirtualTree",
       this._layer = this._provider.createLayer();
       this._layer.addListener("updated", this._onUpdated, this);
       this.getPane().addLayer(this._layer);
+      this.getPane().addListenerOnce("resize", function(e) {
+        // apply width to pane on first rendering pass
+        // to avoid visible flickering
+        this.getPane().getColumnConfig().setItemSize(0, e.getData().width);
+      }, this);
     },
 
 
@@ -499,7 +532,7 @@ qx.Class.define("qx.ui.tree.VirtualTree",
 
     // Interface implementation
     isNode : function(item) {
-      return qx.Class.hasProperty(item.constructor, this.getChildProperty());
+      return qx.ui.tree.core.Util.isNode(item, this.getChildProperty());
     },
 
 
@@ -510,27 +543,8 @@ qx.Class.define("qx.ui.tree.VirtualTree",
 
 
     // Interface implementation
-    hasChildren : function(node)
-    {
-      var children = node.get(this.getChildProperty());
-      if (children == null) {
-        return false;
-      }
-
-      if (this.isShowLeafs()) {
-        return children.length > 0;
-      }
-      else
-      {
-        for (var i = 0; i < children.getLength(); i++)
-        {
-          var child = children.getItem(i);
-          if (this.isNode(child)) {
-            return true;
-          }
-        }
-      }
-      return false;
+    hasChildren : function(node) {
+      return qx.ui.tree.core.Util.hasChildren(node, this.getChildProperty(), !this.isShowLeafs());
     },
 
 
@@ -562,17 +576,17 @@ qx.Class.define("qx.ui.tree.VirtualTree",
     {
       var pane = this.getPane();
 
-      //"click", "dblclick", "none"
-      if (value === "dblclick") {
-        pane.addListener("cellDblclick", this._onOpen, this);
-      } else if (value === "click") {
-        pane.addListener("cellClick", this._onOpen, this);
+      //"tap", "dbltap", "none"
+      if (value === "dbltap") {
+        pane.addListener("cellDbltap", this._onOpen, this);
+      } else if (value === "tap") {
+        pane.addListener("cellTap", this._onOpen, this);
       }
 
-      if (old === "dblclick") {
-        pane.removeListener("cellDblclick", this._onOpen, this);
-      } else if (old === "click") {
-        pane.removeListener("cellClick", this._onOpen, this);
+      if (old === "dbltap") {
+        pane.removeListener("cellDbltap", this._onOpen, this);
+      } else if (old === "tap") {
+        pane.removeListener("cellTap", this._onOpen, this);
       }
     },
 
@@ -677,15 +691,35 @@ qx.Class.define("qx.ui.tree.VirtualTree",
      */
     _onChangeBubble : function(event)
     {
-      var propertyName = event.getData().name;
+      var data = event.getData();
+      var propertyName = data.name;
       var index = propertyName.lastIndexOf(".");
 
       if (index != -1) {
         propertyName = propertyName.substr(index + 1, propertyName.length);
       }
 
-      if (qx.lang.String.startsWith(propertyName, this.getChildProperty())) {
-        this.__applyModelChanges();
+      // only continue when the effected property is the child property
+      if (qx.lang.String.startsWith(propertyName, this.getChildProperty()))
+      {
+        var item = data.item;
+
+        if (qx.Class.isSubClassOf(item.constructor, qx.data.Array))
+        {
+          if (index === -1)
+          {
+            item = this.getModel();
+          }
+          else
+          {
+            var propertyChain = data.name.substr(0, index);
+            item = qx.data.SingleValueBinding.resolvePropertyChain(this.getModel(), propertyChain);
+          }
+        }
+
+        if (this.__lookupTable.indexOf(item) != -1) {
+          this.__applyModelChanges();
+        }
       }
     },
 
@@ -707,9 +741,9 @@ qx.Class.define("qx.ui.tree.VirtualTree",
 
 
     /**
-     * Event handler to open/close clicked nodes.
+     * Event handler to open/close tapped nodes.
      *
-     * @param event {qx.ui.virtual.core.CellEvent} The cell click event.
+     * @param event {qx.ui.virtual.core.CellEvent} The cell tap event.
      */
     _onOpen : function(event)
     {
@@ -866,7 +900,7 @@ qx.Class.define("qx.ui.tree.VirtualTree",
           "or 'labelPath' is 'null'!");
       }
 
-      this.__itemWidth = 0;
+      this._itemWidth = 0;
       var lookupTable = [];
       this.__nestingLevel = [];
       var nestedLevel = -1;
@@ -883,17 +917,19 @@ qx.Class.define("qx.ui.tree.VirtualTree",
 
         if (this.isNodeOpen(root))
         {
-          var visibleChildren = this.__getVisibleChildrenFrom(root,
-            nestedLevel);
+          var visibleChildren = this.__getVisibleChildrenFrom(root, nestedLevel);
           lookupTable = lookupTable.concat(visibleChildren);
         }
       }
 
-      this._provider.removeBindings();
-      this.__lookupTable.removeAll();
-      this.__lookupTable.append(lookupTable);
-      this._updateSelection();
-      this.__updateRowCount();
+      if (!qx.lang.Array.equals(this.__lookupTable.toArray(), lookupTable))
+      {
+        this._provider.removeBindings();
+        this.__lookupTable.removeAll();
+        this.__lookupTable.append(lookupTable);
+        this.__updateRowCount();
+        this._updateSelection();
+      }
     },
 
 
@@ -920,9 +956,24 @@ qx.Class.define("qx.ui.tree.VirtualTree",
         return visible;
       }
 
+      // clone children to keep original model unmodified
+      children = children.copy();
+
+      var delegate = this.getDelegate();
+      var filter = qx.util.Delegate.getMethod(delegate, "filter");
+      var sorter = qx.util.Delegate.getMethod(delegate, "sorter");
+
+      if (sorter != null) {
+        children.sort(sorter);
+      }
+
       for (var i = 0; i < children.getLength(); i++)
       {
         var child = children.getItem(i);
+
+        if (filter && !filter(child)) {
+          continue;
+        }
 
         if (this.isNode(child))
         {
@@ -931,8 +982,7 @@ qx.Class.define("qx.ui.tree.VirtualTree",
 
           if (this.isNodeOpen(child))
           {
-            var visibleChildren = this.__getVisibleChildrenFrom(child,
-              nestedLevel);
+            var visibleChildren = this.__getVisibleChildrenFrom(child, nestedLevel);
             visible = visible.concat(visibleChildren);
           }
         }
@@ -945,6 +995,9 @@ qx.Class.define("qx.ui.tree.VirtualTree",
           }
         }
       }
+
+      // dispose children clone
+      children.dispose();
 
       return visible;
     },
@@ -1097,11 +1150,23 @@ qx.Class.define("qx.ui.tree.VirtualTree",
     var pane = this.getPane()
     if (pane != null)
     {
-      if (pane.hasListener("cellDblclick")) {
-        pane.addListener("cellDblclick", this._onOpen, this);
-      } else if (pane.hasListener("cellClick")) {
-        pane.removeListener("cellClick", this._onOpen, this);
+      if (pane.hasListener("cellDbltap")) {
+        pane.removeListener("cellDbltap", this._onOpen, this);
       }
+      if (pane.hasListener("cellTap")) {
+        pane.removeListener("cellTap", this._onOpen, this);
+      }
+    }
+
+    if (!qx.core.ObjectRegistry.inShutDown && this.__deferredCall != null)
+    {
+      this.__deferredCall.cancel();
+      this.__deferredCall.dispose();
+    }
+
+    var model = this.getModel();
+    if (model != null) {
+      model.removeListener("changeBubble", this._onChangeBubble, this);
     }
 
     this._layer.removeListener("updated", this._onUpdated, this);
@@ -1109,6 +1174,7 @@ qx.Class.define("qx.ui.tree.VirtualTree",
     this._provider.dispose();
     this.__lookupTable.dispose();
 
-    this._layer = this._provider = this.__lookupTable = this.__openNodes = null;
+    this._layer = this._provider = this.__lookupTable = this.__openNodes =
+      this.__deferredCall = null;
   }
 });

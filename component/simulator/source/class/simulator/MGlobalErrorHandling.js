@@ -17,13 +17,11 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-#ignore(selenium)
-************************************************************************ */
-
 /**
  * Allows GUI tests to access exceptions caught by the tested application's
  * global error handler.
+ *
+ * @deprecated{4.0}
  */
 
 qx.Mixin.define("simulator.MGlobalErrorHandling",
@@ -37,7 +35,7 @@ qx.Mixin.define("simulator.MGlobalErrorHandling",
      *
      * @param win {String?} JavaScript snippet that evaluates as a Window object
      * accessible from the current Selenium instance. Default: The AUT's window.
-     * @lint ignoreUndefined(selenium)
+     * @ignore(selenium.qxStoredVars)
      */
     _addGlobalErrorHandler : function(win)
     {
@@ -68,9 +66,9 @@ qx.Mixin.define("simulator.MGlobalErrorHandling",
             }
             try {
               exString += "Stack: " + targetWin.qx.dev.StackTrace.getStackTraceFromError(ex);
-            } catch(ex) {
-              if (ex.stack) {
-                exString += "Stack: " + ex.stack;
+            } catch(e) {
+              if (e.stack) {
+                exString += "Stack: " + e.stack;
               }
             }
           }
@@ -79,7 +77,7 @@ qx.Mixin.define("simulator.MGlobalErrorHandling",
         });
       };
 
-      this._addOwnFunction("addGlobalErrorHandler", addHandler);
+      this.addFunctionToAut("addGlobalErrorHandler", addHandler, ["autWin"]);
       simulator.QxSelenium.getInstance().getEval("selenium.qxStoredVars['autWindow'].qx.Simulation.addGlobalErrorHandler(" + qxWin + ");");
     },
 
@@ -91,7 +89,7 @@ qx.Mixin.define("simulator.MGlobalErrorHandling",
      * @param win {String?} JavaScript snippet that evaluates as a Window object
      * accessible from the current Selenium instance. Default: The AUT's window.
      *
-     * @lint ignoreUndefined(selenium)
+     * @ignore(selenium.qxStoredVars)
      */
     _addGlobalErrorGetter : function(win)
     {

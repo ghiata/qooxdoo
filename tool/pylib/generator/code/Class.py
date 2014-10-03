@@ -27,9 +27,8 @@ import os, sys, re, types, copy
 import time, math
 from pprint import pprint
 
-from misc                           import textutil
+from misc                           import textutil, util
 from ecmascript.frontend            import treeutil
-from ecmascript.transform.optimizer import variantoptimizer
 from generator.resource.Resource    import Resource
 from generator                      import Context
 from generator.code.clazz.MClassHints        import MClassHints
@@ -41,15 +40,14 @@ from generator.code.clazz.MClassResources    import MClassResources
 
 class Class(Resource, MClassHints, MClassI18N, MClassDependencies, MClassCode, MClassResources):
 
-    def __init__(self, name, path, library, context, container):
+    def __init__(self, name, path, library, context):
         #__slots__       = ('id', 'path', 'size', 'encoding', 'library', 'context', 'source', 'scopes', 'translations')
         global console, cache
         super(Class, self).__init__(path)
-        self.id         = name  # qooxdoo name of class, classId
+        self.set_id(name)  # qooxdoo name of class, classId
         self.library    = library     # Library()
         # TODO: we now have both a 'context' param, but also use generator.Context (needed in __setstate__)
         self.context    = context
-        self._classesObj= container   # this is ugly, but curr. used to identify known names
         self.size       = -1
         self.encoding   = 'utf-8'
         self.source     = u''  # source text of this class
@@ -60,6 +58,8 @@ class Class(Resource, MClassHints, MClassI18N, MClassDependencies, MClassCode, M
         self.resources  = set() # set of resource objects needed by the class
         self._assetRegex= {}  # [AssetHint], to hold regex's from #asset hints, for resource matching
         self.cacheId    = "class-%s" % self.path  # cache object for class-specific infos (outside tree, compile)
+        self.treeId     = None # cache id for the source tree; filled in tree()
+        self._tmp_tree  = None # for out-of-band optimization
         
         console = context["console"]
         cache   = context["cache"]
@@ -69,14 +69,21 @@ class Class(Resource, MClassHints, MClassI18N, MClassDependencies, MClassCode, M
 
     def __getstate__(self):
         d = self.__dict__.copy()
-        # need to copy nested map, or i will modify original one
-        d['context'] = d['context'].copy()
-        del d['context']['cache']
+        del d['context'] # don't keep any of the runtime infos (jobconf, cache, console)
+        d['_tmp_tree'] = None # remove memoized run time tree
         return d
 
     def __setstate__(self, d):
+        # restore runtime infos (jobconf, cache, console, ...)
+        if not hasattr(d, 'context'):
+            d['context'] = {}
         if hasattr(Context, "cache"):
             d['context']['cache'] = Context.cache
+        if hasattr(Context, 'console'):
+            d['context']['console'] = Context.console
+        if hasattr(Context, 'jobconf'):
+            d['context']['jobconf'] = Context.jobconf
+
         #d['defaultIgnoredNamesDynamic'] = [lib.namespace for lib in d['context']['jobconf'].get("library", [])]
         d['defaultIgnoredNamesDynamic'] = [lib.namespace for lib in Context.jobconf.get("library", [])]
         self.__dict__ = d
@@ -105,14 +112,17 @@ class Class(Resource, MClassHints, MClassI18N, MClassDependencies, MClassCode, M
     #   'svariants' : ['qx.debug']    # supported variants
     #   'deps-<path>-<variants>' : ([<Dep>qx.Class#define], <timestamp>)  # class dependencies
     #   'messages-<variants>' : ["Hello %1"]  # message strings
+    #   'hint-meta' : parsed compiler hints (see MClassHints.py)
     # }
     def _getClassCache(self):
         cache = self.context['cache']
         classInfo, modTime = cache.read(self.cacheId, self.path, memory=True)
+        if self.writeCond():
+            print "\nReading %s " % self.cacheId , 
         if classInfo:
             if self.writeCond():
-                print "\nReading %s (keys: %s)" % (self.cacheId, 
-                    ["%s:%s" % (i,self.foo(classInfo[i][1]) if len(classInfo[i])>1 else "-") for i in classInfo])
+                print "(keys: %s)" % ( 
+                    ["%s:%s" % (i,self.foo(classInfo[i][1]) if (type(classInfo[i])==tuple and len(classInfo[i])>1) else "-") for i in classInfo])
                 for k in classInfo.keys():
                     if k.startswith("deps-"):
                         data = classInfo[k][0]['load']
@@ -120,14 +130,15 @@ class Class(Resource, MClassHints, MClassI18N, MClassDependencies, MClassCode, M
                         print "len:", len(data)
             return classInfo, modTime
         else:
+            if self.writeCond():
+                print "()"
             return {}, None
  
     def _writeClassCache(self, classInfo):
         cache = self.context['cache']
         if self.writeCond():
-            import time
             print "\nWriting %s (keys: %s)" % (self.cacheId, 
-                ["%s:%s" % (i,self.foo(classInfo[i][1]) if len(classInfo[i])>1 else "-") for i in classInfo])
+                ["%s:%s" % (i,self.foo(classInfo[i][1]) if (type(classInfo[i])==tuple and len(classInfo[i])>1) else "-") for i in classInfo])
             for k in classInfo.keys():
                 if k.startswith("deps-"):
                     data = classInfo[k][0]['load']

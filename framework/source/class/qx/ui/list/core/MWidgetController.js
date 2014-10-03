@@ -112,7 +112,7 @@ qx.Mixin.define("qx.ui.list.core.MWidgetController",
 
   members :
   {
-    /** {Array} which contains the bounded items */
+    /** @type {Array} which contains the bounded items */
     __boundItems : null,
 
 
@@ -168,6 +168,7 @@ qx.Mixin.define("qx.ui.list.core.MWidgetController",
      * {@link #delegate} property.
      *
      * @param sourcePath {String | null} The path to the property in the model.
+     *   If you use an empty string, the whole model item will be bound.
      * @param targetProperty {String} The name of the property in the target widget.
      * @param options {Map | null} The options to use for the binding.
      * @param targetWidget {qx.ui.core.Widget} The target widget.
@@ -177,6 +178,10 @@ qx.Mixin.define("qx.ui.list.core.MWidgetController",
     {
       var type = targetWidget.getUserData("cell.type")
       var bindPath = this.__getBindPath(index, sourcePath, type);
+
+      if (options) {
+        options.ignoreConverter = "model";
+      }
 
       var id = this._list.bind(bindPath, targetWidget, targetProperty, options);
       this.__addBinding(targetWidget, id);
@@ -315,6 +320,7 @@ qx.Mixin.define("qx.ui.list.core.MWidgetController",
      * @param index {Integer} The index of the item.
      * @param path {String|null} The path to the property.
      * @param type {String} The type <code>["item", "group"]</code>.
+     * @return {String} The binding path
      */
     __getBindPath : function(index, path, type)
     {

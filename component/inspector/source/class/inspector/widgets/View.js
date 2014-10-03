@@ -19,9 +19,12 @@
 ************************************************************************ */
 
 /* ************************************************************************
-#asset(qx/icon/Tango/22/actions/view-refresh.png)
-#asset(qx/icon/Tango/22/actions/document-properties.png)
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/icon/Tango/22/actions/view-refresh.png)
+ * @asset(qx/icon/Tango/22/actions/document-properties.png)
+ */
 
 qx.Class.define("inspector.widgets.View",
 {
@@ -39,7 +42,7 @@ qx.Class.define("inspector.widgets.View",
     this._reloadButton.setToolTipText("Reload the window.");
     this._toolbar.add(this._reloadButton);
     // add the event listener for the reload
-    this._reloadButton.addListener("click", this._reload, this);
+    this._reloadButton.addListener("tap", this._reload, this);
 
     this._toolbar.addSpacer();
 
@@ -47,7 +50,7 @@ qx.Class.define("inspector.widgets.View",
     this._structureToggle = new qx.ui.toolbar.CheckBox(null,
         "icon/22/actions/document-properties.png");
     this._structureToggle.setToolTipText("Display internal widget structure.");
-    this._structureToggle.addListener("click", this._reload, this);
+    this._structureToggle.addListener("tap", this._reload, this);
     this._toolbar.add(this._structureToggle);
     this._structureToggle.setValue(false);
 
@@ -98,8 +101,8 @@ qx.Class.define("inspector.widgets.View",
       var remoteAppRoot = this._iFrameWindow.qx.core.Init.getApplication().getRoot();
 
       // create a new root folder
-      if (remoteAppRoot.classname == "qx.ui.root.Application" || 
-        remoteAppRoot.classname == "qx.ui.mobile.core.Root") 
+      if (remoteAppRoot.classname == "qx.ui.root.Application" ||
+        remoteAppRoot.classname == "qx.ui.mobile.core.Root")
       {
         var rootFolder = new qx.ui.tree.TreeFolder(
           remoteAppRoot.classname + " [" + remoteAppRoot.toHashCode() + "]"
@@ -297,7 +300,7 @@ qx.Class.define("inspector.widgets.View",
       // get the current iframe window object
       this._iFrameWindow = qx.core.Init.getApplication().getIframeWindowObject();
       // check for null references
-      if (widget == null || 
+      if (widget == null ||
         ((this._iFrameWindow.qx.ui.core && this._iFrameWindow.qx.ui.core.Widget) && !(widget instanceof this._iFrameWindow.qx.ui.core.Widget)) ||
         (this._iFrameWindow.qx.ui.mobile && !(widget instanceof this._iFrameWindow.qx.ui.mobile.core.Widget)))
       {

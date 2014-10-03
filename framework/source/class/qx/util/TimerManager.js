@@ -116,7 +116,7 @@ qx.Class.define("qx.util.TimerManager",
      *   Context (this) the callback function is called with.  If not
      *   provided, this Timer singleton object is used.
      *
-     * @param userData {Any}
+     * @param userData {var}
      *   Data which is passed to the callback function upon timer expiry
      *
      * @param initialTime {Integer|null}
@@ -162,10 +162,6 @@ qx.Class.define("qx.util.TimerManager",
      *
      * @param timerId {Integer}
      *   A timer id previously returned by start()
-     *
-     * @return {Boolean}
-     *   <i>true</i> if the specified timer id was found (and removed);
-     *   <i>false</i> if no such timer was found (i.e. it had already expired)
      */
     stop : function(timerId)
     {
@@ -208,7 +204,6 @@ qx.Class.define("qx.util.TimerManager",
      * @param timerId {Integer}
      *   Id of the timer to be time-ordered
      *
-     * @return {void}
      */
     __insertNewTimer : function(expireAt, timerId)
     {
@@ -257,7 +252,6 @@ qx.Class.define("qx.util.TimerManager",
      * timer is restarted with the recurrent timeout following completion of
      * the callback function.
      *
-     * @return {void}
      */
     __processQueue : function()
     {

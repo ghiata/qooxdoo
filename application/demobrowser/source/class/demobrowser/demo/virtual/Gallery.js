@@ -18,14 +18,17 @@
 ************************************************************************ */
 
 /* ************************************************************************
-#ignore(demobrowser.demo.virtual.GalleryCell)
-#ignore(demobrowser.demo.virtual.HtmlGallery)
-#ignore(demobrowser.demo.virtual.WidgetGallery)
-#ignore(demobrowser.demo.virtual.AbstractGallery)
 
-#asset(qx/icon/${qx.icontheme}/32/places/*)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/icon/${qx.icontheme}/32/places/*)
+ * @ignore(demobrowser.demo.virtual.GalleryCell)
+ * @ignore(demobrowser.demo.virtual.HtmlGallery)
+ * @ignore(demobrowser.demo.virtual.WidgetGallery)
+ * @ignore(demobrowser.demo.virtual.AbstractGallery)
+ */
 
 qx.Class.define("demobrowser.demo.virtual.Gallery",
 {
@@ -81,15 +84,15 @@ qx.Class.define("demobrowser.demo.virtual.AbstractGallery",
       contentPadding: 0,
       showClose: false,
       showMinimize: false,
-      width: 300,
+      width: 320,
       height: 400
     });
     this.setLayout(new qx.ui.layout.Grow());
     this.moveTo(30, 50);
     this.open();
 
-    this.itemHeight = 60;
-    this.itemWidth = 60;
+    this.itemHeight = 65;
+    this.itemWidth = 70;
     this.itemCount = 431;
     this.itemPerLine = 1;
     this.items = this._generateItems(this.itemCount);
@@ -106,7 +109,7 @@ qx.Class.define("demobrowser.demo.virtual.AbstractGallery",
       mode: "multi",
       drag: true
     });
-    this.manager.attachMouseEvents();
+    this.manager.attachPointerEvents();
     this.manager.attachKeyEvents(scroller);
   },
 
@@ -134,7 +137,7 @@ qx.Class.define("demobrowser.demo.virtual.AbstractGallery",
       var pane = e.getTarget();
       var width = e.getData().width;
 
-      var colCount = Math.floor(width/this.itemWidth);
+      var colCount = Math.max(1, Math.floor(width/this.itemWidth));
       if (colCount == this.itemsPerLine) {
         return;
       }
@@ -234,15 +237,17 @@ qx.Class.define("demobrowser.demo.virtual.GalleryCell",
 
       if (states.selected)
       {
-        label.setDecorator("selected");
+        label.setBackgroundColor("background-selected");
         label.setTextColor("text-selected");
-        icon.setDecorator("group");
+        icon.setDecorator("white-box");
+        icon.setBackgroundColor("background");
       }
       else
       {
-        label.resetDecorator();
+        label.resetBackgroundColor();
         label.resetTextColor();
         icon.resetDecorator();
+        icon.resetBackgroundColor();
       }
     }
   }
@@ -256,11 +261,14 @@ qx.Class.define("demobrowser.demo.virtual.GalleryCell",
  * in a file of its own. You may neglect any warnings when generating this demo.
  */
 
-/*
-*****************************************************************************
+/**
+ *****************************************************************************
    WIDGET GALLERY
-*****************************************************************************
-*/
+ *****************************************************************************
+ *
+ * @ignore(demobrowser.demo.virtual.AbstractGallery)
+ * @ignore(demobrowser.demo.virtual.GalleryCell)
+ */
 qx.Class.define("demobrowser.demo.virtual.WidgetGallery",
 {
   extend : demobrowser.demo.virtual.AbstractGallery,
@@ -273,6 +281,8 @@ qx.Class.define("demobrowser.demo.virtual.WidgetGallery",
 
   members :
   {
+    __cell : null,
+
     _createScroller : function()
     {
       var scroller = new qx.ui.virtual.core.Scroller(
@@ -373,11 +383,13 @@ qx.Class.define("demobrowser.demo.virtual.WidgetGallery",
  * in a file of its own. You may neglect any warnings when generating this demo.
  */
 
-/*
-*****************************************************************************
-   HTML GALLERY
-*****************************************************************************
-*/
+/**
+ *****************************************************************************
+    HTML GALLERY
+ *****************************************************************************
+ *
+ * @ignore(demobrowser.demo.virtual.AbstractGallery)
+ */
 qx.Class.define("demobrowser.demo.virtual.HtmlGallery",
 {
   extend : demobrowser.demo.virtual.AbstractGallery,

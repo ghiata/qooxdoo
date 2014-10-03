@@ -42,7 +42,7 @@
  *     minWidth: 600,
  *     height: 400,
  *     minHeight: 400
- *   });
+ *   }));
  *
  *   this.getRoot().add(scroll);
  * </pre>
@@ -53,7 +53,7 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/widget/scroll.html' target='_blank'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/widget/scroll.html' target='_blank'>
  * Documentation of this widget in the qooxdoo manual.</a>
  */
 qx.Class.define("qx.ui.container.Scroll",
@@ -99,7 +99,6 @@ qx.Class.define("qx.ui.container.Scroll",
      * child with the given one.
      *
      * @param widget {qx.ui.core.Widget} Widget to insert
-     * @return {void}
      */
     add : function(widget) {
       this.getChildControl("pane").add(widget);
@@ -110,7 +109,6 @@ qx.Class.define("qx.ui.container.Scroll",
      * Returns the content of the scroll area.
      *
      * @param widget {qx.ui.core.Widget} Widget to remove
-     * @return {qx.ui.core.Widget}
      */
     remove : function(widget) {
       this.getChildControl("pane").remove(widget);

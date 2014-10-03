@@ -94,13 +94,30 @@ qx.Class.define("apiviewer.dao.Node", {
 
 
     /**
+     * Get the line number of this item in the source file
+     *
+     * @return {Integer|null} line number or <code>null</code> if unknown
+     */
+    getLineNumber : function()
+    {
+      return this._docNode.attributes.line || null;
+    },
+
+
+    /**
      * Get whether the node is deprecated.
      *
      * @return {Boolean} whether the node is deprecated.
      */
     isDeprecated : function()
     {
-      return typeof(this._deprecated) == "string" ? true : false;
+      if (typeof this._deprecated == "string"
+        || this.getClass && typeof this.getClass()._deprecated == "string"
+        || this.getFromProperty && this.getFromProperty() && this.getFromProperty().isDeprecated())
+      {
+        return true;
+      }
+      return false;
     },
 
 
@@ -222,6 +239,9 @@ qx.Class.define("apiviewer.dao.Node", {
           break;
         case "errors":
           this._errors = this._createNodeList(childNode);
+          break;
+        case "attach":
+        case "attachStatic":
           break;
         default:
           return false;

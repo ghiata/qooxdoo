@@ -27,28 +27,48 @@ qx.Class.define("qx.test.log.Logger",
 
   members :
   {
-    testLogException : function()
+    setUp : function()
+    {
+      this.__initialLogLevel = qx.log.Logger.getLevel();
+    },
+
+    tearDown : function()
+    {
+      qx.log.Logger.setLevel(this.__initialLogLevel);
+    },
+
+    __testLogException : function(exception)
     {
       var appender = new qx.log.appender.RingBuffer();
 
+      qx.log.Logger.setLevel("debug");
       qx.log.Logger.clear();
       qx.log.Logger.register(appender);
 
-      qx.log.Logger.debug(this.newException());
+      qx.log.Logger.debug(exception);
 
       var events = appender.getAllLogEvents();
       this.assertEquals(1, events.length);
 
-      if (
-        qx.core.Environment.get("engine.name") == "webkit" ||
-        qx.core.Environment.get("engine.name") == "gecko"
-      ) {
-        if (window.navigator.userAgent.indexOf("Chrome") === -1) {
+      if (qx.core.Environment.get("ecmascript.error.stacktrace")) {
+        if (exception instanceof Error || qx.core.Environment.get("engine.name") !== "gecko") {
           this.assert(events[0].items[0].trace.length > 0);
         }
       }
 
       qx.log.Logger.unregister(appender);
+    },
+
+    testLogException : function()
+    {
+      var exception = this.newException();
+      this.__testLogException(exception);
+    },
+
+    testLogDOMException : function()
+    {
+      var exception = this.newDOMException();
+      this.__testLogException(exception);
     },
 
 
@@ -63,6 +83,27 @@ qx.Class.define("qx.test.log.Logger",
     },
 
 
+    testContextObject : function() {
+      var appender = new qx.log.appender.RingBuffer();
+
+      qx.log.Logger.setLevel("debug");
+      qx.log.Logger.clear();
+      qx.log.Logger.register(appender);
+
+      var obj = new qx.core.Object();
+      qx.log.Logger.debug(qx.core.Object, "m1");
+      qx.log.Logger.debug(obj, "m2");
+      qx.log.Logger.debug(qxWeb(), "m3");
+
+      var events = appender.getAllLogEvents();
+      this.assertEquals(qx.core.Object, events[0].clazz);
+      this.assertEquals(obj.toHashCode(), events[1].object);
+      this.assertEquals(qxWeb, events[2].clazz);
+
+      qx.log.Logger.unregister(appender);
+    },
+
+
     newException : function()
     {
       var exc;
@@ -72,6 +113,17 @@ qx.Class.define("qx.test.log.Logger",
         exc = e;
       }
       return exc;
+    },
+
+    newDOMException : function()
+    {
+      var exc;
+      try {
+        document.body.appendChild(null);
+      } catch (e) {
+        exc = e;
+      }
+      return exc;
     }
   }
-})
+});

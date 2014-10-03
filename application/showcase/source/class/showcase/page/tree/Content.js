@@ -20,18 +20,21 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/22/places/*)
-#asset(qx/icon/${qx.icontheme}/22/mimetypes/media-image.png)
-#asset(qx/icon/${qx.icontheme}/22/apps/office-chart.png)
-#asset(qx/icon/${qx.icontheme}/22/apps/internet-mail.png)
-#asset(qx/icon/${qx.icontheme}/22/actions/document-send.png)
-#asset(qx/icon/${qx.icontheme}/22/actions/mail-mark-junk.png)
-#asset(qx/icon/${qx.icontheme}/22/actions/mail-mark-important.png)
-#asset(qx/icon/${qx.icontheme}/22/actions/mail-message-new.png)
-#asset(qx/icon/${qx.icontheme}/22/devices/drive-harddisk.png)
-#asset(qx/icon/${qx.icontheme}/22/devices/drive-optical.png)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/icon/${qx.icontheme}/22/places/*)
+ * @asset(qx/icon/${qx.icontheme}/22/mimetypes/media-image.png)
+ * @asset(qx/icon/${qx.icontheme}/22/apps/office-chart.png)
+ * @asset(qx/icon/${qx.icontheme}/22/apps/internet-mail.png)
+ * @asset(qx/icon/${qx.icontheme}/22/actions/document-send.png)
+ * @asset(qx/icon/${qx.icontheme}/22/actions/mail-mark-junk.png)
+ * @asset(qx/icon/${qx.icontheme}/22/actions/mail-mark-important.png)
+ * @asset(qx/icon/${qx.icontheme}/22/actions/mail-message-new.png)
+ * @asset(qx/icon/${qx.icontheme}/22/devices/drive-harddisk.png)
+ * @asset(qx/icon/${qx.icontheme}/22/devices/drive-optical.png)
+ */
 
 qx.Class.define("showcase.page.tree.Content",
 {
@@ -64,6 +67,7 @@ qx.Class.define("showcase.page.tree.Content",
         selectionMode : "multi",
         dragSelection: true,
         decorator: null,
+        padding: 0,
         backgroundColor: "rgb(228,228,228)"
       });
       win.add(tree);
@@ -155,6 +159,7 @@ qx.Class.define("showcase.page.tree.Content",
         width: 600,
         height: 500,
         decorator: null,
+        padding: 0,
         selectionMode : "multi",
         dragSelection: true,
         backgroundColor: "rgb(228,228,228)"

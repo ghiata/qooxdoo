@@ -34,7 +34,9 @@ qx.Class.define("qx.test.mobile.MobileTestCase",
   {
     setUp : function()
     {
-      this.require(["webkit"]);
+      if (qx.core.Environment.get("browser.name") == "ie" && qx.core.Environment.get("browser.documentmode") < 10) {
+        throw new qx.dev.unit.RequirementError("Mobile tests require Webkit, Gecko or IE10+");
+      }
 
       qx.test.mobile.MobileTestCase._oldApplicationFunction = qx.core.Init.getApplication;
 
@@ -45,10 +47,22 @@ qx.Class.define("qx.test.mobile.MobileTestCase",
           getRoot : function() {
             return self.getRoot();
           },
+          addListener: function() {
+            return self.addListener.apply(self,arguments);
+          },
+          removeListener: function() {
+            return self.removeListener.apply(self,arguments);
+          },
+          fireEvent: function() {
+            return self.fireEvent.apply(self,arguments);
+          },
+          fireDataEvent: function() {
+            return self.fireDataEvent.apply(self,arguments);
+          },
           close : function() {},
           terminate : function() {}
-        }
-      }
+        };
+      };
     },
 
 

@@ -19,7 +19,7 @@
 /**
  * Border implementation with two CSS borders. Both borders can be styled
  * independent of each other.
- * This mixin is usually used by {@link qx.ui.decoration.DynamicDecorator}.
+ * This mixin is usually used by {@link qx.ui.decoration.Decorator}.
  */
 qx.Mixin.define("qx.ui.decoration.MDoubleBorder",
 {
@@ -28,9 +28,7 @@ qx.Mixin.define("qx.ui.decoration.MDoubleBorder",
   construct : function() {
     // override the methods of single border and background image
     this._getDefaultInsetsForBorder = this.__getDefaultInsetsForDoubleBorder;
-    this._resizeBorder = this.__resizeDoubleBorder;
     this._styleBorder = this.__styleDoubleBorder;
-    this._generateMarkup = this.__generateMarkupDoubleBorder;
   },
 
 
@@ -52,28 +50,32 @@ qx.Mixin.define("qx.ui.decoration.MDoubleBorder",
     innerWidthTop :
     {
       check : "Number",
-      init : 0
+      init : 0,
+      apply : "_applyDoubleBorder"
     },
 
     /** right width of border */
     innerWidthRight :
     {
       check : "Number",
-      init : 0
+      init : 0,
+      apply : "_applyDoubleBorder"
     },
 
     /** bottom width of border */
     innerWidthBottom :
     {
       check : "Number",
-      init : 0
+      init : 0,
+      apply : "_applyDoubleBorder"
     },
 
     /** left width of border */
     innerWidthLeft :
     {
       check : "Number",
-      init : 0
+      init : 0,
+      apply : "_applyDoubleBorder"
     },
 
     /** Property group to set the inner border width of all sides */
@@ -96,28 +98,32 @@ qx.Mixin.define("qx.ui.decoration.MDoubleBorder",
     innerColorTop :
     {
       nullable : true,
-      check : "Color"
+      check : "Color",
+      apply : "_applyDoubleBorder"
     },
 
     /** right inner color of border */
     innerColorRight :
     {
       nullable : true,
-      check : "Color"
+      check : "Color",
+      apply : "_applyDoubleBorder"
     },
 
     /** bottom inner color of border */
     innerColorBottom :
     {
       nullable : true,
-      check : "Color"
+      check : "Color",
+      apply : "_applyDoubleBorder"
     },
 
     /** left inner color of border */
     innerColorLeft :
     {
       nullable : true,
-      check : "Color"
+      check : "Color",
+      apply : "_applyDoubleBorder"
     },
 
     /**
@@ -127,196 +133,219 @@ qx.Mixin.define("qx.ui.decoration.MDoubleBorder",
     {
       group : [ "innerColorTop", "innerColorRight", "innerColorBottom", "innerColorLeft" ],
       mode : "shorthand"
+    },
+
+    /**
+     * The opacity of the inner border.
+     */
+    innerOpacity :
+    {
+      check : "Number",
+      init : 1,
+      apply : "_applyDoubleBorder"
     }
   },
 
 
   members :
   {
-    __ownMarkup : null,
 
     /**
-     * Takes a styles map and adds the inner border styles styles in place
+     * Takes a styles map and adds the outer border styles in place
      * to the given map. This is the needed behavior for
-     * {@link qx.ui.decoration.DynamicDecorator}.
+     * {@link qx.ui.decoration.Decorator}.
      *
      * @param styles {Map} A map to add the styles.
      */
     __styleDoubleBorder : function(styles)
     {
+      var propName = qx.core.Environment.get("css.boxshadow");
+
+      var color,
+          innerColor,
+          innerWidth;
       if (qx.core.Environment.get("qx.theme"))
       {
         var Color = qx.theme.manager.Color.getInstance();
 
-        var innerColorTop = Color.resolve(this.getInnerColorTop());
-        var innerColorRight = Color.resolve(this.getInnerColorRight());
-        var innerColorBottom = Color.resolve(this.getInnerColorBottom());
-        var innerColorLeft = Color.resolve(this.getInnerColorLeft());
+        color = {
+          top : Color.resolve(this.getColorTop()),
+          right : Color.resolve(this.getColorRight()),
+          bottom : Color.resolve(this.getColorBottom()),
+          left : Color.resolve(this.getColorLeft())
+        };
+
+        innerColor = {
+          top : Color.resolve(this.getInnerColorTop()),
+          right : Color.resolve(this.getInnerColorRight()),
+          bottom : Color.resolve(this.getInnerColorBottom()),
+          left : Color.resolve(this.getInnerColorLeft())
+        };
       }
       else
       {
-        var innerColorTop = this.getInnerColorTop();
-        var innerColorRight = this.getInnerColorRight();
-        var innerColorBottom = this.getInnerColorBottom();
-        var innerColorLeft = this.getInnerColorLeft();
+        color = {
+          top : this.getColorTop(),
+          right : this.getColorRight(),
+          bottom : this.getColorBottom(),
+          left : this.getColorLeft()
+        };
+
+        innerColor = {
+          top : this.getInnerColorTop(),
+          right : this.getInnerColorRight(),
+          bottom : this.getInnerColorBottom(),
+          left : this.getInnerColorLeft()
+        };
       }
 
-      // Inner styles
-      // Inner image must be relative to be compatible with qooxdoo 0.8.x
-      // See http://bugzilla.qooxdoo.org/show_bug.cgi?id=3450 for details
-      styles.position = "relative";
+      innerWidth = {
+        top : this.getInnerWidthTop(),
+        right : this.getInnerWidthRight(),
+        bottom : this.getInnerWidthBottom(),
+        left : this.getInnerWidthLeft()
+      };
 
-      // Add inner borders
-      var width = this.getInnerWidthTop();
-      if (width > 0) {
-        styles["border-top"] = width + "px " + this.getStyleTop() + " " + innerColorTop;
-      }
-
-      var width = this.getInnerWidthRight();
-      if (width > 0) {
-        styles["border-right"] = width + "px " + this.getStyleRight() + " " + innerColorRight;
-      }
-
-      var width = this.getInnerWidthBottom();
-      if (width > 0) {
-        styles["border-bottom"] = width + "px " + this.getStyleBottom() + " " + innerColorBottom;
-      }
-
-      var width = this.getInnerWidthLeft();
-      if (width > 0) {
-        styles["border-left"] = width + "px " + this.getStyleLeft() + " " + innerColorLeft;
-      }
-
-      if (qx.core.Environment.get("qx.debug"))
-      {
-        if (!styles["border-top"] && !styles["border-right"] &&
-          !styles["border-bottom"] && !styles["border-left"]) {
-          throw new Error("Invalid Double decorator (zero inner border width). Use qx.ui.decoration.Single instead!");
-        }
-      }
-    },
-
-
-    /**
-     * Special generator for the markup which creates the containing div and
-     * the sourrounding div as well.
-     *
-     * @param styles {Map} The styles for the inner
-     * @return {String} The generated decorator HTML.
-     */
-    __generateMarkupDoubleBorder : function(styles) {
-      var innerHtml = this._generateBackgroundMarkup(styles);
-
-      if (qx.core.Environment.get("qx.theme"))
-      {
-        var Color = qx.theme.manager.Color.getInstance();
-
-        var colorTop = Color.resolve(this.getColorTop());
-        var colorRight = Color.resolve(this.getColorRight());
-        var colorBottom = Color.resolve(this.getColorBottom());
-        var colorLeft = Color.resolve(this.getColorLeft());
-      }
-      else
-      {
-        var colorTop = this.getColorTop();
-        var colorRight = this.getColorRight();
-        var colorBottom = this.getColorBottom();
-        var colorLeft = this.getColorLeft();
-      }
-
-      // get rid of the old borders
-      styles["border-top"] = '';
-      styles["border-right"] = '';
-      styles["border-bottom"] = '';
-      styles["border-left"] = '';
-
-      // Generate outer HTML
-      styles["line-height"] = 0;
-
-      // Do not set the line-height on IE6, IE7, IE8 in Quirks Mode and IE8 in IE7 Standard Mode
-      // See http://bugzilla.qooxdoo.org/show_bug.cgi?id=3450 for details
-      if (
-        (qx.core.Environment.get("engine.name") == "mshtml" &&
-         parseFloat(qx.core.Environment.get("engine.version")) < 8) ||
-        (qx.core.Environment.get("engine.name") == "mshtml" &&
-         qx.core.Environment.get("browser.documentmode") < 8)
-      ) {
-        styles["line-height"] = '';
-      }
-
+      // Add outer borders
       var width = this.getWidthTop();
       if (width > 0) {
-        styles["border-top"] = width + "px " + this.getStyleTop() + " " + colorTop;
+        styles["border-top"] = width + "px " + this.getStyleTop() + " " + color.top;
       }
 
-      var width = this.getWidthRight();
+      width = this.getWidthRight();
       if (width > 0) {
-        styles["border-right"] = width + "px " + this.getStyleRight() + " " + colorRight;
+        styles["border-right"] = width + "px " + this.getStyleRight() + " " + color.right;
       }
 
-      var width = this.getWidthBottom();
+      width = this.getWidthBottom();
       if (width > 0) {
-        styles["border-bottom"] = width + "px " + this.getStyleBottom() + " " + colorBottom;
+        styles["border-bottom"] = width + "px " + this.getStyleBottom() + " " + color.bottom;
       }
 
-      var width = this.getWidthLeft();
+      width = this.getWidthLeft();
       if (width > 0) {
-        styles["border-left"] = width + "px " + this.getStyleLeft() + " " + colorLeft;
+        styles["border-left"] = width + "px " + this.getStyleLeft() + " " + color.left;
       }
 
-      if (qx.core.Environment.get("qx.debug"))
-      {
-        if (styles["border-top"] == '' && styles["border-right"] == '' &&
-          styles["border-bottom"] == '' && styles["border-left"] == '') {
-          throw new Error("Invalid Double decorator (zero outer border width). Use qx.ui.decoration.Single instead!");
+      var innerOpacity = this.getInnerOpacity();
+
+      if (innerOpacity < 1) {
+        this.__processInnerOpacity(innerColor, innerOpacity);
+      }
+
+
+      // inner border
+      if (
+        innerWidth.top > 0 ||
+        innerWidth.right > 0 ||
+        innerWidth.bottom > 0 ||
+        innerWidth.left > 0
+      ) {
+
+        var borderTop = (innerWidth.top || 0) + "px solid " + innerColor.top;
+        var borderRight = (innerWidth.right || 0) + "px solid " + innerColor.right;
+        var borderBottom = (innerWidth.bottom || 0) + "px solid " + innerColor.bottom;
+        var borderLeft = (innerWidth.left || 0) + "px solid " + innerColor.left;
+
+        styles[":before"] = {
+          "width" : "100%",
+          "height" : "100%",
+          "position" : "absolute",
+          "content" : '""',
+          "border-top" : borderTop,
+          "border-right" : borderRight,
+          "border-bottom" : borderBottom,
+          "border-left" : borderLeft,
+          "left": 0,
+          "top" : 0
+        };
+        var boxSizingKey = qx.bom.Style.getCssName(qx.core.Environment.get("css.boxsizing"));
+        styles[":before"][boxSizingKey] = "border-box";
+
+        // make sure to apply the border radius as well
+        var borderRadiusKey = qx.core.Environment.get("css.borderradius");
+        if (borderRadiusKey) {
+          borderRadiusKey = qx.bom.Style.getCssName(borderRadiusKey);
+          styles[":before"][borderRadiusKey] = "inherit";
         }
+
+        // Add inner borders as shadows
+        var shadowStyle = [];
+
+        if (innerColor.top && innerWidth.top &&
+            innerColor.top == innerColor.bottom &&
+            innerColor.top == innerColor.right &&
+            innerColor.top == innerColor.left &&
+            innerWidth.top == innerWidth.bottom &&
+            innerWidth.top == innerWidth.right &&
+            innerWidth.top == innerWidth.left)
+        {
+          shadowStyle.push("inset 0 0 0 " + innerWidth.top + "px " + innerColor.top);
+        }
+        else {
+          if (innerColor.top) {
+            shadowStyle.push("inset 0 " + (innerWidth.top || 0) + "px " + innerColor.top);
+          }
+          if (innerColor.right) {
+            shadowStyle.push("inset -" + (innerWidth.right || 0) + "px 0 " + innerColor.right);
+          }
+          if (innerColor.bottom) {
+            shadowStyle.push("inset 0 -" + (innerWidth.bottom || 0) + "px " + innerColor.bottom);
+          }
+          if (innerColor.left) {
+            shadowStyle.push("inset " + (innerWidth.left || 0) + "px 0 " + innerColor.left);
+          }
+        }
+
+        // apply or append the box shadow styles
+        if (shadowStyle.length > 0 && propName) {
+          propName = qx.bom.Style.getCssName(propName);
+          if (!styles[propName]) {
+            styles[propName] = shadowStyle.join(",");
+          } else {
+            styles[propName] += "," + shadowStyle.join(",");
+          }
+        }
+      } else {
+        styles[":before"] = {
+          border: 0
+        };
       }
-
-      // final default styles
-      styles["position"] = "absolute";
-      styles["top"] = 0;
-      styles["left"] = 0;
-
-      // Store
-      return this.__ownMarkup = this._generateBackgroundMarkup(styles, innerHtml);
     },
 
 
-
-
     /**
-     * Resize function for the decorator. This is suitable for the
-     * {@link qx.ui.decoration.DynamicDecorator}.
+     * Converts the inner border's colors to rgba.
      *
-     * @param element {Element} The element which could be resized.
-     * @param width {Number} The new width.
-     * @param height {Number} The new height.
-     * @return {Map} A map containing the desired position and dimension and a
-     *   emelent to resize.
-     *   (width, height, top, left, elementToApplyDimensions).
+     * @param innerColor {Map} map of top, right, bottom and left colors
+     * @param innerOpacity {Number} alpha value
      */
-    __resizeDoubleBorder : function(element, width, height)
+    __processInnerOpacity : function(innerColor, innerOpacity)
     {
-      var insets = this.getInsets();
-      width -= insets.left + insets.right;
-      height -= insets.top + insets.bottom;
+      if (!qx.core.Environment.get("css.rgba")) {
+          if (qx.core.Environment.get("qx.debug")) {
+          qx.log.Logger.warn("innerOpacity is configured but the browser doesn't support RGBA colors.");
+        }
+        return;
+      }
 
-      var left =
-        insets.left -
-        this.getWidthLeft() -
-        this.getInnerWidthLeft();
-      var top =
-        insets.top -
-        this.getWidthTop() -
-        this.getInnerWidthTop();
+      for (var edge in innerColor) {
+        var rgb = qx.util.ColorUtil.stringToRgb(innerColor[edge]);
+        rgb.push(innerOpacity);
+        var rgbString = qx.util.ColorUtil.rgbToRgbString(rgb);
+        innerColor[edge] = rgbString;
+      }
+    },
 
-      return {
-        left: left,
-        top: top,
-        width: width,
-        height: height,
-        elementToApplyDimensions : element.firstChild
-      };
+
+    _applyDoubleBorder : function()
+    {
+      if (qx.core.Environment.get("qx.debug"))
+      {
+        if (this._isInitialized()) {
+          throw new Error("This decorator is already in-use. Modification is not possible anymore!");
+        }
+      }
     },
 
 

@@ -18,8 +18,6 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * The Composite is a generic container widget.
  *
  * It exposes all methods to set layouts and to manage child widgets
@@ -32,7 +30,7 @@
  *
  * <pre class='javascript'>
  *   // create the composite
- *   var composite = new qx.ui.mobile.container.Composite()
+ *   var composite = new qx.ui.mobile.container.Composite();
  *
  *   composite.setLayout(new qx.ui.mobile.layout.HBox());
  *

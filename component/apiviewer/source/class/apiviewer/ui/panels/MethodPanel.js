@@ -42,6 +42,7 @@ qx.Class.define("apiviewer.ui.panels.MethodPanel",
       } else {
         title = method.getName();
       }
+
       var titleHtml = new qx.util.StringBuilder(apiviewer.ui.panels.InfoPanel.setTitleClass(method, title));
 
       // Add the title (the method signature)
@@ -61,14 +62,14 @@ qx.Class.define("apiviewer.ui.panels.MethodPanel",
           '</span> <code>', param.getName(), '</code>'
         );
 
-        if (param.getDefaultValue()!==undefined) {
+        if (param.isOptional()) {
           titleHtml.add("?");
         }
       }
 
       titleHtml.add('<span class="parenthesis">)</span></span>');
 
-      return titleHtml.get()
+      return titleHtml.get();
     },
 
 
@@ -81,8 +82,8 @@ qx.Class.define("apiviewer.ui.panels.MethodPanel",
     getItemTypeHtml : function(method)
     {
       var typeHtml = new qx.util.StringBuilder();
-      if (method.isAbstract()) {
-        typeHtml.add("abstract ")
+      if (method.isAbstract() && method.getClass().isAbstract()) {
+        typeHtml.add("abstract ");
       }
 
       if (!method.isConstructor()) {
@@ -146,8 +147,11 @@ qx.Class.define("apiviewer.ui.panels.MethodPanel",
             textHtml.add("<code>", param.getName(), "</code>");
 
             if (defaultValue) {
-              textHtml.add(" (default: ", defaultValue, ") ", '</span>');
+              textHtml.add(" (" + (param.isOptional() ? "optional; " : "") + "default: ", defaultValue, ") ");
+            } else if (param.isOptional()) {
+              textHtml.add(" (optional) ");
             }
+            textHtml.add("</span>");
 
             var desc = param.getDescription();
 
@@ -224,6 +228,8 @@ qx.Class.define("apiviewer.ui.panels.MethodPanel",
         textHtml.add(apiviewer.ui.panels.InfoPanel.createSeeAlsoHtml(method));
         textHtml.add(apiviewer.ui.panels.InfoPanel.createErrorHtml(method, currentClassDocNode));
         textHtml.add(apiviewer.ui.panels.InfoPanel.createDeprecationHtml(method, "function"));
+        textHtml.add(apiviewer.ui.panels.InfoPanel.createSourceLinkHtml(method));
+        textHtml.add(apiviewer.ui.panels.InfoPanel.createAttachedFrom(method));
       }
 
       return textHtml.get();
@@ -253,7 +259,8 @@ qx.Class.define("apiviewer.ui.panels.MethodPanel",
         node.getErrors().length > 0 ||
         node.isDeprecated() ||
         node.getApply() ||
-        apiviewer.ui.panels.InfoPanel.descriptionHasDetails(node)
+        apiviewer.ui.panels.InfoPanel.descriptionHasDetails(node) ||
+        apiviewer.ui.ClassViewer.getSourceUri(node)
       );
     }
 

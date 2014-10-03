@@ -34,11 +34,22 @@ qx.Class.define("qx.util.format.NumberFormat",
 
   /**
    * @param locale {String} optional locale to be used
+   * @throws {Error} If the number of arguments !== 1 and the argument is not a string.
    */
   construct : function(locale)
   {
     this.base(arguments);
-    this.__locale = locale;
+    if (arguments.length > 0) {
+      if (arguments.length === 1) {
+        if (qx.lang.Type.isString(locale)) {
+          this.__locale = locale;
+        } else {
+          throw new Error("Wrong argument type. String is expected.");
+        }
+      } else {
+        throw new Error("Wrong number of arguments.");
+      }
+    }
   },
 
 
@@ -247,7 +258,7 @@ qx.Class.define("qx.util.format.NumberFormat",
         "^" +
         qx.lang.String.escapeRegexpChars(this.getPrefix()) +
         '([-+]){0,1}'+
-        '([0-9]{1,3}(?:'+ groupSepEsc + '{0,1}[0-9]{3}){0,})' +
+        '([0-9]{1,3}(?:'+ groupSepEsc + '{0,1}[0-9]{3}){0,}){0,1}' +
         '(' + decimalSepEsc + '\\d+){0,1}' +
         qx.lang.String.escapeRegexpChars(this.getPostfix()) +
         "$"
@@ -260,7 +271,7 @@ qx.Class.define("qx.util.format.NumberFormat",
       }
 
       var negative = (hit[1] == "-");
-      var integerStr = hit[2];
+      var integerStr = hit[2] || "0";
       var fractionStr = hit[3];
 
       // Remove the thousand groupings

@@ -19,6 +19,7 @@
 ************************************************************************ */
 /**
  * Mobile page responsible for shoing a single article.
+ * @require(qx.module.Attribute)
  */
 qx.Class.define("feedreader.view.mobile.ArticlePage",
 {
@@ -27,7 +28,7 @@ qx.Class.define("feedreader.view.mobile.ArticlePage",
 
   construct : function()
   {
-    this.base(arguments);
+    this.base(arguments, false);
     this.setShowBackButton(true);
     this.setBackButtonText(this.tr("Back"));
   },
@@ -59,7 +60,8 @@ qx.Class.define("feedreader.view.mobile.ArticlePage",
       // add the article embed
       this.__article = new qx.ui.mobile.embed.Html();
       this.__article.addCssClass("whitearea");
-      this.getContent().add(this.__article);
+      var articleGroup = new qx.ui.mobile.form.Group([this.__article]);
+      this.getContent().add(articleGroup);
     },
 
 
@@ -71,7 +73,10 @@ qx.Class.define("feedreader.view.mobile.ArticlePage",
         this.setTitle(value.getTitle());
         var html = feedreader.ArticleBuilder.createHtml(value);
         this.__article.setHtml(html);
+
+        q("a").setAttribute("target", "_blank");
       }
+
     }
   }
 });

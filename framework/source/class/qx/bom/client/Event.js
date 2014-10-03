@@ -42,39 +42,140 @@ qx.Bootstrap.define("qx.bom.client.Event",
 
 
     /**
-     * Checks if pointer events are available.
+     * Checks if MSPointer events are available.
      *
      * @internal
      * @return {Boolean} <code>true</code> if pointer events are supported.
      */
-    getPointer : function() {
-      // Check if browser reports that pointerEvents is a known style property
-      if ("pointerEvents" in document.documentElement.style) {
-        // Opera 10.63 incorrectly advertises support for CSS pointer events (#4229).
-        // Do not rely on pointer events in Opera until this browser issue is fixed.
-        // IE9 only supports pointer events only for SVG.
-        // See http://msdn.microsoft.com/en-us/library/ff972269%28v=VS.85%29.aspx
-        var browserName = qx.bom.client.Engine.getName();
-        return browserName != "opera" && browserName != "mshtml";
+    getMsPointer : function()
+    {
+      if ("pointerEnabled" in window.navigator) {
+        return window.navigator.pointerEnabled;
+      } else if ("msPointerEnabled" in window.navigator) {
+        return window.navigator.msPointerEnabled;
       }
+
       return false;
     },
 
 
     /**
-     * Checks if the proprietary "help" event is available.
-     * 
+     * Checks if the proprietary <code>help</code> event is available.
+     *
+     * @internal
      * @return {Boolean} <code>true</code> if the "help" event is supported.
      */
     getHelp : function()
     {
       return ("onhelp" in document);
+    },
+
+
+    /**
+     * Checks if the <code>hashchange</code> event is available
+     *
+     * @internal
+     * @return {Boolean} <code>true</code> if the "hashchange" event is supported.
+     */
+    getHashChange : function()
+    {
+      // avoid false positive in IE7
+      var engine = qx.bom.client.Engine.getName();
+      var hashchange = "onhashchange" in window;
+      return (engine !== "mshtml" && hashchange) ||
+      (engine === "mshtml" && "documentMode" in document &&
+       document.documentMode >= 8 && hashchange);
+    },
+
+
+    /**
+     * Checks if the DOM2 dispatchEvent method is available
+     * @return {Boolean} <code>true</code> if dispatchEvent is supported.
+     */
+    getDispatchEvent : function() {
+      return typeof document.dispatchEvent == "function";
+    },
+
+
+    /**
+     * Checks if the CustomEvent constructor is available and supports
+     * custom event types.
+     *
+     * @return {Boolean} <code>true</code> if Custom Events are available
+     */
+    getCustomEvent : function() {
+      if (!window.CustomEvent) {
+        return false;
+      }
+      try {
+        new window.CustomEvent("foo");
+        return true;
+      } catch(ex) {
+        return false;
+      }
+    },
+
+    /**
+     * Checks if the MouseEvent constructor is available and supports
+     * custom event types.
+     *
+     * @return {Boolean} <code>true</code> if Mouse Events are available
+     */
+    getMouseEvent : function() {
+      if (!window.MouseEvent) {
+        return false;
+      }
+      try {
+        new window.MouseEvent("foo");
+        return true;
+      } catch(ex) {
+        return false;
+      }
+    },
+
+    /**
+     * Checks if the MouseWheel event is available and on which target.
+     *
+     * @param win {Window ? null} An optional window instance to check.
+     * @return {Map} A map containing two values: type and target.
+     */
+    getMouseWheel : function(win) {
+      if (!win) {
+        win = window;
+      }
+
+      // Fix for bug #3234
+      var targets = [win, win.document, win.document.body];
+      var target = win;
+      var type = "DOMMouseScroll"; // for FF < 17
+
+      for (var i = 0; i < targets.length; i++) {
+        // check for the spec event (DOM-L3)
+        if (qx.bom.Event.supportsEvent(targets[i], "wheel")) {
+          type = "wheel";
+          target = targets[i];
+          break;
+        }
+        // check for the non spec event
+        if (qx.bom.Event.supportsEvent(targets[i], "mousewheel")) {
+          type = "mousewheel";
+          target = targets[i];
+          break;
+        }
+      };
+
+      return {type: type, target: target};
     }
   },
 
   defer : function(statics) {
     qx.core.Environment.add("event.touch", statics.getTouch);
-    qx.core.Environment.add("event.pointer", statics.getPointer);
+    qx.core.Environment.add("event.mouseevent", statics.getMouseEvent);
+    qx.core.Environment.add("event.dispatchevent", statics.getDispatchEvent);
+    qx.core.Environment.add("event.customevent", statics.getCustomEvent);
+    qx.core.Environment.add("event.mspointer", statics.getMsPointer);
     qx.core.Environment.add("event.help", statics.getHelp);
+    qx.core.Environment.add("event.hashchange", statics.getHashChange);
+    qx.core.Environment.add("event.mousewheel", statics.getMouseWheel);
   }
 });

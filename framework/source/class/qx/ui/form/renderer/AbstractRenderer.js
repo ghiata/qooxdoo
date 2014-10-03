@@ -18,7 +18,7 @@
 ************************************************************************ */
 
 /**
- * Abstract renderer for {@link qx.ui.form.Form}. This abstract rendere should
+ * Abstract renderer for {@link qx.ui.form.Form}. This abstract renderer should
  * be the superclass of all form renderer. It takes the form, which is
  * supplied as constructor parameter and configures itself. So if you need to
  * set some additional information on your renderer before adding the widgets,
@@ -37,7 +37,6 @@ qx.Class.define("qx.ui.form.renderer.AbstractRenderer",
   {
     this.base(arguments);
 
-    this._visibilityBindingIds = [];
     this._labels = [];
 
     // translation support
@@ -47,30 +46,56 @@ qx.Class.define("qx.ui.form.renderer.AbstractRenderer",
       );
       this._names = [];
     }
+    this._form = form;
+    this._render();
 
-    // add the groups
-    var groups = form.getGroups();
-    for (var i = 0; i < groups.length; i++) {
-      var group = groups[i];
-      this.addItems(
-        group.items, group.labels, group.title, group.options, group.headerOptions
-      );
-    }
-
-    // add the buttons
-    var buttons = form.getButtons();
-    var buttonOptions = form.getButtonOptions();
-    for (var i = 0; i < buttons.length; i++) {
-      this.addButton(buttons[i], buttonOptions[i]);
-    }
+    form.addListener("change", this._onFormChange, this);
   },
 
 
   members :
   {
     _names : null,
-    _visibilityBindingIds : null,
+    _form : null,
     _labels : null,
+
+
+    /**
+     * Renders the form: add's the items and buttons.
+     */
+    _render : function() {
+      // add the groups
+      var groups = this._form.getGroups();
+      for (var i = 0; i < groups.length; i++) {
+        var group = groups[i];
+        this.addItems(
+          group.items, group.labels, group.title, group.options, group.headerOptions
+        );
+      }
+
+      // add the buttons
+      var buttons = this._form.getButtons();
+      var buttonOptions = this._form.getButtonOptions();
+      for (var i = 0; i < buttons.length; i++) {
+        this.addButton(buttons[i], buttonOptions[i]);
+      }
+    },
+
+
+    /**
+     * Handler responsible for updating the rendered widget as soon as the
+     * form changes.
+     */
+    _onFormChange : function() {
+      this._removeAll();
+      // remove all created labels
+      for (var i=0; i < this._labels.length; i++) {
+        this._labels[i].dispose();
+      }
+      this._labels = [];
+
+      this._render();
+    },
 
 
     /**
@@ -80,8 +105,7 @@ qx.Class.define("qx.ui.form.renderer.AbstractRenderer",
      */
     _connectVisibility : function(item, label) {
       // map the items visibility to the label
-      var id = item.bind("visibility", label, "visibility");
-      this._visibilityBindingIds.push({id: id, item: item});
+      item.bind("visibility", label, "visibility");
     },
 
 
@@ -101,7 +125,7 @@ qx.Class.define("qx.ui.form.renderer.AbstractRenderer",
           }
           var newText = this._createLabelText(entry.name, entry.item);
           entry.label.setValue(newText);
-        };
+        }
       },
 
       "false" : null
@@ -155,16 +179,5 @@ qx.Class.define("qx.ui.form.renderer.AbstractRenderer",
       qx.locale.Manager.getInstance().removeListener("changeLocale", this._onChangeLocale, this);
     }
     this._names = null;
-
-    // remove all created lables
-    for (var i=0; i < this._labels.length; i++) {
-      this._labels[i].dispose();
-    };
-
-    // remove the visibility bindings
-    for (var i = 0; i < this._visibilityBindingIds.length; i++) {
-      var entry = this._visibilityBindingIds[i];
-      entry.item.removeBinding(entry.id);
-    };
   }
 });

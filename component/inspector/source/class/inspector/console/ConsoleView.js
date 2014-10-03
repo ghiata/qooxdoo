@@ -53,7 +53,7 @@ qx.Class.define("inspector.console.ConsoleView",
 
     // inputfield
     var inputComposite = new qx.ui.container.Composite();
-    inputComposite.setDecorator("input");
+    inputComposite.setDecorator("inset");
     var layout = new qx.ui.layout.HBox();
     layout.setAlignY("middle");
     inputComposite.setLayout(layout);
@@ -95,7 +95,7 @@ qx.Class.define("inspector.console.ConsoleView",
 
     /**
      * TODOC
-     * 
+     *
      * @lint ignoreDeprecated(alert)
      * @param filter {}
      */
@@ -289,7 +289,7 @@ qx.Class.define("inspector.console.ConsoleView",
           try {
             // get the position for the popup
             var left = qx.bom.element.Location.getLeft(
-              this.getContainerElement().getDomElement()
+              this.getContentElement().getDomElement()
             );
             var top = qx.bom.element.Location.getTop(
               this._inputTextField.getContentElement().getDomElement()

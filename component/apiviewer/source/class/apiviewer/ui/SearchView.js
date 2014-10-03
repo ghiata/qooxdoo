@@ -37,8 +37,8 @@ qx.Class.define("apiviewer.ui.SearchView",
     this.base(arguments);
 
     var layout = new qx.ui.layout.VBox();
-    layout.setSeparator("separator-vertical");
     this.setLayout(layout);
+    this.setBackgroundColor("white");
 
     this.__initresult = false;
     this.listdata = [];
@@ -46,6 +46,21 @@ qx.Class.define("apiviewer.ui.SearchView",
     this.apiindex = {};
 
     this._showSearchForm();
+  },
+
+
+
+  /*
+  *****************************************************************************
+     EVENTS
+  *****************************************************************************
+  */
+
+  events : {
+    /**
+     * Fired when a search operation has finished
+     */
+    searchFinished: "qx.event.type.Event"
   },
 
 
@@ -65,6 +80,36 @@ qx.Class.define("apiviewer.ui.SearchView",
     __table : null,
     __typeFilter: null,
     __typesIndex: null,
+    __searchTerm: null,
+
+
+    /**
+     * Enters a term into the search box and selects the
+     * first result
+     *
+     * @param term {String} Search term
+     */
+    search : function(term) {
+      this.addListenerOnce("searchFinished", function() {
+        // select the first result
+        // the timeout is needed since the detail view might not
+        // be done rendering the initially selected item, in
+        // which case it won't update when the selection changes
+        setTimeout(function() {
+          this._selectionModel.addSelectionInterval(0, 0);
+        }.bind(this), 300);
+      }, this);
+
+      if (qx.lang.Object.getLength(this.apiindex) == 0) {
+        // Index not ready yet, defer search
+        this.__searchTerm = term;
+      } else {
+        this.__searchTerm = null;
+        // Set search box value
+        this.sinput.setValue(term);
+      }
+    },
+
 
     /**
      * Generate the search form.
@@ -86,7 +131,8 @@ qx.Class.define("apiviewer.ui.SearchView",
 
       // Search form - input field
       this.sinput = new qx.ui.form.TextField().set({
-        placeholder : "Enter search term ..."
+        placeholder : "Enter search term ...",
+        liveUpdate: true
       });
 
       sform.add(this.sinput, {
@@ -123,19 +169,15 @@ qx.Class.define("apiviewer.ui.SearchView",
         var paddingLeft = 0;
         var paddingBottom = 0;
         var paddingTop = 0;
-        if(["class", "interface"].indexOf(iconNamePart)!=-1)
-        {
+        if(["class", "interface"].indexOf(iconNamePart)!=-1) {
           paddingLeft = 2;
         }
-        else if(["package", "childcontrol"].indexOf(iconNamePart)!=-1)
-        {
+        else if(["package", "childcontrol"].indexOf(iconNamePart)!=-1) {
            paddingLeft = 1;
            if(iconNamePart === "childcontrol") {
              paddingBottom = 2;
            }
-        }
-        else if (iconNamePart === "constant")
-        {
+        } else if (iconNamePart === "constant") {
           paddingTop = 1;
         }
         typeToggleButton.setFocusable(false);
@@ -148,7 +190,7 @@ qx.Class.define("apiviewer.ui.SearchView",
         typeToggleButton.setKeepFocus(true);
         typeToggleButton.setValue(true);
         typeContainer.add(typeToggleButton);
-        typeToggleButton.addListener("click", function(e) {
+        typeToggleButton.addListener("execute", function(e) {
           this._searchResult(this.sinput.getValue() || "");
         }, this);
         this.__typeFilter.bind("["+i+"]", typeToggleButton, "value");
@@ -245,10 +287,9 @@ qx.Class.define("apiviewer.ui.SearchView",
       this.sinput.focus();
 
       // Submit events
-      this.sinput.addListener("keyup", function(e) {
+      this.sinput.addListener("changeValue", function(e) {
         this._searchResult(this.sinput.getValue() || "");
       }, this);
-
     },
 
 
@@ -260,7 +301,7 @@ qx.Class.define("apiviewer.ui.SearchView",
     _searchResult : function(svalue)
     {
       // Trim search string
-      var svalue = qx.lang.String.trim(svalue);
+      var svalue = svalue.trim();
 
       // Hide the note if text is typed into to search field.
       //      if (svalue.length > 0) {
@@ -321,6 +362,9 @@ qx.Class.define("apiviewer.ui.SearchView",
         // Clear old selection
         this._table.resetSelection();
 
+        setTimeout(function() {
+          this.fireEvent("searchFinished");
+        }.bind(this), 0);
       }
     },
 
@@ -374,7 +418,7 @@ qx.Class.define("apiviewer.ui.SearchView",
       var fullNames = this.apiindex.__fullNames__;
       var types = this.apiindex.__types__;
 
-      var namespaceFilter = this.namespaceTextField.getValue() != null ? qx.lang.String.trim(this.namespaceTextField.getValue()) : "";
+      var namespaceFilter = this.namespaceTextField.getValue() != null ? this.namespaceTextField.getValue().trim() : "";
       var namespaceRegexp = new RegExp(".*");
       if(namespaceFilter.length > 0)
       {
@@ -550,6 +594,12 @@ qx.Class.define("apiviewer.ui.SearchView",
       req.setProhibitCaching(false);
       req.addListener("completed", function(evt) {
         this.apiindex = eval("(" + evt.getContent() + ")");
+        if (this.__searchTerm) {
+          setTimeout(function() {
+            this.sinput.setValue(this.__searchTerm);
+            this.__searchTerm = null;
+          }.bind(this), 0);
+        }
       }, this);
 
       req.addListener("failed", function(evt) {
@@ -574,7 +624,7 @@ qx.Class.define("apiviewer.ui.SearchView",
       {
         var fullItemName = selected[1];
         var itemType = selected[0];
-        
+
         var elemType = itemType.substr(itemType.lastIndexOf("/")+1);
         elemType = elemType.substr(0, elemType.length-6);
 
@@ -629,7 +679,7 @@ qx.Class.define("apiviewer.ui.SearchView",
     __handleNote : function(e)
     {
       if (this.__note) {
-        if (qx.lang.String.trim(this.sinput.getValue() || "").length == 0) {
+        if ((this.sinput.getValue() || "").trim().length == 0) {
           this.__note.show();
         }
       } else {

@@ -15,19 +15,18 @@
    Authors:
      * Sebastian Werner (wpbasti)
      * Andreas Ecker (ecker)
-
-************************************************************************ */
-
-/* ************************************************************************
-
-#ignore(qx.theme.manager.Color)
+     * Christian Hagendorn (cs)
 
 ************************************************************************ */
 
 /**
  * Methods to convert colors between different color spaces.
+ *
+ * @ignore(qx.theme.*)
+ * @ignore(qx.Class)
+ * @ignore(qx.Class.*)
  */
-qx.Class.define("qx.util.ColorUtil",
+qx.Bootstrap.define("qx.util.ColorUtil",
 {
   statics :
   {
@@ -139,7 +138,10 @@ qx.Class.define("qx.util.ColorUtil",
      * @return {Boolean} <code>true</code> when color theme support is ready.
      **/
     supportsThemes : function() {
-      return qx.Class.isDefined("qx.theme.manager.Color");
+      if (qx.Class) {
+        return qx.Class.isDefined("qx.theme.manager.Color");
+      }
+      return false;
     },
 
 
@@ -155,7 +157,10 @@ qx.Class.define("qx.util.ColorUtil",
         return false;
       }
 
-      return qx.theme.manager.Color.getInstance().isDynamic(value);
+      if (qx.theme && qx.theme.manager && qx.theme.manager.Color) {
+        return qx.theme.manager.Color.getInstance().isDynamic(value);
+      }
+      return false;
     },
 
 
@@ -166,21 +171,24 @@ qx.Class.define("qx.util.ColorUtil",
      *
      * @param str {String} any string
      * @return {Array} returns an array of red, green, blue on a successful transformation
-     * @throws an error if the string could not be parsed
+     * @throws {Error} if the string could not be parsed
      */
     stringToRgb : function(str)
     {
       if (this.supportsThemes() && this.isThemedColor(str)) {
-        var str = qx.theme.manager.Color.getInstance().resolveDynamic(str);
+        str = qx.theme.manager.Color.getInstance().resolveDynamic(str);
       }
 
       if (this.isNamedColor(str))
       {
-        return this.NAMED[str];
+        return this.NAMED[str].concat();
       }
       else if (this.isSystemColor(str))
       {
         throw new Error("Could not convert system colors to RGB: " + str);
+      }
+      else if (this.isRgbaString(str)) {
+        return this.__rgbaStringToRgb(str);
       }
       else if (this.isRgbString(str))
       {
@@ -205,7 +213,7 @@ qx.Class.define("qx.util.ColorUtil",
      *
      * @param str {String} any string
      * @return {Array} returns an array of red, green, blue on a successful transformation
-     * @throws an error if the string could not be parsed
+     * @throws {Error} if the string could not be parsed
      */
     cssStringToRgb : function(str)
     {
@@ -246,7 +254,7 @@ qx.Class.define("qx.util.ColorUtil",
      *
      * @param str {String} any string
      * @return {String} a RGB string
-     * @throws an error if the string could not be parsed
+     * @throws {Error} if the string could not be parsed
      */
     stringToRgbString : function(str) {
       return this.rgbToRgbString(this.stringToRgb(str));
@@ -256,11 +264,12 @@ qx.Class.define("qx.util.ColorUtil",
     /**
      * Converts a RGB array to an RGB string
      *
-     * @param rgb {Array} an array with red, green and blue
-     * @return {String} a RGB string
+     * @param rgb {Array} an array with red, green and blue values and optionally
+     * an alpha value
+     * @return {String} an RGB string
      */
     rgbToRgbString : function(rgb) {
-      return "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
+      return "rgb" + (rgb[3] !== undefined ? "a" : "") +  "(" + rgb.join(",") + ")";
     },
 
 
@@ -268,11 +277,12 @@ qx.Class.define("qx.util.ColorUtil",
      * Converts a RGB array to an hex6 string
      *
      * @param rgb {Array} an array with red, green and blue
-     * @return {String} a hex6 string
+     * @return {String} a hex6 string (#xxxxxx)
      */
     rgbToHexString : function(rgb)
     {
       return (
+        "#" +
         qx.lang.String.pad(rgb[0].toString(16).toUpperCase(), 2) +
         qx.lang.String.pad(rgb[1].toString(16).toUpperCase(), 2) +
         qx.lang.String.pad(rgb[2].toString(16).toUpperCase(), 2)
@@ -382,6 +392,11 @@ qx.Class.define("qx.util.ColorUtil",
       var red = parseInt(RegExp.$1, 10);
       var green = parseInt(RegExp.$2, 10);
       var blue = parseInt(RegExp.$3, 10);
+      var alpha = parseInt(RegExp.$4, 10);
+
+      if (red === 0 && green === 0 & blue === 0 && alpha === 0) {
+        return [-1, -1, -1];
+      }
 
       return [red, green, blue];
     },
@@ -430,6 +445,22 @@ qx.Class.define("qx.util.ColorUtil",
       }
 
       throw new Error("Invalid hex3 value: " + value);
+    },
+
+
+    /**
+     * Converts a hex3 (#xxx) string to a hex6 (#xxxxxx) string.
+     *
+     * @param value {String} a hex3 (#xxx) string
+     * @return {String} The hex6 (#xxxxxx) string or the passed value when the
+     *   passed value is not an hex3 (#xxx) value.
+     */
+    hex3StringToHex6String : function(value)
+    {
+      if (this.isHex3String(value)) {
+        return this.rgbToHexString(this.hex3StringToRgb(value));
+      }
+      return value;
     },
 
 
@@ -540,7 +571,7 @@ qx.Class.define("qx.util.ColorUtil",
      */
     hsbToRgb : function(hsb)
     {
-      var i, f, p, q, t;
+      var i, f, p, r, t;
 
       var hue = hsb[0] / 360;
       var saturation = hsb[1] / 100;
@@ -574,7 +605,7 @@ qx.Class.define("qx.util.ColorUtil",
         f = hue - i;
 
         p = Math.floor(tov * (1.0 - saturation));
-        q = Math.floor(tov * (1.0 - (saturation * f)));
+        r = Math.floor(tov * (1.0 - (saturation * f)));
         t = Math.floor(tov * (1.0 - (saturation * (1.0 - f))));
 
         switch(i)
@@ -586,7 +617,7 @@ qx.Class.define("qx.util.ColorUtil",
             break;
 
           case 1:
-            rgb.red = q;
+            rgb.red = r;
             rgb.green = tov;
             rgb.blue = p;
             break;
@@ -599,7 +630,7 @@ qx.Class.define("qx.util.ColorUtil",
 
           case 3:
             rgb.red = p;
-            rgb.green = q;
+            rgb.green = r;
             rgb.blue = tov;
             break;
 
@@ -612,7 +643,7 @@ qx.Class.define("qx.util.ColorUtil",
           case 5:
             rgb.red = tov;
             rgb.green = p;
-            rgb.blue = q;
+            rgb.blue = r;
             break;
         }
       }

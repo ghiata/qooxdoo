@@ -49,7 +49,7 @@ qx.Class.define("qx.bom.webfonts.WebFont", {
   properties :
   {
     /**
-     * TODOC
+     * The source of the webfont.
      */
     sources :
     {
@@ -109,11 +109,7 @@ qx.Class.define("qx.bom.webfonts.WebFont", {
      */
     _quoteFontFamily : function(familyName)
     {
-      familyName = familyName.replace(/["']/g, "");
-      if (familyName.indexOf(" ") > 0) {
-        familyName = "'" + familyName + "'";
-      }
-      return familyName;
+      return familyName.replace(/["']/g, "");
     }
 
   }

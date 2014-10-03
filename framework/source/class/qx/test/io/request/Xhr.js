@@ -18,17 +18,12 @@
 ************************************************************************ */
 
 /* ************************************************************************
-#ignore(Klass)
-************************************************************************ */
-
-/* ************************************************************************
-
-#asset(qx/test/xmlhttp/*)
 
 ************************************************************************ */
 
 /**
- * @lint ignoreUndefined(Klass)
+ * @ignore(Klass)
+ * @asset(qx/test/xmlhttp/*)
  */
 
 /**
@@ -133,7 +128,6 @@ qx.Class.define("qx.test.io.request.Xhr",
     },
 
     "test: send sync request": function() {
-      // TODO: Firefox: "Access to restricted URI denied"
       this.require(["http"]);
 
       this.setUpFakeTransport();
@@ -172,37 +166,6 @@ qx.Class.define("qx.test.io.request.Xhr",
         "application/x-www-form-urlencoded"), msg);
     },
 
-    // DEPRECATED
-    // (Catches bug in requestHeaders property handling, keep around to avoid
-    // regression until finally deprecated)
-    "test: set content type urlencoded for POST request when no type given using property": function() {
-      this.stub(qx.log.Logger, "deprecatedMethodWarning");
-
-      this.setUpFakeTransport();
-      this.req.setMethod("POST");
-      this.req.setRequestHeaders({"X-Animal": "Affe"});
-      this.req.send();
-
-      this.assertCalledWith(this.transport.setRequestHeader,
-           "Content-Type", "application/x-www-form-urlencoded");
-    },
-
-    // DEPRECATED
-    "test: not set content type urlencoded for POST request when type given using property": function() {
-      this.stub(qx.log.Logger, "deprecatedMethodWarning");
-
-      var msg;
-
-      this.setUpFakeTransport();
-      this.req.setMethod("POST");
-      this.req.setRequestHeaders({"Content-Type": "application/json"});
-      this.req.send();
-
-      msg = "Must not set content type urlencoded when other type given";
-      this.assert(!this.transport.setRequestHeader.calledWith("Content-Type",
-        "application/x-www-form-urlencoded"), msg);
-    },
-
     "test: send string data with POST request": function() {
       this.setUpFakeTransport();
       this.req.setMethod("POST");
@@ -231,6 +194,25 @@ qx.Class.define("qx.test.io.request.Xhr",
 
       this.assertCalledWith(this.transport.send, "affe=true");
       obj.dispose();
+    },
+
+    "test: serialize data": function() {
+      var req = this.req,
+          data = {"abc": "def", "uvw": "xyz"},
+          contentType = "application/json";
+
+      this.assertNull(req._serializeData(null));
+      this.assertEquals("leaveMeIntact", req._serializeData("leaveMeIntact"));
+      this.assertEquals("abc=def&uvw=xyz", req._serializeData(data));
+
+      req.setRequestHeader("Content-Type", "arbitrary/contentType");
+      this.assertEquals("abc=def&uvw=xyz", req._serializeData(data));
+
+      req.setRequestHeader("Content-Type", contentType);
+      this.assertEquals('{"abc":"def","uvw":"xyz"}', req._serializeData(data));
+
+      req.setRequestHeader("Content-Type", contentType);
+      this.assertEquals('[1,2,3]', req._serializeData([1,2,3]));
     },
 
     //
@@ -268,6 +250,13 @@ qx.Class.define("qx.test.io.request.Xhr",
       this.req.send();
 
       this.assertCalledWith(this.transport.setRequestHeader, "Accept", "application/json");
+    },
+
+    "test: override response content type": function() {
+      this.setUpFakeTransport();
+      this.req.overrideResponseContentType("text/plain;charset=Shift-JIS");
+
+      this.assertCalledWith(this.transport.overrideMimeType, "text/plain;charset=Shift-JIS");
     },
 
     "test: get response content type": function() {
@@ -324,7 +313,6 @@ qx.Class.define("qx.test.io.request.Xhr",
     //
 
     "test: sync XHR properties for every readyState": function() {
-      // TODO: Status is [0, 200, 200, 200] when from file://
       this.require(["http"]);
 
       this.setUpFakeServer();
@@ -346,7 +334,7 @@ qx.Class.define("qx.test.io.request.Xhr",
       server.respond();
 
       this.assertArrayEquals([0, 1, 2, 3, 4], readyStates);
-      this.assertArrayEquals([0, 0, 200, 200], statuses);
+      this.assertArrayEquals([0, 200, 200, 200], statuses);
       this.assertEquals("text/html", req.getResponseHeader("Content-Type"));
       this.assertEquals("OK", req.getStatusText());
       this.assertEquals("FOUND", req.getResponseText());
@@ -363,6 +351,19 @@ qx.Class.define("qx.test.io.request.Xhr",
 
       transport.readyState = 4;
       transport.status = 200;
+      transport.responseText = "Affe";
+      transport.onreadystatechange();
+
+      this.assertEquals("Affe", req.getResponse());
+    },
+
+    "test: get response on 400 status": function() {
+      this.setUpFakeTransport();
+      var req = this.req,
+          transport = this.transport;
+
+      transport.readyState = 4;
+      transport.status = 400;
       transport.responseText = "Affe";
       transport.onreadystatechange();
 
@@ -391,95 +392,34 @@ qx.Class.define("qx.test.io.request.Xhr",
     // Parsing
     //
 
-    "test: getParser()": function() {
-      var req = this.req;
-      this.stub(req, "isDone").returns(true);
-      this.stub(req, "getResponseContentType").returns("application/json");
-      this.assertFunction(req._getParser());
-    },
-
-    "test: getParser() prematurely": function() {
-      var req = this.req;
-      req._getParser();
-    },
-
-    "test: setParser() function": function() {
+    "test: _getParsedResponse": function() {
       var req = this.req,
-          parser = function() {};
-      req.setParser(parser);
-      this.stub(req, "getResponseContentType").returns("text/javascript");
-      this.assertEquals(parser, req._getParser());
+          json = '{"animals": 3}',
+          contentType = "application/json",
+          stubbedParser = req._createResponseParser();
+
+      req._transport.responseText = json;
+      this.stub(req, "getResponseContentType").returns(contentType);
+
+      // replace real parser with stub
+      this.stub(stubbedParser, "parse");
+      req._parser = stubbedParser;
+
+      req._getParsedResponse();
+      this.assertCalledWith(stubbedParser.parse, json, contentType);
     },
 
-    "test: setParser() symbolically": function() {
-      var req = this.req;
-      req.setParser("json");
-      this.assertFunction(req._getParser());
-    },
-
-    "test: not parse empty response": function() {
-      this.setUpFakeXhr();
-
+    "test: setParser": function() {
       var req = this.req,
-          parser = this.spy();
+          customParser = function() {},
+          stubbedParser = req._createResponseParser();
 
-      req.send();
-      this.stub(req, "_getParser").returns(parser);
-      this.getFakeReq().respond(200, {}, "");
+      // replace real parser with stub
+      this.stub(stubbedParser, "setParser");
+      req._parser = stubbedParser;
 
-      this.assertNotCalled(parser);
-    },
-
-    "test: not parse unknown response": function() {
-      this.setUpFakeServer();
-      var req = this.req,
-          server = this.server,
-          that = this;
-
-      req.setUrl("/found.other");
-      req.send();
-      server.respond();
-
-      this.assertNull(req._getParser());
-    },
-
-    // JSON
-
-    "test: parse json response": function() {
-      this.setUpFakeServer();
-      var req = this.req,
-          server = this.server,
-          that = this;
-
-      this.stub(qx.io.request.Xhr.PARSER, "json");
-
-      req.setUrl("/found.json");
-      req.send();
-      server.respond();
-
-      this.assertCalledWith(qx.io.request.Xhr.PARSER.json, "JSON");
-    },
-
-    // XML
-
-    respondXml: function(contentType) {
-      this.setUpFakeXhr();
-      this.stub(qx.io.request.Xhr.PARSER, "xml");
-      var body = "XML: " + contentType;
-
-      this.req.setUrl("/found.xml");
-      this.req.send();
-      this.getFakeReq().respond(200, {"Content-Type": contentType}, body);
-    },
-
-    "test: parse xml response": function() {
-      this.respondXml("application/xml");
-      this.assertCalledWith(qx.io.request.Xhr.PARSER.xml, "XML: application/xml");
-    },
-
-    "test: parse arbitrary xml response": function() {
-      this.respondXml("animal/affe+xml");
-      this.assertCalledWith(qx.io.request.Xhr.PARSER.xml, "XML: animal/affe+xml");
+      req.setParser(customParser);
+      this.assertCalledWith(stubbedParser.setParser, customParser);
     },
 
     //

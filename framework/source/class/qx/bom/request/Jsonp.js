@@ -37,6 +37,18 @@
  *  req.open("GET", url);
  *  req.send();
  * </pre>
+ *
+ * @require(qx.bom.request.Script#open)
+ * @require(qx.bom.request.Script#on)
+ * @require(qx.bom.request.Script#onreadystatechange)
+ * @require(qx.bom.request.Script#onload)
+ * @require(qx.bom.request.Script#onloadend)
+ * @require(qx.bom.request.Script#onerror)
+ * @require(qx.bom.request.Script#onabort)
+ * @require(qx.bom.request.Script#ontimeout)
+ * @require(qx.bom.request.Script#send)
+ *
+ * @group (IO)
  */
 qx.Bootstrap.define("qx.bom.request.Jsonp",
 {
@@ -53,39 +65,47 @@ qx.Bootstrap.define("qx.bom.request.Jsonp",
   members :
   {
     /**
-     * {Object} Parsed JSON response.
+     * @type {Object} Parsed JSON response.
      */
     responseJson: null,
 
     /**
-     * {Number} Identifier of this instance.
+     * @type {Number} Identifier of this instance.
      */
     __id: null,
 
     /**
-     * {String} Callback parameter.
+     * @type {String} Callback parameter.
      */
     __callbackParam: null,
 
     /**
-     * {String} Callback name.
+     * @type {String} Callback name.
      */
     __callbackName: null,
 
     /**
-     * {Boolean} Whether callback was called.
+     * @type {Boolean} Whether callback was called.
      */
     __callbackCalled: null,
 
     /**
-     * {Boolean} Whether a custom callback was created automatically.
+     * @type {Boolean} Whether a custom callback was created automatically.
      */
     __customCallbackCreated: null,
 
     /**
-     * {Boolean} Whether request was disposed.
+     * @type {String} The generated URL for the current request
+     */
+    __generatedUrl: null,
+
+    /**
+     * @type {Boolean} Whether request was disposed.
      */
     __disposed: null,
+
+    /** Prefix used for the internal callback name. */
+    __prefix : "",
 
     /**
      * Initializes (prepares) request.
@@ -112,8 +132,8 @@ qx.Bootstrap.define("qx.bom.request.Jsonp",
       this.__callbackCalled = false;
 
       callbackParam = this.__callbackParam || "callback";
-      callbackName = this.__callbackName ||
-        "qx.bom.request.Jsonp[" + this.__id + "].callback";
+      callbackName = this.__callbackName || this.__prefix +
+        "qx.bom.request.Jsonp." + this.__id + ".callback";
 
       // Default callback
       if (!this.__callbackName) {
@@ -134,7 +154,7 @@ qx.Bootstrap.define("qx.bom.request.Jsonp",
           };
         } else {
           if (qx.core.Environment.get("qx.debug.io")) {
-            qx.log.Logger.debug(qx.bom.request.Jsonp, "Callback " +
+            qx.Bootstrap.debug(qx.bom.request.Jsonp, "Callback " +
               this.__callbackName + " already exists");
           }
         }
@@ -147,7 +167,7 @@ qx.Bootstrap.define("qx.bom.request.Jsonp",
       }
 
       query[callbackParam] = callbackName;
-      url = qx.util.Uri.appendParamsToUrl(url, query);
+      this.__generatedUrl = url = qx.util.Uri.appendParamsToUrl(url, query);
 
       this.__callBase("open", [method, url]);
     },
@@ -196,10 +216,13 @@ qx.Bootstrap.define("qx.bom.request.Jsonp",
      * default is "callback".
      *
      * @param param {String} Name of the callback parameter.
+     * @return {qx.bom.request.Jsonp} Self reference for chaining.
      */
     setCallbackParam: function(param) {
       this.__callbackParam = param;
+      return this;
     },
+
 
     /**
      * Set callback name.
@@ -218,13 +241,37 @@ qx.Bootstrap.define("qx.bom.request.Jsonp",
      * if it does not exist before.
      *
      * @param name {String} Name of the callback function.
+     * @return {qx.bom.request.Jsonp} Self reference for chaining.
      */
     setCallbackName: function(name) {
       this.__callbackName = name;
+      return this;
     },
 
-    dispose: function() {
 
+    /**
+     * Set the prefix used in front of 'qx.' in case 'qx' is not available
+     * (for qx.Website e.g.)
+     * @internal
+     * @param prefix {String} The prefix to put in front of 'qx'
+     */
+    setPrefix : function(prefix) {
+      this.__prefix = prefix;
+    },
+
+
+    /**
+     * Returns the generated URL for the current / last request
+     *
+     * @internal
+     * @return {String} The current generated URL for the request
+     */
+    getGeneratedUrl : function() {
+      return this.__generatedUrl;
+    },
+
+
+    dispose: function() {
       // In case callback was not called
       this.__deleteCustomCallback();
 
@@ -273,7 +320,7 @@ qx.Bootstrap.define("qx.bom.request.Jsonp",
     __generateId: function() {
       // Add random digits to date to allow immediately following requests
       // that may be send at the same time
-      this.__id = (new Date().valueOf()) + ("" + Math.random()).substring(2,5);
+      this.__id = "qx" + (new Date().valueOf()) + ("" + Math.random()).substring(2,5);
     }
   }
 });

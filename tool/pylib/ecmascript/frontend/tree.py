@@ -20,12 +20,9 @@
 #
 ################################################################################
 
-import sys, os, copy
+import sys, os, copy, re
 
-# reconfigure path to import own modules from modules subfolder
-#sys.path.append(os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])), "../"))
-
-import simplejson
+from misc import util
 
 
 ##
@@ -61,6 +58,8 @@ class NodeAccessException (Exception):
         Exception.__init__(self, msg)
         self.node = node
 
+NODE_VARIABLE_TYPES = ("dotaccessor", "identifier")
+NODE_STATEMENT_CONTAINERS = ("statements", "block")
 
 class Node(object):
 
@@ -69,6 +68,7 @@ class Node(object):
         self.parent = None
         self.children = []
         self.attributes = {}
+        self.dep = None # a potential DependencyItem()
 
     def __str__(self):
         return nodeToXmlStringNR(self)
@@ -90,7 +90,7 @@ class Node(object):
         self.attributes[key] = value
         return self
 
-    def get(self, key, mandatory = True):
+    def get(self, key, default = None):
         value = None
         #if hasattr(self, "attributes") and key in self.attributes:
         if key in self.attributes:
@@ -98,7 +98,9 @@ class Node(object):
 
         if value != None:
             return value
-        elif mandatory:
+        elif default != None:
+            return default
+        else:
             raise NodeAccessException("Node " + self.type + " has no attribute " + key, self)
 
     def remove(self, key):
@@ -109,12 +111,30 @@ class Node(object):
         if len(self.attributes) == 0:
             del self.attributes
 
+    ##
+    # Make a default copy of self (this includes instanceof)
     def clone(self):
         clone_ = copy.copy(self)
-        #if hasattr(self, "attributes"):
+        # keep .attributes non-shared
         if True:
             clone_.attributes = copy.copy(self.attributes)
         return clone_
+
+    ##
+    # Copy the properties of self into other
+    # (this might not be entirely in sync with treegenerator.symbol())
+    def patch(self, other):
+        for attr, val in vars(self).items():
+            if attr in (
+                "type", "id",  # preserve other's classification
+                "children", # don't adopt existing children (what would their .parent be?!)
+                "parent", # avoid tree relations
+                ):
+                continue
+            setattr(other, attr, val)
+        # keep .attributes non-shared
+        if hasattr(self, "attributes"):
+            other.attributes = copy.copy(self.attributes)
 
     def hasParent(self):
         return self.parent
@@ -127,12 +147,12 @@ class Node(object):
     # "call" type, ie. it's a function being called; the wildcard '*' is allowed
     # to indicate any type on a particular level, like "value/*/operand"
     def hasParentContext(self, contextPath):
-        parents = contextPath.split('/')
+        path_elems = contextPath.split('/')
 
         currNode = self
-        for parent in reversed(parents):
+        for path_elem in reversed(path_elems):
             if currNode.parent:
-                if parent == '*' or currNode.parent.type == parent:
+                if ( path_elem == '*' or currNode.parent.type == path_elem ):
                     currNode = currNode.parent
                 else:
                     return False
@@ -173,7 +193,7 @@ class Node(object):
 
     def addChild(self, childNode, index = None):
         if childNode:
-            if childNode.parent:
+            if childNode.parent and childNode in childNode.parent.children:
                 childNode.parent.removeChild(childNode)
 
             if index != None:
@@ -186,30 +206,38 @@ class Node(object):
     def removeChild(self, childNode):
         if self.children:
             self.children.remove(childNode)
-            childNode.parent = None
+            #childNode.parent = None
+
+    def removeAllChildren(self):
+        for child in self.children[:]:
+            self.children.remove(child)
 
     def replaceChild(self, oldChild, newChild):
-        if self.children:
-            if newChild.parent:
+        if oldChild in self.children and oldChild is not newChild:
+            if newChild.parent and newChild in newChild.parent.children:
                 newChild.parent.removeChild(newChild)
 
             self.children.insert(self.children.index(oldChild), newChild)
             newChild.parent = self
             self.children.remove(oldChild)
 
-    def getChild(self, ntype, mandatory = True):
+    ##
+    # Get child by type or position
+    #
+    def getChild(self, spec, mandatory = True):
         if self.children:
-            for child in self.children:
-                if child.type == ntype:
+            for pos,child in enumerate(self.children):
+                if pos==spec or child.type==spec:
                     return child
         if mandatory:
-            raise NodeAccessException("Node " + self.type + " has no child with type " + ntype, self)
+            raise NodeAccessException("Node '%s' has no child with type or position '%s'" 
+                % (self.type, str(spec)), self)
 
     def hasChildRecursive(self, ntype):
         if isinstance(ntype, basestring):
             if self.type == ntype:
                 return True
-        elif isinstance(ntype, list):
+        elif isinstance(ntype, util.FinSequenceTypes):
             if self.type in ntype:
                 return True
 
@@ -262,9 +290,9 @@ class Node(object):
 
 
     def makeComplex(self):
-        makeComplex = self.get("makeComplex", False)
+        makeComplex = self.get("makeComplex", '')
 
-        if makeComplex != None:
+        if makeComplex != '':
             return makeComplex
 
         else:
@@ -313,15 +341,12 @@ class Node(object):
 
 
     def isComplex(self):
-        isComplex = self.get("isComplex", False)
+        isComplex = self.get("isComplex", ())
 
-        if isComplex != None:
+        if isComplex != ():
             return isComplex
-
         else:
             isComplex = False
-
-
 
         if not self.children:
             isComplex = False
@@ -445,7 +470,10 @@ class Node(object):
         if mandatory:
             raise NodeAccessException("Node " + self.type + " has no child as position %s" % pos, self)
 
-
+    ##
+    # List-valued!
+    def getChildsByTypes(self, type_list):
+        return [c for c in self.children if c.type in type_list]
 
     def getChildByAttribute(self, key, value, mandatory = True):
         if self.children:
@@ -456,11 +484,15 @@ class Node(object):
         if mandatory:
             raise NodeAccessException("Node " + self.type + " has no child with attribute " + key + " = " + value, self)
 
-    def getChildByTypeAndAttribute(self, ntype, key, value, mandatory = True):
+    def getChildByTypeAndAttribute(self, ntype, key, value, mandatory = True, recursive = False):
         if self.children:
             for child in self.children:
                 if child.type == ntype and child.get(key,mandatory) == value:
                     return child
+                elif recursive:
+                    found = child.getChildByTypeAndAttribute(ntype, key, value, False, True)
+                    if found:
+                        return found
 
         if mandatory:
             raise NodeAccessException("Node " + self.type + " has no child with type " + ntype + " and attribute " + key + " = " + value, self)
@@ -470,9 +502,7 @@ class Node(object):
             for child in self.children:
                 if ignoreComments and child.type in ["comment", "commentsBefore", "commentsAfter"]:
                     continue
-
                 return child
-
         if mandatory:
             raise NodeAccessException("Node " + self.type + " has no children", self)
 
@@ -542,6 +572,12 @@ class Node(object):
 
         return self.parent.getLastChild(False, ignoreComments) == self
 
+    #def isVar(self):
+    #    return self.type in NODE_VARIABLE_TYPES
+
+    def isStatement(self):
+        return self.parent and self.parent.type in NODE_STATEMENT_CONTAINERS
+
     def addListChild(self, listName, childNode):
         listNode = self.getChild(listName, False)
         if not listNode:
@@ -585,11 +621,9 @@ class Node(object):
         return nodeToJsonString(self, prefix, childPrefix, newLine)
 
     def toJavascript(self):
-        from ecmascript.backend import pretty
-        def options(): pass
-        pretty.defaultOptions(options)
-        result = [u'']
-        result = pretty.prettyNode(self, options, result)
+        from ecmascript.backend import formatter
+        optns = formatter.defaultOptions()
+        result = formatter.formatNode(self, optns, [])
         return u''.join(result)
 
     def nodeIter(self):
@@ -629,8 +663,19 @@ def nodeToXmlStringNR(node, prefix="", encoding="utf-8"):
 
 
 def nodeToXmlString(node, prefix = "", childPrefix = "  ", newLine="\n", encoding="utf-8"):
+    asString = u''
     hasText = False
-    asString = prefix + "<" + node.type
+
+    # comments
+    for attr in ('comments', 'commentsAfter'):
+        if hasattr(node, attr) and getattr(node, attr):
+            cmtStrings = []
+            for comment in getattr(node, attr):
+                cmtStrings.append(nodeToXmlString(comment, prefix, childPrefix, newLine, encoding))
+            asString += u''.join(cmtStrings)
+
+    # own str repr
+    asString += prefix + "<" + node.type
     #if node.hasAttributes():
     if True:
         for key in node.attributes:
@@ -660,11 +705,11 @@ def nodeToXmlString(node, prefix = "", childPrefix = "  ", newLine="\n", encodin
 
 
 def nodeToJsonString(node, prefix = "", childPrefix = "  ", newLine="\n"):
-    asString = prefix + '{type:"' + escapeJsonChars(node.type) + '"'
+    asString = prefix + '{"type":"' + escapeJsonChars(node.type) + '"'
 
     #if node.hasAttributes():
     if True:
-        asString += ',attributes:{'
+        asString += ',"attributes":{'
         firstAttribute = True
         for key in node.attributes:
             if not firstAttribute:
@@ -674,13 +719,11 @@ def nodeToJsonString(node, prefix = "", childPrefix = "  ", newLine="\n"):
         asString += '}'
 
     if node.hasChildren():
-        asString += ',children:[' + newLine
+        asString += ',"children":[' + newLine
 
-        firstChild = True
         prefix = prefix + childPrefix
         for child in node.children:
             asString += nodeToJsonString(child, prefix, childPrefix, newLine) + ',' + newLine
-            firstChild = False
 
         # NOTE We remove the ',\n' of the last child
         if newLine == "":

@@ -42,7 +42,7 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/widget/spacer.html' target='_blank'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/widget/spacer.html' target='_blank'>
  * Documentation of this widget in the qooxdoo manual.</a>
  */
 qx.Class.define("qx.ui.core.Spacer",
@@ -107,7 +107,6 @@ qx.Class.define("qx.ui.core.Spacer",
      * Please note that the widget is not disposed synchronously. The
      * real dispose happens after the next queue flush.
      *
-     * @return {void}
      */
     destroy : function()
     {

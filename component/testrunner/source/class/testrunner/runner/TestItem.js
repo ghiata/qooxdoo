@@ -37,7 +37,18 @@ qx.Class.define("testrunner.runner.TestItem", {
     state :
     {
       init : "start",
-      event : "changeState"
+      event : "changeState",
+      apply : "_applyState"
+    },
+
+    /**
+     * The item's previous state. This is used to preserve the correct state value
+     * for asynchronous tests that have an intermediate "wait" value.
+     */
+    previousState :
+    {
+      nullable : true,
+      init : null
     },
 
     /**
@@ -171,7 +182,7 @@ qx.Class.define("testrunner.runner.TestItem", {
             if (msg.indexOf("Backtrace:") < 0) {
               message += exceptions[i].exception.toString();
             } else {
-              message += qx.lang.String.trim(msg.split("Backtrace:")[0]);
+              message += msg.split("Backtrace:")[0].trim();
             }
           }
           return message;
@@ -213,6 +224,27 @@ qx.Class.define("testrunner.runner.TestItem", {
       }
 
       return trace.join("<br>");
+    },
+
+
+    /**
+     * Save the previous value when the state changes
+     *
+     * @param newState {String} New state value
+     * @param oldState {String} Previous state value
+     */
+    _applyState : function(newState, oldState) {
+      if (oldState) {
+        this.setPreviousState(oldState);
+      }
+    }
+  },
+
+  destruct : function()
+  {
+    this.$$test = null;
+    if (this.parent) {
+      this.parent = null;
     }
   }
 });

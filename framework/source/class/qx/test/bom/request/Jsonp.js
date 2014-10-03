@@ -19,16 +19,20 @@
 
 /* ************************************************************************
 
-#asset(qx/test/script.js)
-#asset(qx/test/jsonp_primitive.php)
 
 ************************************************************************ */
 
 /* ************************************************************************
 
-#ignore(myExistingCallback)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/test/script.js)
+ * @asset(qx/test/jsonp_primitive.php)
+ *
+ * @ignore(myExistingCallback)
+ */
 
 qx.Class.define("qx.test.bom.request.Jsonp",
 {
@@ -94,6 +98,9 @@ qx.Class.define("qx.test.bom.request.Jsonp",
       this.assertMatch(req._getUrl(), regExp);
     },
 
+    /**
+     * @ignore(myExistingCallback)
+     */
     "test: not overwrite existing callback": function() {
       var that = this;
 
@@ -249,7 +256,7 @@ qx.Class.define("qx.test.bom.request.Jsonp",
       // or false "load" is fired. Alternatively, a false "load"
       // can be identified by checking status property.
       if (qx.core.Environment.get("engine.name") == "mshtml" &&
-          qx.core.Environment.get("engine.version") < 9) {
+          qx.core.Environment.get("browser.documentmode") < 9) {
         this.req.timeout = 2000;
       }
 

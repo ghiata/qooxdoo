@@ -29,10 +29,10 @@
  * @childControl visual-pane {qx.ui.groupbox.GroupBox} pane shows the hue-saturation-pane and the brightness-pane
  * @childControl hue-saturation-pane {qx.ui.container.Composite} shows the hue saturation and the handle to select
  * @childControl hue-saturation-field {qx.ui.basic.Image} hue saturation image which shows all available colors
- * @childControl hue-saturation-handle {qx.ui.basic.Image} handle to select the color using the mouse
+ * @childControl hue-saturation-handle {qx.ui.basic.Image} handle to select the color using the pointer
  * @childControl brightness-pane {qx.ui.container.Composite} shows the brightness field and the handle to select
  * @childControl brightness-field {qx.ui.basic.Image} brightness image which shows all brightness steps
- * @childControl brightness-handle {qx.ui.basic.Image} brightness handle to select the brightness using the mouse
+ * @childControl brightness-handle {qx.ui.basic.Image} brightness handle to select the brightness using the pointer
  * @childControl preset-field-set {qx.ui.groupbox.GroupBox} groupbox holding all preset colors
  * @childControl colorbucket {qx.ui.core.Widget} color bucket
  * @childControl preset-grid {qx.ui.container.Composite} container for all color presets
@@ -91,10 +91,10 @@ qx.Class.define("qx.ui.control.ColorSelector",
 
   events:
   {
-    /** Fired when the "OK" button is clicked. */
+    /** Fired when the "OK" button is tapped. */
     "dialogok"     : "qx.event.type.Event",
 
-    /** Fired when the "Cancel" button is clicked. */
+    /** Fired when the "Cancel" button is tapped. */
     "dialogcancel" : "qx.event.type.Event",
 
     /** Fired when the value changes */
@@ -186,12 +186,12 @@ qx.Class.define("qx.ui.control.ColorSelector",
     */
 
     /**
-     * {String} The context in which an update has occurred.
+     * @type {String} The context in which an update has occurred.
      */
     __updateContext : null,
 
     /**
-     * {Array} Map containing the preset colors.
+     * @type {Array} Map containing the preset colors.
      * @lint ignoreReferenceField(__presetTable)
      */
     __presetTable : [ "maroon", "red", "orange", "yellow", "olive", "purple",
@@ -199,22 +199,22 @@ qx.Class.define("qx.ui.control.ColorSelector",
       "#333", "#666", "#999", "#BBB", "#EEE", "white" ],
 
     /**
-     * {String} Name of child control which is captured.
+     * @type {String} Name of child control which is captured.
      */
     __capture : "",
 
     /**
-     * {Number} Numeric brightness value
+     * @type {Number} Numeric brightness value
      */
     __brightnessSubtract : 0,
 
     /**
-     * {Integer} HueSaturation's X coordinate
+     * @type {Integer} HueSaturation's X coordinate
      */
     __hueSaturationSubtractTop : 0,
 
     /**
-     * {Integer} HueSaturation's Y coordinate
+     * @type {Integer} HueSaturation's Y coordinate
      */
     __hueSaturationSubtractLeft : 0,
 
@@ -260,7 +260,7 @@ qx.Class.define("qx.ui.control.ColorSelector",
           break;
 
         case "control-pane":
-          control = new qx.ui.container.Composite(new qx.ui.layout.VBox(12));
+          control = new qx.ui.container.Composite(new qx.ui.layout.VBox(0));
           control.add(this.getChildControl("preset-field-set"));
           control.add(this.getChildControl("input-field-set"));
           control.add(this.getChildControl("preview-field-set"), {flex: 1});
@@ -269,41 +269,41 @@ qx.Class.define("qx.ui.control.ColorSelector",
         case "hue-saturation-pane":
           control = new qx.ui.container.Composite(new qx.ui.layout.Canvas());
           control.setAllowGrowY(false);
-          control.addListener("mousewheel", this._onHueSaturationPaneMouseWheel, this);
+          control.addListener("roll", this._onHueSaturationPaneRoll, this);
           control.add(this.getChildControl("hue-saturation-field"));
           control.add(this.getChildControl("hue-saturation-handle"), {left: 0, top: 256});
           break;
 
         case "hue-saturation-field":
           control = new qx.ui.basic.Image("decoration/colorselector/huesaturation-field.jpg");
-          control.addListener("mousedown", this._onHueSaturationFieldMouseDown, this);
+          control.addListener("pointerdown", this._onHueSaturationFieldPointerDown, this);
           break;
 
         case "hue-saturation-handle":
           control = new qx.ui.basic.Image("decoration/colorselector/huesaturation-handle.gif");
-          control.addListener("mousedown", this._onHueSaturationFieldMouseDown, this);
-          control.addListener("mouseup", this._onHueSaturationHandleMouseUp, this);
-          control.addListener("mousemove", this._onHueSaturationHandleMouseMove, this);
+          control.addListener("pointerdown", this._onHueSaturationFieldPointerDown, this);
+          control.addListener("pointerup", this._onHueSaturationHandlePointerUp, this);
+          control.addListener("pointermove", this._onHueSaturationHandlePointerMove, this);
           break;
 
         case "brightness-pane":
           control = new qx.ui.container.Composite(new qx.ui.layout.Canvas());
           control.setAllowGrowY(false);
-          control.addListener("mousewheel", this._onBrightnessPaneMouseWheel, this);
+          control.addListener("roll", this._onBrightnessPaneRoll, this);
           control.add(this.getChildControl("brightness-field"));
           control.add(this.getChildControl("brightness-handle"));
           break;
 
         case "brightness-field":
           control = new qx.ui.basic.Image("decoration/colorselector/brightness-field.png");
-          control.addListener("mousedown", this._onBrightnessFieldMouseDown, this);
+          control.addListener("pointerdown", this._onBrightnessFieldPointerDown, this);
           break;
 
         case "brightness-handle":
           control = new qx.ui.basic.Image("decoration/colorselector/brightness-handle.gif");
-          control.addListener("mousedown", this._onBrightnessHandleMouseDown, this);
-          control.addListener("mouseup", this._onBrightnessHandleMouseUp, this);
-          control.addListener("mousemove", this._onBrightnessHandleMouseMove, this);
+          control.addListener("pointerdown", this._onBrightnessHandlePointerDown, this);
+          control.addListener("pointerup", this._onBrightnessHandlePointerUp, this);
+          control.addListener("pointermove", this._onBrightnessHandlePointerMove, this);
           break;
 
 
@@ -320,7 +320,7 @@ qx.Class.define("qx.ui.control.ColorSelector",
 
         case "colorbucket":
           control = new qx.ui.core.Widget();
-          control.addListener("mousedown", this._onColorFieldClick, this);
+          control.addListener("pointerdown", this._onColorFieldTap, this);
           break;
 
         case "preset-grid":
@@ -374,6 +374,7 @@ qx.Class.define("qx.ui.control.ColorSelector",
           control = new qx.ui.container.Composite(layout);
 
           var hexLabel = new qx.ui.basic.Label(this.tr("Hex"));
+          hexLabel.setWidth(30);
           control.add(hexLabel);
 
           var hexHelper = new qx.ui.basic.Label("#");
@@ -396,7 +397,7 @@ qx.Class.define("qx.ui.control.ColorSelector",
           control = new qx.ui.container.Composite(layout);
 
           var rgbSpinLabel = new qx.ui.basic.Label(this.tr("RGB"));
-          rgbSpinLabel.setWidth(25);
+          rgbSpinLabel.setWidth(30);
           control.add(rgbSpinLabel);
 
           control.add(this.getChildControl("rgb-spinner-red"));
@@ -428,7 +429,7 @@ qx.Class.define("qx.ui.control.ColorSelector",
           control = new qx.ui.container.Composite(layout);
 
           var hsbSpinLabel = new qx.ui.basic.Label(this.tr("HSB"));
-          hsbSpinLabel.setWidth(25);
+          hsbSpinLabel.setWidth(30);
           control.add(hsbSpinLabel);
 
           control.add(this.getChildControl("hsb-spinner-hue"));
@@ -514,7 +515,7 @@ qx.Class.define("qx.ui.control.ColorSelector",
      */
     getValue: function()
     {
-      return this.__nullValue ? null : "#" + qx.util.ColorUtil.rgbToHexString(
+      return this.__nullValue ? null : qx.util.ColorUtil.rgbToHexString(
         [this.getRed(), this.getGreen(), this.getBlue()]
       );
     },
@@ -771,20 +772,20 @@ qx.Class.define("qx.ui.control.ColorSelector",
     */
 
     /**
-     * Listener of mousedown event on the brightness handle.
+     * Listener of pointerdown event on the brightness handle.
      * Adjusts the color by changing the brightness.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onBrightnessHandleMouseDown : function(e)
+    _onBrightnessHandlePointerDown : function(e)
     {
       // Activate Capturing
       this.getChildControl("brightness-handle").capture();
       this.__capture = "brightness-handle";
 
-      // Calculate subtract: Position of Brightness Field - Current Mouse Offset
-      var locationBrightnessField = this.getChildControl("brightness-field").getContainerLocation();
-      var locationBrightnessHandle = this.getChildControl("brightness-handle").getContainerLocation();
+      // Calculate subtract: Position of Brightness Field - Current Pointer Offset
+      var locationBrightnessField = this.getChildControl("brightness-field").getContentLocation();
+      var locationBrightnessHandle = this.getChildControl("brightness-handle").getContentLocation();
       var fieldBounds = this.getChildControl("brightness-field").getBounds();
 
       this.__brightnessSubtract = locationBrightnessField.top +
@@ -796,12 +797,12 @@ qx.Class.define("qx.ui.control.ColorSelector",
 
 
     /**
-     * Listener of mouseup event on the brightness handle.
+     * Listener of pointerup event on the brightness handle.
      * Releases the capture.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onBrightnessHandleMouseUp : function(e)
+    _onBrightnessHandlePointerUp : function(e)
     {
       // Disabling capturing
       this.getChildControl("brightness-handle").releaseCapture();
@@ -810,14 +811,14 @@ qx.Class.define("qx.ui.control.ColorSelector",
 
 
     /**
-     * Listener of mousemove event on the brightness handle.
+     * Listener of pointermove event on the brightness handle.
      * Forwards the event to _setBrightnessOnFieldEvent().
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onBrightnessHandleMouseMove : function(e)
+    _onBrightnessHandlePointerMove : function(e)
     {
-      // Update if captured currently (through previous mousedown)
+      // Update if captured currently (through previous pointerdown)
       if (this.__capture === "brightness-handle") {
         this._setBrightnessOnFieldEvent(e);
         e.stopPropagation();
@@ -826,15 +827,15 @@ qx.Class.define("qx.ui.control.ColorSelector",
 
 
     /**
-     * Listener of mousedown event on the brightness field.
+     * Listener of pointerdown event on the brightness field.
      * Adjusts the color by changing the brightness.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onBrightnessFieldMouseDown : function(e)
+    _onBrightnessFieldPointerDown : function(e)
     {
       // Calculate substract: Half height of handler
-      var location  = this.getChildControl("brightness-field").getContainerLocation();
+      var location  = this.getChildControl("brightness-field").getContentLocation();
       var bounds = this.getChildControl("brightness-handle").getBounds();
       this.__brightnessSubtract = location.top + (bounds.height / 2);
 
@@ -848,22 +849,28 @@ qx.Class.define("qx.ui.control.ColorSelector",
 
 
     /**
-     * Listener of mousewheel event on the brightness pane.
+     * Listener of roll event on the brightness pane.
      * Adjusts the color by changing the brightness.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Roll} Incoming event object
      */
-    _onBrightnessPaneMouseWheel : function(e)
+    _onBrightnessPaneRoll : function(e)
     {
-      this.setBrightness(qx.lang.Number.limit(this.getBrightness() - e.getWheelDelta("y"), 0, 100));
       e.stop();
+
+      // only wheel
+      if (e.getPointerType() != "wheel") {
+        return;
+      }
+
+      this.setBrightness(qx.lang.Number.limit((this.getBrightness() - (e.getDelta().y / 10)), 0, 100));
     },
 
 
     /**
      * Sets the brightness and moves the brightness handle.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
     _setBrightnessOnFieldEvent : function(e)
     {
@@ -890,12 +897,12 @@ qx.Class.define("qx.ui.control.ColorSelector",
 
 
     /**
-     * Listener of mouseup event on the saturation handle.
-     * Releases mouse capture.
+     * Listener of pointerup event on the saturation handle.
+     * Releases pointer capture.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onHueSaturationHandleMouseUp : function(e)
+    _onHueSaturationHandlePointerUp : function(e)
     {
       // Disabling capturing
       if (this.__capture)
@@ -908,15 +915,15 @@ qx.Class.define("qx.ui.control.ColorSelector",
 
 
     /**
-     * Listener of mousemove event on the saturation handle.
-     * Forwards the event to _onHueSaturationHandleMouseMove().
+     * Listener of pointermove event on the saturation handle.
+     * Forwards the event to _onHueSaturationHandlePointerMove().
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onHueSaturationHandleMouseMove : function(e)
+    _onHueSaturationHandlePointerMove : function(e)
     {
 
-      // Update if captured currently (through previous mousedown)
+      // Update if captured currently (through previous pointerdown)
       if (this.__capture === "hue-saturation-handle")
       {
         this._setHueSaturationOnFieldEvent(e);
@@ -926,16 +933,16 @@ qx.Class.define("qx.ui.control.ColorSelector",
 
 
     /**
-     * Listener of mousedown event on the saturation field.
+     * Listener of pointerdown event on the saturation field.
      * Adjusts the color by changing the saturation.
-     * Sets mouse capture.
+     * Sets pointer capture.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onHueSaturationFieldMouseDown : function(e)
+    _onHueSaturationFieldPointerDown : function(e)
     {
       // Calculate substract: Half width/height of handler
-      var location = this.getChildControl("hue-saturation-field").getContainerLocation();
+      var location = this.getChildControl("hue-saturation-field").getContentLocation();
       var handleBounds = this.getChildControl("hue-saturation-handle").getBounds();
       var fieldBounds = this.getChildControl("hue-saturation-field").getBounds();
 
@@ -952,23 +959,30 @@ qx.Class.define("qx.ui.control.ColorSelector",
 
 
     /**
-     * Listener of mousewheel event on the saturation pane.
+     * Listener of roll event on the saturation pane.
      * Adjusts the color by changing the saturation.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Roll} Incoming event object
      */
-    _onHueSaturationPaneMouseWheel : function(e)
+    _onHueSaturationPaneRoll : function(e)
     {
-      this.setSaturation(qx.lang.Number.limit(this.getSaturation() - e.getWheelDelta("y"), 0, 100));
-      this.setHue(qx.lang.Number.limit(this.getHue() + e.getWheelDelta("x"), 0, 360));
       e.stop();
+
+      // only wheel
+      if (e.getPointerType() != "wheel") {
+        return;
+      }
+
+      var delta = e.getDelta();
+      this.setSaturation(qx.lang.Number.limit(this.getSaturation() - delta.y / 10, 0, 100));
+      this.setHue(qx.lang.Number.limit(this.getHue() + delta.x / 10, 0, 360));
     },
 
 
     /**
      * Sets the saturation and moves the saturation handle.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
     _setHueSaturationOnFieldEvent : function(e)
     {
@@ -1134,6 +1148,10 @@ qx.Class.define("qx.ui.control.ColorSelector",
       var value = qx.util.ColorUtil.rgbToHexString(
         [this.getRed(),this.getGreen(),this.getBlue()]
       );
+
+      // get rid of the starting '#'
+      value = value.substring(1, value.length);
+
       this.getChildControl("hex-field").setValue(value);
     },
 
@@ -1147,17 +1165,18 @@ qx.Class.define("qx.ui.control.ColorSelector",
     */
 
     /**
-     * Listener of click event on the color field.
-     * Sets red, green and blue values to clicked color field's background color.
+     * Listener of tap event on the color field.
+     * Sets red, green and blue values to tapped color field's background color.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onColorFieldClick : function(e)
+    _onColorFieldTap : function(e)
     {
       var vColor = e.getTarget().getBackgroundColor();
 
       if (!vColor) {
-        return this.error("Missing backgroundColor value for field: " + e.getTarget());
+        this.error("Missing backgroundColor value for field: " + e.getTarget());
+        return;
       }
 
       var rgb = qx.util.ColorUtil.stringToRgb(vColor);

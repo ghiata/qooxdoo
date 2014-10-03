@@ -55,20 +55,36 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.lang.String)
-#require(qx.bom.client.Css)
-
-************************************************************************ */
-
 /**
  * Style querying and modification of HTML elements.
  *
  * Automatically normalizes cross-browser differences for setting and reading
  * CSS attributes. Optimized for performance.
+ *
+ * @require(qx.lang.String)
+ * @require(qx.bom.client.Css)
+
+ * @require(qx.bom.element.Clip#set)
+ * @require(qx.bom.element.Cursor#set)
+ * @require(qx.bom.element.Opacity#set)
+ * @require(qx.bom.element.BoxSizing#set)
+
+ * @require(qx.bom.element.Clip#get)
+ * @require(qx.bom.element.Cursor#get)
+ * @require(qx.bom.element.Opacity#get)
+ * @require(qx.bom.element.BoxSizing#get)
+
+ * @require(qx.bom.element.Clip#reset)
+ * @require(qx.bom.element.Cursor#reset)
+ * @require(qx.bom.element.Opacity#reset)
+ * @require(qx.bom.element.BoxSizing#reset)
+
+ * @require(qx.bom.element.Clip#compile)
+ * @require(qx.bom.element.Cursor#compile)
+ * @require(qx.bom.element.Opacity#compile)
+ * @require(qx.bom.element.BoxSizing#compile)
  */
-qx.Class.define("qx.bom.element.Style",
+qx.Bootstrap.define("qx.bom.element.Style",
 {
   /*
   *****************************************************************************
@@ -78,6 +94,10 @@ qx.Class.define("qx.bom.element.Style",
 
   statics :
   {
+    __styleNames : null,
+
+    __cssNames : null,
+
     /**
      * Detect vendor specific properties.
      */
@@ -88,7 +108,6 @@ qx.Class.define("qx.bom.element.Style",
         "userSelect" : qx.core.Environment.get("css.userselect"),
         "textOverflow" : qx.core.Environment.get("css.textoverflow"),
         "borderImage" : qx.core.Environment.get("css.borderimage"),
-        "float" : qx.core.Environment.get("css.float"),
         "userModify" : qx.core.Environment.get("css.usermodify"),
         "boxSizing" : qx.core.Environment.get("css.boxsizing")
       };
@@ -99,12 +118,29 @@ qx.Class.define("qx.bom.element.Style",
           delete styleNames[key];
         }
         else {
-          this.__cssNames[key] = key == "float" ? "float" : 
-            qx.lang.String.hyphenate(styleNames[key]);
+          this.__cssNames[key] = qx.bom.Style.getCssName(styleNames[key]);
         }
       }
-      
+
       this.__styleNames = styleNames;
+    },
+
+
+    /**
+     * Gets the (possibly vendor-prefixed) name of a style property and stores
+     * it to avoid multiple checks.
+     *
+     * @param name {String} Style property name to check
+     * @return {String|null} The client-specific name of the property, or
+     * <code>null</code> if it's not supported.
+     */
+    __getStyleName : function(name)
+    {
+      var styleName = qx.bom.Style.getPropertyName(name);
+      if (styleName) {
+        this.__styleNames[name] = styleName;
+      }
+      return styleName;
     },
 
 
@@ -134,19 +170,7 @@ qx.Class.define("qx.bom.element.Style",
       clip : qx.bom.element.Clip,
       cursor : qx.bom.element.Cursor,
       opacity : qx.bom.element.Opacity,
-      boxSizing : qx.bom.element.BoxSizing,
-      overflowX : {
-        set : qx.lang.Function.bind(qx.bom.element.Overflow.setX, qx.bom.element.Overflow),
-        get : qx.lang.Function.bind(qx.bom.element.Overflow.getX, qx.bom.element.Overflow),
-        reset : qx.lang.Function.bind(qx.bom.element.Overflow.resetX, qx.bom.element.Overflow),
-        compile : qx.lang.Function.bind(qx.bom.element.Overflow.compileX, qx.bom.element.Overflow)
-      },
-      overflowY : {
-        set : qx.lang.Function.bind(qx.bom.element.Overflow.setY, qx.bom.element.Overflow),
-        get : qx.lang.Function.bind(qx.bom.element.Overflow.getY, qx.bom.element.Overflow),
-        reset : qx.lang.Function.bind(qx.bom.element.Overflow.resetY, qx.bom.element.Overflow),
-        compile : qx.lang.Function.bind(qx.bom.element.Overflow.compileY, qx.bom.element.Overflow)
-      }
+      boxSizing : qx.bom.element.BoxSizing
     },
 
 
@@ -167,7 +191,7 @@ qx.Class.define("qx.bom.element.Style",
     {
       var html = [];
       var special = this.__special;
-      var names = this.__cssNames;
+      var cssNames = this.__cssNames;
       var name, value;
 
       for (name in map)
@@ -179,13 +203,16 @@ qx.Class.define("qx.bom.element.Style",
         }
 
         // normalize name
-        name = names[name] || name;
+        name = this.__styleNames[name] || this.__getStyleName(name) || name;
 
         // process special properties
         if (special[name]) {
           html.push(special[name].compile(value));
         } else {
-          html.push(qx.lang.String.hyphenate(name), ":", value, ";");
+          if (!cssNames[name]) {
+            cssNames[name] = qx.bom.Style.getCssName(name);
+          }
+          html.push(cssNames[name], ":", value === "" ? "\"\"" : value, ";");
         }
       }
 
@@ -203,19 +230,11 @@ qx.Class.define("qx.bom.element.Style",
      *
      * @param element {Element} The DOM element to modify
      * @param value {String} The full CSS string
-     * @signature function(element, value)
-     * @return {void}
      */
-    setCss : qx.core.Environment.select("engine.name",
+    setCss : function(element, value)
     {
-      "mshtml" : function(element, value) {
-        element.style.cssText = value;
-      },
-
-      "default" : function(element, value) {
-        element.setAttribute("style", value);
-      }
-    }),
+      element.setAttribute("style", value);
+    },
 
 
     /**
@@ -225,16 +244,10 @@ qx.Class.define("qx.bom.element.Style",
      * @return {String} the full CSS string
      * @signature function(element)
      */
-    getCss : qx.core.Environment.select("engine.name",
+    getCss : function(element)
     {
-      "mshtml" : function(element) {
-        return element.style.cssText.toLowerCase();
-      },
-
-      "default" : function(element) {
-        return element.getAttribute("style");
-      }
-    }),
+      return element.getAttribute("style");
+    },
 
 
 
@@ -262,19 +275,19 @@ qx.Class.define("qx.bom.element.Style",
     },
 
 
-    /** {Integer} Computed value of a style property. Compared to the cascaded style,
+    /** @type {Integer} Computed value of a style property. Compared to the cascaded style,
      * this one also interprets the values e.g. translates <code>em</code> units to
      * <code>px</code>.
      */
     COMPUTED_MODE : 1,
 
 
-    /** {Integer} Cascaded value of a style property. */
+    /** @type {Integer} Cascaded value of a style property. */
     CASCADED_MODE : 2,
 
 
     /**
-     * {Integer} Local value of a style property. Ignores inheritance cascade.
+     * @type {Integer} Local value of a style property. Ignores inheritance cascade.
      *   Does not interpret values.
      */
     LOCAL_MODE : 3,
@@ -288,7 +301,6 @@ qx.Class.define("qx.bom.element.Style",
      * @param value {var} The value for the given style
      * @param smart {Boolean?true} Whether the implementation should automatically use
      *    special implementations for some properties
-     * @return {void}
      */
     set : function(element, name, value, smart)
     {
@@ -303,13 +315,13 @@ qx.Class.define("qx.bom.element.Style",
 
 
       // normalize name
-      name = this.__styleNames[name] || name;
+      name = this.__styleNames[name] || this.__getStyleName(name) || name;
 
       // special handling for specific properties
       // through this good working switch this part costs nothing when
       // processing non-smart properties
       if (smart!==false && this.__special[name]) {
-        return this.__special[name].set(element, value);
+        this.__special[name].set(element, value);
       } else {
         element.style[name] = value !== null ? value : "";
       }
@@ -324,7 +336,6 @@ qx.Class.define("qx.bom.element.Style",
      *    and the value is the value to use.
      * @param smart {Boolean?true} Whether the implementation should automatically use
      *    special implementations for some properties
-     * @return {void}
      */
     setStyles : function(element, styles, smart)
     {
@@ -347,7 +358,7 @@ qx.Class.define("qx.bom.element.Style",
       for (var key in styles)
       {
         var value = styles[key];
-        var name = styleNames[key] || key;
+        var name = styleNames[key] || this.__getStyleName(key) || key;
 
         if (value === undefined)
         {
@@ -376,16 +387,15 @@ qx.Class.define("qx.bom.element.Style",
      * @param name {String} Name of the style attribute (js variant e.g. marginTop, wordSpacing)
      * @param smart {Boolean?true} Whether the implementation should automatically use
      *    special implementations for some properties
-     * @return {void}
      */
     reset : function(element, name, smart)
     {
       // normalize name
-      name = this.__styleNames[name] || name;
+      name = this.__styleNames[name] || this.__getStyleName(name) || name;
 
       // special handling for specific properties
       if (smart!==false && this.__special[name]) {
-        return this.__special[name].reset(element);
+        this.__special[name].reset(element);
       } else {
         element.style[name] = "";
       }
@@ -418,36 +428,71 @@ qx.Class.define("qx.bom.element.Style",
      *    special implementations for some properties
      * @return {var} The value of the property
      */
-    get : qx.core.Environment.select("engine.name",
+    get : function(element, name, mode, smart)
     {
-      "mshtml" : function(element, name, mode, smart)
+      // normalize name
+      name = this.__styleNames[name] || this.__getStyleName(name) || name;
+
+      // special handling
+      if (smart!==false && this.__special[name]) {
+        return this.__special[name].get(element, mode);
+      }
+
+      // switch to right mode
+      switch(mode)
       {
-        // normalize name
-        name = this.__styleNames[name] || name;
-
-        // special handling
-        if (smart!==false && this.__special[name]) {
-          return this.__special[name].get(element, mode);
-        }
-
-        // if the element is not inserted into the document "currentStyle"
-        // may be undefined. In this case always return the local style.
-        if (!element.currentStyle) {
+        case this.LOCAL_MODE:
           return element.style[name] || "";
-        }
 
-        // switch to right mode
-        switch(mode)
-        {
-          case this.LOCAL_MODE:
-            return element.style[name] || "";
-
-          case this.CASCADED_MODE:
+        case this.CASCADED_MODE:
+          // Currently only supported by Opera and Internet Explorer
+          if (element.currentStyle) {
             return element.currentStyle[name] || "";
+          }
 
-          default:
-            // Read cascaded style
-            var currentStyle = element.currentStyle[name] || "";
+          throw new Error("Cascaded styles are not supported in this browser!");
+
+        default:
+          // Opera, Mozilla and Safari 3+ also have a global getComputedStyle which is identical
+          // to the one found under document.defaultView.
+
+          // The problem with this is however that this does not work correctly
+          // when working with frames and access an element of another frame.
+          // Then we must use the <code>getComputedStyle</code> of the document
+          // where the element is defined.
+
+          var doc = qx.dom.Node.getDocument(element);
+          var getStyle = doc.defaultView ? doc.defaultView.getComputedStyle : undefined;
+
+          if (getStyle !== undefined)
+          {
+            // Support for the DOM2 getComputedStyle method
+            //
+            // Safari >= 3 & Gecko > 1.4 expose all properties to the returned
+            // CSSStyleDeclaration object. In older browsers the function
+            // "getPropertyValue" is needed to access the values.
+            //
+            // On a computed style object all properties are read-only which is
+            // identical to the behavior of MSHTML's "currentStyle".
+
+            var computed = getStyle(element, null);
+            // All relevant browsers expose the configured style properties to
+            // the CSSStyleDeclaration objects
+            if (computed && computed[name]) {
+              return computed[name];
+            }
+          }
+          else
+          {
+            // if the element is not inserted into the document "currentStyle"
+            // may be undefined. In this case always return the local style.
+            if (!element.currentStyle) {
+              return element.style[name] || "";
+            }
+
+            // Read cascaded style. Shorthand properties like "border" are not available
+            // on the currentStyle object.
+            var currentStyle = element.currentStyle[name] || element.style[name] || "";
 
             // Pixel values are always OK
             if (/^-?[\.\d]+(px)?$/i.test(currentStyle)) {
@@ -456,13 +501,13 @@ qx.Class.define("qx.bom.element.Style",
 
             // Try to convert non-pixel values
             var pixel = this.__mshtmlPixel[name];
-            if (pixel)
+            if (pixel && (pixel in element.style))
             {
               // Backup local and runtime style
               var localStyle = element.style[name];
 
               // Overwrite local value with cascaded value
-              // This is needed to have the pixel value setupped
+              // This is needed to have the pixel value setup
               element.style[name] = currentStyle || 0;
 
               // Read pixel value and add "px"
@@ -475,65 +520,13 @@ qx.Class.define("qx.bom.element.Style",
               return value;
             }
 
-            // Non-Pixel values may be problematic
-            if (/^-?[\.\d]+(em|pt|%)?$/i.test(currentStyle)) {
-              throw new Error("Untranslated computed property value: " + name + ". Only pixel values work well across different clients.");
-            }
-
             // Just the current style
             return currentStyle;
-        }
-      },
+          }
 
-      "default" : function(element, name, mode, smart)
-      {
-        // normalize name
-        name = this.__styleNames[name] || name;
-
-        // special handling
-        if (smart!==false && this.__special[name]) {
-          return this.__special[name].get(element, mode);
-        }
-
-        // switch to right mode
-        switch(mode)
-        {
-          case this.LOCAL_MODE:
-            return element.style[name] || "";
-
-          case this.CASCADED_MODE:
-            // Currently only supported by Opera and Internet Explorer
-            if (element.currentStyle) {
-              return element.currentStyle[name] || "";
-            }
-
-            throw new Error("Cascaded styles are not supported in this browser!");
-
-          // Support for the DOM2 getComputedStyle method
-          //
-          // Safari >= 3 & Gecko > 1.4 expose all properties to the returned
-          // CSSStyleDeclaration object. In older browsers the function
-          // "getPropertyValue" is needed to access the values.
-          //
-          // On a computed style object all properties are read-only which is
-          // identical to the behavior of MSHTML's "currentStyle".
-          default:
-            // Opera, Mozilla and Safari 3+ also have a global getComputedStyle which is identical
-            // to the one found under document.defaultView.
-
-            // The problem with this is however that this does not work correctly
-            // when working with frames and access an element of another frame.
-            // Then we must use the <code>getComputedStyle</code> of the document
-            // where the element is defined.
-            var doc = qx.dom.Node.getDocument(element);
-            var computed = doc.defaultView.getComputedStyle(element, null);
-
-            // All relevant browsers expose the configured style properties to
-            // the CSSStyleDeclaration objects
-            return computed ? computed[name] : "";
-        }
+          return element.style[name] || "";
       }
-    })
+    }
   },
 
   defer : function(statics) {

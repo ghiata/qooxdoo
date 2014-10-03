@@ -20,8 +20,11 @@
 ************************************************************************ */
 
 /* ************************************************************************
-#asset(showcase/virtuallist/imicons/*)
 ************************************************************************ */
+/**
+ *
+ * @asset(showcase/virtuallist/imicons/*)
+ */
 
 qx.Class.define("showcase.page.virtuallist.messenger.Buddy",
 {
@@ -77,6 +80,11 @@ qx.Class.define("showcase.page.virtuallist.messenger.Buddy",
       check : "String",
       apply : "_applyStatus",
       init : ""
+    },
+
+    gap :
+    {
+      themeable: true
     }
   },
 

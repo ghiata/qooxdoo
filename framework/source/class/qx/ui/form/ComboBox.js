@@ -51,7 +51,7 @@ qx.Class.define("qx.ui.form.ComboBox",
     var textField = this._createChildControl("textfield");
     this._createChildControl("button");
 
-    this.addListener("click", this._onClick);
+    this.addListener("tap", this._onTap);
 
     // forward the focusin and focusout events to the textfield. The textfield
     // is not focusable so the events need to be forwarded manually.
@@ -159,6 +159,7 @@ qx.Class.define("qx.ui.form.ComboBox",
           control.setFocusable(false);
           control.setKeepActive(true);
           control.addState("inner");
+          control.addListener("execute", this.toggle, this)
           this._add(control);
           break;
 
@@ -268,22 +269,15 @@ qx.Class.define("qx.ui.form.ComboBox",
     /**
      * Toggles the popup's visibility.
      *
-     * @param e {qx.event.type.Mouse} Mouse click event
+     * @param e {qx.event.type.Pointer} Pointer tap event
      */
-    _onClick : function(e)
-    {
-      var target = e.getTarget();
-      if (target == this.getChildControl("button")) {
-        this.toggle();
-      } else {
-        this.close();
-      }
+    _onTap : function(e) {
+      this.close();
     },
 
 
     // overridden
-    _onListMouseDown : function(e)
-    {
+    _onListPointerDown : function(e) {
       this._setPreselectedItem();
     },
 
@@ -316,7 +310,7 @@ qx.Class.define("qx.ui.form.ComboBox",
       var current = e.getData();
       if (current.length > 0)
       {
-        // Ignore quick context (e.g. mouseover)
+        // Ignore quick context (e.g. pointerover)
         // and configure the new value when closing the popup afterwards
         var list = this.getChildControl("list");
         var ctx = list.getSelectionContext();
@@ -453,7 +447,6 @@ qx.Class.define("qx.ui.form.ComboBox",
      *
      * @param start {Integer} start of the selection (zero-based)
      * @param end {Integer} end of the selection
-     * @return {void}
      */
     setTextSelection : function(start, end) {
       this.getChildControl("textfield").setTextSelection(start, end);
@@ -465,7 +458,6 @@ qx.Class.define("qx.ui.form.ComboBox",
      * This method only works if the widget is already created and
      * added to the document.
      *
-     * @return {void}
      */
     clearTextSelection : function() {
       this.getChildControl("textfield").clearTextSelection();
@@ -475,7 +467,6 @@ qx.Class.define("qx.ui.form.ComboBox",
     /**
      * Selects the whole content
      *
-     * @return {void}
      */
     selectAllText : function() {
       this.getChildControl("textfield").selectAllText();
@@ -485,7 +476,6 @@ qx.Class.define("qx.ui.form.ComboBox",
     /**
      * Clear any text selection, then select all text
      *
-     * @return {void}
      */
     resetAllTextSelection: function() {
       this.clearTextSelection();

@@ -19,7 +19,11 @@
      * Fabian Jakobs (fjakobs)
 
 ************************************************************************ */
-
+/**
+ * @require(qx.module.event.GestureHandler)
+ * @require(qx.module.Attribute)
+ * @require(qx.module.event.Native)
+ */
 qx.Class.define("apiviewer.ui.panels.InfoPanel", {
 
   type : "abstract",
@@ -132,11 +136,12 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
      */
     createItemLinkHtml : function(linkText, packageBaseClass, useIcon, useShortName)
     {
+      var classNode = null;
       if (useIcon == null) {
         useIcon = true;
       }
 
-      linkText = qx.lang.String.trim(linkText);
+      linkText = linkText.trim();
 
       if (linkText.charAt(0) == '"' || linkText.charAt(0) == '<')
       {
@@ -169,15 +174,23 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
           }
           else if (packageBaseClass && className.indexOf(".") == -1)
           {
-            // The class name has no package -> Use the same package as the current class
-            var name = packageBaseClass.getName();
-            if (packageBaseClass instanceof apiviewer.dao.Package) {
-              var packageName = packageBaseClass.getFullName();
-            } else {
-              var fullName = packageBaseClass.getFullName();
-              var packageName = fullName.substring(0, fullName.length - name.length - 1);
+            classNode = apiviewer.dao.Class.getClassByName(className);
+
+            // classNode could be a native JS constructor (String, Boolean, ...)
+            if (!classNode || !classNode.classname ||
+                classNode.getPackage().getName() !== "")
+            {
+              // The class name has no package -> Use the same package as the current class
+              var name = packageBaseClass.getName();
+              var packageName;
+              if (packageBaseClass instanceof apiviewer.dao.Package) {
+                packageName = packageBaseClass.getFullName();
+              } else {
+                var fullName = packageBaseClass.getFullName();
+                packageName = fullName.substring(0, fullName.length - name.length - 1);
+              }
+              className = packageName + "." + className;
             }
-            className = packageName + "." + className;
           }
 
           // Get the node info
@@ -190,7 +203,9 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
           // Add the right icon
           if (useIcon)
           {
-            var classNode = apiviewer.dao.Class.getClassByName(className);
+            if (!classNode) {
+              classNode = apiviewer.dao.Class.getClassByName(className);
+            }
 
             if (classNode)
             {
@@ -203,7 +218,7 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
                 var parenPos = cleanItemName.indexOf("(");
 
                 if (parenPos != -1) {
-                  cleanItemName = qx.lang.String.trim(cleanItemName.substring(0, parenPos));
+                  cleanItemName = cleanItemName.substring(0, parenPos).trim();
                 }
                 itemNode = this.__getItemFromClassHierarchy(cleanItemName,classNode);
                 if(!itemNode && apiviewer.UiModel.getInstance().getShowIncluded())
@@ -310,7 +325,11 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
           if (seeAlsoLinks.length != 0) {
             seeAlsoLinks.add(", ");
           }
-          seeAlsoLinks.add(this.createItemLinkHtml(see[i], node.getClass()));
+          var link = this.createItemLinkHtml(see[i], node.getClass());
+          if (link.indexOf("http") === 0) {
+            link = "<a target='_blank' href='" + link + "'>" + link + "</a>";
+          }
+          seeAlsoLinks.add(link);
         }
 
         if (!seeAlsoLinks.isEmpty())
@@ -321,7 +340,7 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
             '<div class="item-detail-headline">', "See also:", '</div>',
             '<div class="item-detail-text">', seeAlsoLinks, '</div>'
           );
-          return seeAlsoHtml.get()
+          return seeAlsoHtml.get();
         }
       }
 
@@ -524,7 +543,7 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
      * @param typeNode {apiviewer.dao.ClassItem} the doc node to show the type for.
      * @param defaultType {String} the type name to use if <code>typeNode</code> is
      *          <code>null</code> or defines no type.
-     * @param useShortName {Boolean,true} whether to use short class names
+     * @param useShortName {Boolean?true} whether to use short class names
      *          (without package).
      * @return {String} the HTML showing the type.
      */
@@ -622,13 +641,23 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
         for (var i=0; i<errors.length; i++)
         {
           html.add('<div class="item-detail-text">', errors[i].attributes.msg, " <br/>");
-          html.add("(");
 
-          if (node.getClass() != currentClassDocNode) {
-            html.add(node.getClass().getFullName(), "; ");
+          if (errors[i].attributes.line || node.getClass() != currentClassDocNode) {
+            html.add("(");
+
+            if (node.getClass() != currentClassDocNode) {
+              html.add(node.getClass().getFullName(), "; ");
+            }
+
+            if (errors[i].attributes.line) {
+              html.add("Line: ", errors[i].attributes.line);
+              if (errors[i].attributes.column) {
+                html.add(", Column:", errors[i].attributes.column);
+              }
+            }
+            html.add(")");
           }
-
-          html.add("Line: ", errors[i].attributes.line, ", Column:", errors[i].attributes.column + ")", '</div>');
+          html.add("</div>");
         }
 
         return html.get();
@@ -720,6 +749,63 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
         }
       }
       return html.get();
+    },
+
+
+    /**
+     * Creates the link to the source file that definen an item
+     *
+     * @param node {apiviewer.dao.ClassItem} the doc node of the item.
+     * @return {String} the HTML.
+     */
+    createSourceLinkHtml : function(node)
+    {
+      if (!node.getLineNumber || !node.getLineNumber()) {
+        return "";
+      }
+
+      var sourceUri = apiviewer.ui.ClassViewer.getSourceUri(node);
+      if (!sourceUri) {
+        return "";
+      }
+
+      var title;
+      if (node instanceof apiviewer.dao.Class) {
+        title = node.getFullName();
+      }
+      else {
+        title = node.getClass().getFullName() + "#" + node.getName();
+      }
+
+      var html = new qx.util.StringBuilder();
+      html.add('<div class="item-detail-headline">', "View Source:", '</div>');
+      html.add(
+        '<div class="item-detail-text">',
+        '<a href="' + sourceUri + '" target="_blank">' + title + '</a>',
+        '</div>');
+
+      return html.get();
+    },
+
+
+    /**
+     * Creates the link to class where the method has been attached from.
+     *
+     * @param node {apiviewer.dao.ClassItem} the doc node of the item.
+     * @return {String} the HTML.
+     */
+    createAttachedFrom : function(method) {
+      if (method.getAttachedFrom()) {
+        var html = new qx.util.StringBuilder();
+        html.add('<div class="item-detail-headline">', "Attached from:", '</div>');
+        html.add(
+          '<div class="item-detail-text">',
+          this.createItemLinkHtml(method.getAttachedFrom(), method.getClass()),
+          '</div>');
+
+        return html.get();
+      }
+      return "";
     },
 
 
@@ -917,9 +1003,8 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
      * @param node {apiviewer.dao.ClassItem} the doc node of the item.
      * @param currentClassDocNode {apiviewer.dao.Class} the doc node of the currently displayed class
      * @return {Boolean} whether the class item has details.
-     * @signature function(node, currentClassDocNode)
      */
-    itemHasDetails : qx.lang.Function.returnTrue,
+    itemHasDetails : function(node, currentClassDocNode) {return true;},
 
 
     __encodeObject : function(object)
@@ -1070,6 +1155,7 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
         html.add('</table>');
 
         this.getBodyElement().innerHTML = html.get();
+        this._postProcessLinks(this.getBodyElement());
         apiviewer.ui.AbstractViewer.fixLinks(this.getBodyElement());
         apiviewer.ui.AbstractViewer.highlightCode(this.getBodyElement());
         this.getBodyElement().style.display = !this.getIsOpen() ? "none" : "";
@@ -1140,7 +1226,7 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
      * @param panel {InfoPanel} the info panel of the item.
      * @param name {String} the item's name.
      * @return {Element} the HTML element showing the details of the item.
-     * @lint ignoreUndefined(getElementsByTagName)
+     * @ignore(getElementsByTagName)
      */
     getItemElement : function(name)
     {
@@ -1192,6 +1278,7 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
 
         // Update content
         textDiv.innerHTML = this.getItemTextHtml(node, this.getDocNode(), showDetails);
+        this._postProcessLinks(textDiv);
         apiviewer.ui.AbstractViewer.fixLinks(textDiv);
         apiviewer.ui.AbstractViewer.highlightCode(textDiv);
       }
@@ -1200,6 +1287,50 @@ qx.Class.define("apiviewer.ui.panels.InfoPanel", {
         this.error("Toggling item details failed");
         this.error(exc);
       }
+    },
+
+
+    /**
+     * Convert mouseup and click listener attached to tap / pointerup listener.
+     * @param el {Element} The element containing the links.
+     */
+    _postProcessLinks : function(el) {
+      if (el._processed) {
+        return;
+      }
+      q(el).on("pointerup", function(e) {
+        var target = e.getTarget();
+        var mouseup = target.getAttribute("onmouseup");
+        if (mouseup) {
+          target.removeAttribute("onmouseup");
+          target.setAttribute("oldonmouseup", mouseup);
+        } else {
+          mouseup = target.getAttribute("oldonmouseup");
+        }
+
+        if (mouseup) {
+          Function(mouseup)();
+        }
+      });
+
+      q(el).on("tap", function(e) {
+        var onClickValue = "event.preventDefault ? event.preventDefault() : event.returnValue = false; return false;";
+        var target = e.getTarget();
+        var click = target.getAttribute("onclick");
+        if (click && click != onClickValue) {
+          target.removeAttribute("onclick");
+          target.setAttribute("oldonclick", click);
+          target.setAttribute("onclick", onClickValue);
+        } else {
+          click = target.getAttribute("oldonclick");
+        }
+
+        if (click) {
+          Function(click)();
+        }
+      });
+
+      el._processed = true;
     }
   },
 

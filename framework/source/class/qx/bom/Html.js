@@ -34,8 +34,10 @@
 /**
  * This class is mainly a convenience wrapper for DOM elements to
  * qooxdoo's event system.
+ *
+ * @ignore(qxWeb)
  */
-qx.Class.define("qx.bom.Html",
+qx.Bootstrap.define("qx.bom.Html",
 {
   /*
   *****************************************************************************
@@ -60,7 +62,7 @@ qx.Class.define("qx.bom.Html",
     },
 
 
-    /** {Map} Contains wrap fragments for specific HTML matches */
+    /** @type {Map} Contains wrap fragments for specific HTML matches */
     __convertMap :
     {
       opt : [ 1, "<select multiple='multiple'>", "</select>" ], // option or optgroup
@@ -78,6 +80,21 @@ qx.Class.define("qx.bom.Html",
 
 
     /**
+     * Fixes "XHTML"-style tags in all browsers.
+     * Replaces tags which are not allowed to be closed directly such as
+     * <code>div</code> or <code>p</code>. They are patched to use opening and
+     * closing tags instead, e.g. <code>&lt;p&gt;</code> => <code>&lt;p&gt;&lt;/p&gt;</code>
+     *
+     * @param html {String} HTML to fix
+     * @return {String} Fixed HTML
+     */
+    fixEmptyTags : function(html)
+    {
+      return html.replace(/(<(\w+)[^>]*?)\/>/g, this.__fixNonDirectlyClosableHelper);
+    },
+
+
+    /**
      * Translates a HTML string into an array of elements.
      *
      * @param html {String} HTML string
@@ -88,11 +105,7 @@ qx.Class.define("qx.bom.Html",
     {
       var div = context.createElement("div");
 
-      // Fix "XHTML"-style tags in all browsers
-      // Replaces tags which are not allowed to be directly closed like
-      // <code>div</code> or <code>p</code>. They are patched to use an
-      // open and close tag instead e.g. <p> => <p></p>
-      html = html.replace(/(<(\w+)[^>]*?)\/>/g, this.__fixNonDirectlyClosableHelper);
+      html = qx.bom.Html.fixEmptyTags(html);
 
       // Trim whitespace, otherwise indexOf won't work as expected
       var tags = html.replace(/^\s+/, "").substring(0, 5).toLowerCase();
@@ -215,7 +228,8 @@ qx.Class.define("qx.bom.Html",
         // Append or merge depending on type
         if (obj.nodeType) {
           ret.push(obj);
-        } else if (obj instanceof qx.type.BaseArray) {
+        } else if (obj instanceof qx.type.BaseArray ||
+            (typeof qxWeb !== "undefined" && obj instanceof qxWeb)) {
           ret.push.apply(ret, Array.prototype.slice.call(obj, 0));
         } else if (obj.toElement) {
           ret.push(obj.toElement());
@@ -227,40 +241,54 @@ qx.Class.define("qx.bom.Html",
       // Append to fragment and filter out scripts... or...
       if (fragment)
       {
-        var scripts=[], LArray=qx.lang.Array, elem, temp;
-        for (var i=0; ret[i]; i++)
-        {
-          elem = ret[i];
-
-          if (elem.nodeType == 1 && elem.tagName.toLowerCase() === "script" && (!elem.type || elem.type.toLowerCase() === "text/javascript"))
-          {
-            // Trying to remove the element from DOM
-            if (elem.parentNode) {
-              elem.parentNode.removeChild(ret[i]);
-            }
-
-            // Store in script list
-            scripts.push(elem);
-          }
-          else
-          {
-            if (elem.nodeType === 1)
-            {
-              // Recursively search for scripts and append them to the list of elements to process
-              temp = LArray.fromCollection(elem.getElementsByTagName("script"));
-              ret.splice.apply(ret, [i+1, 0].concat(temp));
-            }
-
-            // Finally append element to fragment
-            fragment.appendChild(elem);
-          }
-        }
-
-        return scripts;
+        return qx.bom.Html.extractScripts(ret, fragment);
       }
 
       // Otherwise return the array of all elements
       return ret;
+    },
+
+
+    /**
+     * Extracts script elements from an element list. Optionally
+     * attaches them to a given document fragment
+     *
+     * @param elements {Element[]} list of elements
+     * @param fragment {Document?} document fragment
+     * @return {Element[]} Array containing the script elements
+     */
+    extractScripts : function(elements, fragment) {
+      var scripts=[], elem;
+      for (var i=0; elements[i]; i++) {
+        elem = elements[i];
+
+        if (elem.nodeType == 1 && elem.tagName.toLowerCase() === "script" && (!elem.type || elem.type.toLowerCase() === "text/javascript"))
+        {
+          // Trying to remove the element from DOM
+          if (elem.parentNode) {
+            elem.parentNode.removeChild(elements[i]);
+          }
+
+          // Store in script list
+          scripts.push(elem);
+        }
+        else
+        {
+          if (elem.nodeType === 1)
+          {
+            // Recursively search for scripts and append them to the list of elements to process
+            var scriptList = qx.lang.Array.fromCollection(elem.getElementsByTagName("script"));
+            elements.splice.apply(elements, [i+1, 0].concat(scriptList));
+          }
+
+          // Finally append element to fragment
+          if (fragment) {
+            fragment.appendChild(elem);
+          }
+        }
+      }
+
+      return scripts;
     }
   }
 });

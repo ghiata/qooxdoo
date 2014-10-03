@@ -25,16 +25,16 @@
  * The list controller is responsible for synchronizing every list like widget
  * with a data array. It does not matter if the array contains atomic values
  * like strings of complete objects where one property holds the value for
- * the label and another property holds the icon url. You can even use converts
- * the make the label show a text corresponding to the icon by binding both,
- * label and icon to the same model property and converting one.
+ * the label and another property holds the icon url. You can even use converters
+ * that make the label show a text corresponding to the icon, by binding both
+ * label and icon to the same model property and converting one of them.
  *
  * *Features*
  *
  * * Synchronize the model and the target
  * * Label and icon are bindable
  * * Takes care of the selection
- * * Passes on the options used by the bindings
+ * * Passes on the options used by {@link qx.data.SingleValueBinding#bind}
  *
  * *Usage*
  *
@@ -54,13 +54,13 @@
  *
  * * If you want to bind single values, use {@link qx.data.controller.Object}
  * * If you want to bind a tree widget, use {@link qx.data.controller.Tree}
- * * If you want to bin a form widget, use {@link qx.data.controller.Form}
+ * * If you want to bind a form widget, use {@link qx.data.controller.Form}
  */
 qx.Class.define("qx.data.controller.List",
 {
   extend : qx.core.Object,
   include: qx.data.controller.MSelection,
-
+  implement : qx.data.controller.ISelection,
 
   /*
   *****************************************************************************
@@ -640,9 +640,11 @@ qx.Class.define("qx.data.controller.List",
      * implemented by the {@link #delegate} property.
      *
      * @param sourcePath {String | null} The path to the property in the model.
+     *   If you use an empty string, the whole model item will be bound.
      * @param targetProperty {String} The name of the property in the target
      *   widget.
-     * @param options {Map | null} The options to use for the binding.
+     * @param options {Map | null} The options used by
+     *   {@link qx.data.SingleValueBinding#bind} to use for the binding.
      * @param targetWidget {qx.ui.core.Widget} The target widget.
      * @param index {Number} The index of the current binding.
      */
@@ -658,6 +660,7 @@ qx.Class.define("qx.data.controller.List",
         this.__onUpdate[targetProperty] = null;
       }
       options.onUpdate =  qx.lang.Function.bind(this._onBindingSet, this, index);
+      options.ignoreConverter = "model"
 
       // build up the path for the binding
       var bindPath = "model[" + index + "]";
@@ -684,7 +687,8 @@ qx.Class.define("qx.data.controller.List",
      *
      * @param targetPath {String | null} The path to the property in the model.
      * @param sourcePath {String} The name of the property in the target.
-     * @param options {Map | null} The options to use for the binding.
+     * @param options {Map | null} The options to use by
+     *   {@link qx.data.SingleValueBinding#bind} for the binding.
      * @param sourceWidget {qx.ui.core.Widget} The source widget.
      * @param index {Number} The index of the current binding.
      */
@@ -984,6 +988,7 @@ qx.Class.define("qx.data.controller.List",
      * Function for accessing the lookup table.
      *
      * @param index {Integer} The index of the lookup table.
+     * @return {Number} Item index from lookup table
      */
     __lookup: function(index) {
       return this.__lookupTable[index];

@@ -18,11 +18,12 @@
 ************************************************************************ */
 
 /* ************************************************************************
-#asset(qx/icon/Tango/16/actions/help-contents.png)
 ************************************************************************ */
 
 /**
  * Displays instructions for the Feature Config Editor
+ *
+ * @asset(qx/icon/Tango/16/actions/help-contents.png)
  */
 
 qx.Class.define("fce.view.HelpWindow", {
@@ -73,7 +74,7 @@ qx.Class.define("fce.view.HelpWindow", {
 
       var p2 = new qx.ui.basic.Label("The <strong>Available Features</strong> "
         + "table initially displays all keys defined in <a style=\"" + linkStyle + "\""
-        + "href=\"http://demo.qooxdoo.org/current/apiviewer/#qx.core.Environment\""
+        + "href=\"http://demo.qooxdoo.org/" + qxVer + "/apiviewer/#qx.core.Environment\""
         + "target=\"_blank\">qx.core.Environment</a> with the values detected for "
         + "the currently used client.<br/>"
         + "Additional feature sets, e.g. from different browsers, can be added "
@@ -82,19 +83,16 @@ qx.Class.define("fce.view.HelpWindow", {
       container.add(p2);
 
       var p3 = new qx.ui.basic.Label("Individual key/value pairs can be added to "
-        + "the <strong>Selected Features</strong> list by double-clicking, "
-        + "clicking and dragging or by selecting them and using the &quot;right "
-        + "arrow&quot; button. When adding a feature to the selection, the "
-        + "value from the first table column to the right of the &quot;name&quot;"
-        + "column is used. Thus, the value to be added can be chosen by dragging "
-        + "the columns.");
+        + "the <strong>Selected Features</strong> list by double-taping, "
+        + "taping and dragging or by selecting them and using the &quot;right "
+        + "arrow&quot; button.");
       p3.setRich(true);
       container.add(p3);
 
       var p4 = new qx.ui.basic.Label("The <strong>Selected Features</strong> list"
         + " displays the selected environment settings and allows editing of their "
         + "values. Entries can be removed by selecting them and then either pressing "
-        + "the &quot;Del&quot; key or clicking the &quot;left arrow&quot; button.");
+        + "the &quot;Del&quot; key or taping the &quot;left arrow&quot; button.");
       p4.setRich(true);
       container.add(p4);
 

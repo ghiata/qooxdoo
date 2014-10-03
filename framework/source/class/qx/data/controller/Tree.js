@@ -31,7 +31,7 @@
  * * Synchronize the model and the target
  * * Label and icon are bindable
  * * Takes care of the selection
- * * Passes on the options used by the bindings
+ * * Passes on the options used by {@link qx.data.SingleValueBinding#bind}
  *
  * *Usage*
  *
@@ -51,6 +51,7 @@ qx.Class.define("qx.data.controller.Tree",
 {
   extend : qx.core.Object,
   include: qx.data.controller.MSelection,
+  implement : qx.data.controller.ISelection,
 
 
   /*
@@ -358,7 +359,7 @@ qx.Class.define("qx.data.controller.Tree",
     /**
      * Handler function taking care of the changes of the children array itself.
      *
-     * @param e {qx.event.Type.Data} Change event for the children property.
+     * @param e {qx.event.type.Data} Change event for the children property.
      */
     __changeChildrenArray: function(e) {
       var children = e.getData();
@@ -453,13 +454,14 @@ qx.Class.define("qx.data.controller.Tree",
 
       // only build up a new tree if a model is given
       if (this.getModel() != null) {
-        // add a new root node
+        // create a new root node
         var rootNode = this._createItem();
         rootNode.setModel(this.getModel());
-        this.getTarget().setRoot(rootNode);
         // bind the root node
         this.__addBinding(this.getModel(), rootNode);
         this.__updateTreeChildren(rootNode, this.getModel());
+        // assign the new root once the tree has been built
+        this.getTarget().setRoot(rootNode);
       }
     },
 
@@ -652,9 +654,11 @@ qx.Class.define("qx.data.controller.Tree",
      * implemented by the {@link #delegate} property.
      *
      * @param sourcePath {String | null} The path to the property in the model.
+     *   If you use an empty string, the whole model item will be bound.
      * @param targetPath {String} The name of the property in the target
      *   widget.
-     * @param options {Map | null} The options to use for the binding.
+     * @param options {Map | null} The options to use by
+     *  {@link qx.data.SingleValueBinding#bind} for the binding.
      * @param targetWidget {qx.ui.tree.core.AbstractTreeItem} The target widget.
      * @param modelNode {var} The model node which should be bound to the target.
      */
@@ -699,7 +703,8 @@ qx.Class.define("qx.data.controller.Tree",
      * @param targetPath {String | null} The path to the property in the model.
      * @param sourcePath {String} The name of the property in the target
      *   widget.
-     * @param options {Map | null} The options to use for the binding.
+     * @param options {Map | null} The options to use by
+     *   {@link qx.data.SingleValueBinding#bind} for the binding.
      * @param sourceWidget {qx.ui.tree.core.AbstractTreeItem} The source widget.
      * @param modelNode {var} The model node which should be bound to the target.
      */

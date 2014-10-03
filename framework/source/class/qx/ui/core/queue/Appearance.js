@@ -26,7 +26,7 @@ qx.Class.define("qx.ui.core.queue.Appearance",
 {
   statics :
   {
-    /** {Array} This contains all the queued widgets for the next flush. */
+    /** @type {Array} This contains all the queued widgets for the next flush. */
     __queue : [],
 
 
@@ -64,6 +64,7 @@ qx.Class.define("qx.ui.core.queue.Appearance",
      * Whether the given widget is already queued
      *
      * @param widget {qx.ui.core.Widget} The widget to check
+     * @return {Boolean} <code>true</code> if the widget is queued
      */
     has : function(widget) {
       return qx.lang.Array.contains(this.__queue, widget);

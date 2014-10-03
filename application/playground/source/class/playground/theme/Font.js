@@ -23,7 +23,7 @@
  */
 qx.Theme.define("playground.theme.Font",
 {
-  extend : qx.theme.modern.Font,
+  extend : qx.theme.indigo.Font,
 
   fonts :
   {
@@ -40,6 +40,23 @@ qx.Theme.define("playground.theme.Font",
           qx.core.Environment.get("os.version") == "vista"))) ?
         [ "Segoe UI", "Candara" ] :
         [ "Tahoma", "Liberation Sans", "Arial", "sans-serif" ]
+    },
+
+
+    "jsFiddle" :
+    {
+      size : 40,
+      family : ["serif"],
+      sources:
+      [
+        {
+          family : "JosefinSlab",
+          source: [
+            "qx/decoration/Indigo/font/JosefinSlab-SemiBold.woff",
+            "qx/decoration/Indigo/font/JosefinSlab-SemiBold.ttf"
+          ]
+        }
+      ]
     }
   }
 });

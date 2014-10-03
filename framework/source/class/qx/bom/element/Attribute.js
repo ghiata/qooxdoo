@@ -68,7 +68,7 @@
  * Supports applying text and HTML content using the attribute names
  * <code>text</code> and <code>html</code>.
  */
-qx.Class.define("qx.bom.element.Attribute",
+qx.Bootstrap.define("qx.bom.element.Attribute",
 {
   /*
   *****************************************************************************
@@ -139,7 +139,6 @@ qx.Class.define("qx.bom.element.Attribute",
         $$widget    : 1,
 
         // Native properties
-        disabled    : 1,
         checked     : 1,
         readOnly    : 1,
         multiple    : 1,
@@ -189,16 +188,6 @@ qx.Class.define("qx.bom.element.Attribute",
         disabled: 1,
         multiple: 1,
         maxLength: 1
-      },
-
-
-      // Use getAttribute(name, 2) for these to query for the real value, not
-      // the interpreted one.
-      original :
-      {
-        href : 1,
-        src  : 1,
-        type : 1
       }
     },
 
@@ -235,87 +224,46 @@ qx.Class.define("qx.bom.element.Attribute",
      * @param element {Element} The DOM element to query
      * @param name {String} Name of the attribute
      * @return {var} The value of the attribute
-     * @signature function(element, name)
      */
-    get : qx.core.Environment.select("engine.name",
+    get : function(element, name)
     {
-      "mshtml" : function(element, name)
+      var hints = this.__hints;
+      var value;
+
+      // normalize name
+      name = hints.names[name] || name;
+
+      // respect properties
+      if (hints.property[name])
       {
-        var hints = this.__hints;
-        var value;
+        value = element[name];
 
-        // normalize name
-        name = hints.names[name] || name;
-
-        // respect original values
-        // http://msdn2.microsoft.com/en-us/library/ms536429.aspx
-        if (hints.original[name]) {
-          value = element.getAttribute(name, 2);
-        }
-
-        // respect properties
-        else if (hints.property[name])
+        if (typeof hints.propertyDefault[name] !== "undefined" &&
+            value == hints.propertyDefault[name])
         {
-          value = element[name];
-
-          if (typeof hints.propertyDefault[name] !== "undefined" &&
-              value == hints.propertyDefault[name])
-          {
-            // only return null for all non-boolean properties
-            if (typeof hints.bools[name] === "undefined") {
-              return null;
-            } else {
-              return value;
-            }
+          // only return null for all non-boolean properties
+          if (typeof hints.bools[name] === "undefined") {
+            return null;
+          } else {
+            return value;
           }
-        } else { // fallback to attribute
-          value = element.getAttribute(name);
         }
+      } else { // fallback to attribute
+        value = element.getAttribute(name);
 
-        // TODO: Is this enough, what's about string false values?
-        if (hints.bools[name]) {
-          return !!value;
+        // All modern browsers interpret "" as true but not IE8, which set the property to "" reset
+        if (hints.bools[name] && !(qx.core.Environment.get("engine.name") == "mshtml" &&
+        parseInt(qx.core.Environment.get("browser.documentmode"), 10) <= 8 )) {
+          return qx.Bootstrap.isString(value); // also respect empty strings as true
         }
-
-        return value;
-      },
-
-      // currently supported by gecko, opera and webkit
-      "default" : function(element, name)
-      {
-        var hints = this.__hints;
-        var value;
-
-        // normalize name
-        name = hints.names[name] || name;
-
-        // respect properties
-        if (hints.property[name])
-        {
-          value = element[name];
-
-          if (typeof hints.propertyDefault[name] !== "undefined" &&
-              value == hints.propertyDefault[name])
-          {
-            // only return null for all non-boolean properties
-            if (typeof hints.bools[name] === "undefined") {
-              return null;
-            } else {
-              return value;
-            }
-          }
-        } else { // fallback to attribute
-          value = element.getAttribute(name);
-        }
-
-        // TODO: Is this enough, what's about string false values?
-        if (hints.bools[name]) {
-          return !!value;
-        }
-
-        return value;
       }
-    }),
+
+      if (hints.bools[name]) {
+        return !!value;
+      }
+
+      return value;
+    },
 
 
     /**
@@ -324,7 +272,6 @@ qx.Class.define("qx.bom.element.Attribute",
      * @param element {Element} The DOM element to modify
      * @param name {String} Name of the attribute
      * @param value {var} New value of the attribute
-     * @return {void}
      */
     set : function(element, name, value)
     {
@@ -338,8 +285,8 @@ qx.Class.define("qx.bom.element.Attribute",
       name = hints.names[name] || name;
 
       // respect booleans
-      if (hints.bools[name]) {
-        value = !!value;
+      if (hints.bools[name] && !qx.lang.Type.isBoolean(value)) {
+        value = qx.lang.Type.isString(value);
       }
 
       // apply attribute
@@ -380,7 +327,6 @@ qx.Class.define("qx.bom.element.Attribute",
      *
      * @param element {Element} The DOM element to modify
      * @param name {String} Name of the attribute
-     * @return {void}
      */
     reset : function(element, name) {
       this.set(element, name, null);

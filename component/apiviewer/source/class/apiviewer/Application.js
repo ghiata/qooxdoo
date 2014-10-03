@@ -23,12 +23,13 @@
 
 /* ************************************************************************
 
-#asset(apiviewer/*)
 
 ************************************************************************ */
 
 /**
  * Your apiviewer application
+ *
+ * @asset(apiviewer/*)
  */
 qx.Class.define("apiviewer.Application",
 {
@@ -37,7 +38,8 @@ qx.Class.define("apiviewer.Application",
   construct : function()
   {
     this.base(arguments);
-    qx.bom.Stylesheet.includeFile("apiviewer/css/apiviewer.css");
+    var uri = qx.util.ResourceManager.getInstance().toUri("apiviewer/css/apiviewer.css");
+    qx.bom.Stylesheet.includeFile(uri);
   },
 
   /*

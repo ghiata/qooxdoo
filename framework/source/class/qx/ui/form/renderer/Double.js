@@ -29,9 +29,9 @@ qx.Class.define("qx.ui.form.renderer.Double",
   {
     var layout = new qx.ui.layout.Grid();
     layout.setSpacing(6);
-    layout.setColumnAlign(0, "left", "top");
+    layout.setColumnAlign(0, "right", "top");
     layout.setColumnAlign(1, "left", "top");
-    layout.setColumnAlign(2, "left", "top");
+    layout.setColumnAlign(2, "right", "top");
     layout.setColumnAlign(3, "left", "top");
     this._setLayout(layout);
 
@@ -43,6 +43,16 @@ qx.Class.define("qx.ui.form.renderer.Double",
   {
     _row : 0,
     _buttonRow : null,
+
+
+    // overridden
+    _onFormChange : function() {
+      this._buttonRow.destroy();
+      this._buttonRow = null;
+      this._row = 0;
+      this.base(arguments);
+    },
+
 
     /**
      * Add a group of form items with the corresponding names. The names are
@@ -87,6 +97,7 @@ qx.Class.define("qx.ui.form.renderer.Double",
         this._row++;
       }
     },
+
 
     /**
      * Adds a button the form renderer. All buttons will be added in a
@@ -134,7 +145,7 @@ qx.Class.define("qx.ui.form.renderer.Double",
      */
     _createLabel : function(name, item) {
       var label = new qx.ui.basic.Label(this._createLabelText(name, item));
-      // store lables for disposal
+      // store labels for disposal
       this._labels.push(label);
       label.setRich(true);
       return label;
@@ -149,12 +160,13 @@ qx.Class.define("qx.ui.form.renderer.Double",
      */
     _createHeader : function(title) {
       var header = new qx.ui.basic.Label(title);
-      // store lables for disposal
+      // store labels for disposal
       this._labels.push(header);
       header.setFont("bold");
       if (this._row != 0) {
         header.setMarginTop(10);
       }
+      header.setAlignX("left");
       return header;
     }
   },

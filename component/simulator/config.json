@@ -24,6 +24,11 @@
   ],
 
   "default-job" : "simulation-build",
+  
+  "config-warnings" : 
+  {
+    "job-shadowing" : [ "simulation-run", "simulation-run-source", "translation" ]
+  },
 
   "let" :
   {
@@ -33,5 +38,13 @@
       "CACHE"        : "${TMPDIR}/qx${QOOXDOO_VERSION}/cache",
       "SIMULATION_INCLUDE" : "",
       "API_EXCLUDE" : ["qx.test.*"]
+  },
+
+  "jobs" :
+  {
+    "translation" :
+    {
+      "translate" : { "poentry-with-occurrences" : false  }
+    }
   }
 }

@@ -39,7 +39,7 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/widget/atom.html' target='_blank'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/widget/atom.html' target='_blank'>
  * Documentation of this widget in the qooxdoo manual.</a>
  *
  *
@@ -75,7 +75,7 @@ qx.Class.define("qx.ui.basic.Atom",
       this.setLabel(label);
     }
 
-    if (icon != null) {
+    if (icon !== undefined) {
       this.setIcon(icon);
     }
   },
@@ -149,7 +149,7 @@ qx.Class.define("qx.ui.basic.Atom",
 
     /**
      * Configure the visibility of the sub elements/widgets.
-     * Possible values: both, text, icon
+     * Possible values: both, label, icon
      */
     show :
     {
@@ -169,7 +169,7 @@ qx.Class.define("qx.ui.basic.Atom",
     iconPosition :
     {
       init   : "left",
-      check : [ "top", "right", "bottom", "left", "top-left", "bottom-left" ],
+      check : ["top", "right", "bottom", "left", "top-left", "bottom-left" , "top-right", "bottom-right"],
       themeable : true,
       apply : "_applyIconPosition"
     },
@@ -177,7 +177,12 @@ qx.Class.define("qx.ui.basic.Atom",
 
     /**
      * Whether the content should be rendered centrally when to much space
-     * is available. Affects both axis.
+     * is available. Enabling this property centers in both axis. The behavior
+     * when disabled of the centering depends on the {@link #iconPosition} property.
+     * If the icon position is <code>left</code> or <code>right</code>, the X axis
+     * is not centered, only the Y axis. If the icon position is <code>top</code>
+     * or <code>bottom</code>, the Y axis is not centered. In case of e.g. an
+     * icon position of <code>top-left</code> no axis is centered.
      */
     center :
     {

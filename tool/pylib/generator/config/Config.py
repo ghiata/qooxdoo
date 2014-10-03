@@ -21,13 +21,13 @@
 #
 ################################################################################
 
-import os, sys, re, types, string, copy
+import os, sys, re, types, string, copy, codecs
+import graph
+from copy import deepcopy
 from generator.config.Lang import Key, Let
 from generator.resource.Library import Library
 from generator.runtime.ShellCmd import ShellCmd
-from generator.action.ContribLoader import ContribLoader
 from generator.config.ConfigurationError import ConfigurationError
-from generator.config.Manifest import Manifest
 from misc.NameSpace import NameSpace
 from misc import json
 # see late imports at the bottom of this file
@@ -43,14 +43,16 @@ class Config(object):
         # init members
         self._console  = console_
         self._data     = None
+        self._rawdata  = None
         self._fname    = None
         self._shellCmd = ShellCmd()
         self._includedConfigs = []  # to record included configs
         self._shadowedJobs    = {}  # to record shadowed jobs, of the form {<shadowed_job_obj>: <shadowing_job_obj>}
 
         console = console_
-        
+
         # dispatch on argument
+
         if isinstance(data, (types.DictType, types.ListType)):
             #self._console.debug("Creating config from data")
             self.__init__data(data, path)
@@ -63,7 +65,7 @@ class Config(object):
         # make sure there is at least an empty jobs map (for later filling)
         if isinstance(self._data, types.DictType) and Key.JOBS_KEY not in self._data:
             self._data[Key.JOBS_KEY] = {}
-        
+
         # incorporate let macros from letkwargs
         if letKwargs:
             if not Key.LET_KEY in self._data:
@@ -96,17 +98,20 @@ class Config(object):
             e.args = (e.args[0] + "\nFile: %s" % fname,) + e.args[1:]
             raise e
 
-        self._data  = data
+        self._data = data
+        self._rawdata = deepcopy(data)
         self._fname = os.path.abspath(fname)
         self._dirname = os.path.dirname(self._fname)
 
-    
+
     def expandTopLevelKeys(self):
         if Key.LET_KEY in self._data:
             letDict = self._data[Key.LET_KEY]
         else:
-            letDict = {}
-        letDict.update(os.environ)             # include OS env - this is permanent!
+            letDict = self._data[Key.LET_KEY] = {}
+        #letDict.update(os.environ)             # include OS env - this is permanent!
+        if "QOOXDOO_PATH" in os.environ:
+            letDict["QOOXDOO_PATH"] = os.environ["QOOXDOO_PATH"]
         letObj = Let(letDict)                  # create a Let object from let map
         letObj.expandMacrosInLet()             # do self-expansion of macros
         for key in self._data:
@@ -117,6 +122,7 @@ class Config(object):
             else:
                 dat = letObj.expandMacros(self._data[key])
                 self._data[key] = dat
+
         return
 
 
@@ -143,12 +149,12 @@ class Config(object):
     def get(self, key, default=None, confmap=None):
         """Returns a (possibly nested) data element from dict <conf>
         """
-        
+
         if confmap:
             data = confmap
         else:
             data = self._data
-            
+
         if key in data:
             return data[key]
 
@@ -189,11 +195,17 @@ class Config(object):
 
         container[splits[-1]] = content
         return True
-        
 
+    ##
+    # Takes jobname or job object ref, and returns job object ref or default;
+    # searches recursively through imported configs
+    #
+    # @param job jobname|jobObj
+    # @param withIncludes
+    # @param default
+    # @return jobObj|default param
+    #
     def getJob(self, job, withIncludes=False, default=None):
-        ''' takes jobname or job object ref, and returns job object ref or default;
-            searches recursively through imported configs'''
 
         if isinstance(job, Job): # you already found it :)
             return job
@@ -237,20 +249,20 @@ class Config(object):
             return True
         else:
             return False
-        
+
     def getJobsMap(self, default=None):
         if Key.JOBS_KEY in self._data:
             return self._data[Key.JOBS_KEY]
         else:
             return default
-        
+
     def getJobsList(self):
         jM = self.getJobsMap([])
         return [x for x in jM.keys() if isinstance(jM[x], (types.DictType, Job))]
 
-    def getExportedJobsList(self):
+    def getExportedJobsList(self, bypassExports=False):
         expList = self.get('export', False)  # is there a dedicated list of exported jobs?
-        if isinstance(expList, types.ListType):
+        if isinstance(expList, types.ListType) and not bypassExports:
             netList = []
             for job in expList:
                 if self.getJob(job) == None:
@@ -301,7 +313,7 @@ class Config(object):
         for jobName in jobList:
             job = self.getJob(jobName)
             if not job:
-                raise RuntimeError, "No such job: \"%s\"" % jobname
+                raise RuntimeError, "No such job: \"%s\"" % jobName
             else:
                 job.cleanUpJob()
 
@@ -318,7 +330,6 @@ class Config(object):
             if key not in Key.TOP_LEVEL_KEYS.keys():
                 if key not in tl_ignored_keys:
                     self._console.warn("! Unknown top-level config key \"%s\" - ignored." % key)
-                #raise RuntimeError("! Unknown top-level config key \"%s\" - ignored." % key)
             # does it have a correct value type?
             elif not isinstance(configMap[key], Key.TOP_LEVEL_KEYS[key]):
                 self.raiseConfigError("Incorrect value for top-level config key \"%s\" (expected %s)" % (key, Key.TOP_LEVEL_KEYS[key]))
@@ -327,6 +338,8 @@ class Config(object):
         jobEntries = configMap[Key.JOBS_KEY]
         jobType    = types.DictType
         for jobentry in jobEntries:
+            if jobentry in Key.META_KEYS:
+                continue
             if not isinstance(jobEntries[jobentry], (jobType, Job)):
                 self.warnConfigError("! Not a valid job definition: \"%s\" - ignored." % jobentry)
                 continue
@@ -352,15 +365,16 @@ class Config(object):
     # external config are kept in a member of the current config, all their jobs
     # are available in their original form for later perusal (e.g. reference
     # lookup).
-    def resolveIncludes(self, includeTrace=[]):
+    def resolveIncludes(self, includeTree=graph.digraph()):
 
         console.debug("including %s" % (self._fname.decode('utf-8') or "<unknown>",))
         config  = self._data
         jobsmap = self.getJobsMap({})
 
         if self._fname:   # we stem from a file
-            includeTrace.append(self._fname)   # expand the include trace
-            
+            if self._fname not in includeTree:
+                includeTree.add_node(self._fname) # only for the top-level config - others will be inserted by the parent
+
         if 'include' in config:
             for i in range(len(config['include'])):
                 incspec = config['include'][i] # need this indirection so that later macro expansions in config['inlcude'] take effect
@@ -373,22 +387,23 @@ class Config(object):
                     raise RuntimeError, "Unknown include spec: %s" % repr(incspec)
 
                 fname = fname.encode('utf-8')
+                fapath = self.absPath(fname) # calculate path relative to config file
 
                 # cycle check
-                if os.path.abspath(fname) in includeTrace:
-                    raise RuntimeError, "Include config already seen: %s" % str(includeTrace+[os.path.abspath(fname)])
-                
-                # calculate path relative to config file if necessary
-                fpath = self.absPath(fname)
-        
+                includeTree.add_node(fapath)  # add the child
+                includeTree.add_edge(self._fname, fapath) # add edge to child
+                cycle_nodes = includeTree.find_cycle()
+                if cycle_nodes:
+                    raise RuntimeError("Detected circular inclusion of config files: %r" % cycle_nodes)
+
                 # see if we use a namespace prefix for the imported jobs
                 if isinstance(incspec, types.DictType) and 'as' in incspec:
                     namespace = incspec['as']
                 else:
                     namespace = ""
 
-                econfig = Config(self._console, fpath.decode('utf-8'))
-                econfig.resolveIncludes(includeTrace)   # recursive include
+                econfig = Config(self._console, fapath.decode('utf-8'))
+                econfig.resolveIncludes(includeTree)   # recursive include
                 # check include/import
                 if 'import' in incspec:
                     importList = incspec['import']
@@ -399,20 +414,26 @@ class Config(object):
                     blockList = incspec['block']
                 else:
                     blockList = None
-                self._integrateExternalConfig(econfig, namespace, importList, blockList)
+                # check include/bypass-export-list
+                if 'bypass-export-list' in incspec:
+                    bypassExports = incspec['bypass-export-list']
+                else:
+                    bypassExports = False
+                self._integrateExternalConfig(econfig, namespace, importList, blockList, bypassExports)
                 self._includedConfigs.append(econfig)  # save external config for later reference
 
 
     ##
     # Jobs of external config are spliced into current job list
-    def _integrateExternalConfig(self, extConfig, namespace, impJobsList=None, blockJobsList=None):
+    def _integrateExternalConfig(self, extConfig, namespace, impJobsList=None, 
+        blockJobsList=None, bypassExports=False):
 
         # Some helper functions
-        
+
         ##
         # Construct new job name for the imported job
         def createNewJobName(extJobEntry):
-            if (importJobsList and extJobEntry in importJobsList 
+            if (importJobsList and extJobEntry in importJobsList
                 and isinstance(importJobsList[extJobEntry], types.DictType)):
                 newjobname = namepfx + importJobsList[extJobEntry]['as']
             else:
@@ -441,7 +462,7 @@ class Config(object):
                 (clashCase.name not in jobMap[Key.OVERRIDE_KEY])):
                 # put shaddowed job in the local 'extend'
                 if not newJob:
-                    raise Error, "unsuitable new job"
+                    raise Exception, "unsuitable new job"
                 localjob = self.getJob(clashCase.name)
                 extList = localjob.getFeature('extend', [])
                 extList.append(newJob)
@@ -501,7 +522,7 @@ class Config(object):
 
         # Go through the list of jobs to import
         newList     = []
-        extJobsList = extConfig.getExportedJobsList()
+        extJobsList = extConfig.getExportedJobsList(bypassExports)
         for extJobEntry in extJobsList:
             # Checks and preparations
             if importJobsList and extJobEntry not in importJobsList:
@@ -509,7 +530,7 @@ class Config(object):
             if blockJobsList and extJobEntry in blockJobsList:
                 continue
             newjobname = createNewJobName(extJobEntry)
-            
+
             # Check for name clashes
             if self.hasJob(newjobname):
                 clashCase.name_clashed = True
@@ -537,7 +558,7 @@ class Config(object):
             # Now process a possible name clash
             if clashCase.name_clashed:
                 clashProcess(clashCase)
-        
+
         # Fix job references, but only for the jobs from the just imported config
         # go through the list of just added jobs again
         for job in newList:  # there is no easy way to get newList from other data
@@ -545,7 +566,7 @@ class Config(object):
             for key in Key.KEYS_WITH_JOB_REFS:
                 if job.hasFeature(key):
                     patchJobReferences(job, key, renamedJobs)
-        
+
         return
 
 
@@ -555,7 +576,7 @@ class Config(object):
         console.indent()
 
         # while there are still 'run' jobs or unresolved jobs in the job list...
-        while ([x for x in jobList if self.getJob(x).hasFeature(Key.RUN_KEY)] or 
+        while ([x for x in jobList if self.getJob(x).hasFeature(Key.RUN_KEY)] or
                [y for y in jobList if not self.getJob(y).hasFeature(Key.RESOLVED_KEY)]):
             jobList = self._resolveExtends(jobList)
             jobList = self._resolveRuns(jobList)
@@ -569,7 +590,7 @@ class Config(object):
     #
     # @param     self self
     # @param     jobs    (IN)  list of job names
-    # @return    jobs    (OUT) to have a similar interface as _resolveRuns, 
+    # @return    jobs    (OUT) to have a similar interface as _resolveRuns,
     #                    although the list is actually not modified here
     ##
     def _resolveExtends(self, jobNames):
@@ -579,13 +600,13 @@ class Config(object):
                 raise RuntimeError, "No such job: \"%s\"" % jobName
             else:
                 job.resolveExtend(cfg=self)
-        
+
         return jobNames    # return list unchanged
 
 
-    ##                                                                              
+    ##
     # _resolveRuns -- resolve the 'run' key in jobs
-    #                                                                               
+    #
     # @param     self     (IN) self
     # @param     jobs     (IN) list of names of jobs that might be 'run'-extended
     # @return    newjobs  (OUT) new list of jobs to run
@@ -593,7 +614,7 @@ class Config(object):
     #
     # DESCRIPTION
     #  The 'run' key of a job is a list of jobs to be run in its place, e.g.
-    #  'run' : ['jobA', 'jobB']. 
+    #  'run' : ['jobA', 'jobB'].
     #  If a job in the input list has an 'run' key this is done:
     #  - for each subjob in the 'run' list, a new job is created ("synthetic jobs")
     #  - the original job serves as a template for the synthetic job
@@ -615,7 +636,6 @@ class Config(object):
 
 
     def resolveLibs(self, jobs):
-        config  = self.get("jobs")
         console = self._console
 
         console.debug("Resolving libs/manifests...")
@@ -629,11 +649,16 @@ class Config(object):
                 console.debug("job '%s'" % jobObj.name)
                 console.indent()
                 if jobObj.hasFeature('library'):
-                    newlib = []
-                    seen   = []
-                    oldlib = jobObj.getFeature('library')
+                    newlib = []  # Library() objects
+                    oldlib = jobObj.getFeature('library')  # 'library' map entries
                     for lib in oldlib:
-                        libObj = Library(lib, self._console)
+                        if 'manifest' not in lib:
+                            self.raiseConfigError("Attribute 'manifest' is mandatory in config key 'library'")
+                        manipath = lib.get('manifest')
+                        if not manipath.startswith(("contrib://","http://","https://")):
+                            manipath = self.absPath(manipath)
+                        libObj = Library(manipath, self._console)  # fresh Library() object; Generator.py handles cached versions
+                        libObj.uri = lib.get('uri', None)
                         newlib.append(libObj)
 
                     jobObj.setFeature('library', newlib)
@@ -672,20 +697,20 @@ class Config(object):
         console.outdent()
 
 
-    def _download_contrib(self, libs, contrib, contribCache):
+    #def _download_contrib(self, libs, contrib, contribCache):
 
-        self._console.debug("Checking network-based contrib: %s" % contrib)
-        self._console.indent()
+    #    self._console.debug("Checking network-based contrib: %s" % contrib)
+    #    self._console.indent()
 
-        dloader = ContribLoader()
-        (updatedP, revNo) = dloader.download(contrib, contribCache)
+    #    dloader = ContribLoader()
+    #    (updatedP, revNo) = dloader.download(contrib, contribCache)
 
-        if updatedP:
-            self._console.info("downloaded contrib: %s" % contrib)
-        else:
-            self._console.debug("using cached version")
-        self._console.outdent()
-        return
+    #    if updatedP:
+    #        self._console.info("downloaded contrib: %s" % contrib)
+    #    else:
+    #        self._console.debug("using cached version")
+    #    self._console.outdent()
+    #    return
 
 
     def getConfigDir(self):
@@ -718,7 +743,7 @@ class Config(object):
         keyRegex = re.compile(keyPatt)
 
         for path, key in self.walk(self._data, "."):
-            if keyRegex.match(key):    
+            if keyRegex.match(key):
                 if mode=="rel":
                     yield key
                 else:
@@ -737,6 +762,27 @@ class Config(object):
                 for path1, key in self.walk(data[child], "/".join((path, child))):
                     yield path1, key
 
+    ##
+    # Schema for 'config.json'.
+    #
+    # @param customJobs list
+    # @return schema dict
+    #
+    def getSchema(self):
+        relPathToSchema = "/../../../data/config/config_schema.json"
+        schemaPath = os.path.abspath(os.path.dirname(__file__) + relPathToSchema)
+
+        try:
+            file = codecs.open(schemaPath, "r", "utf-8")
+            schema = json.loads(file.read())
+            file.close()
+        except Exception, e:
+            msg = "Reading of schema file failed: '%s'" % schemaPath + (
+                "\n%s" % e.args[0] if e.args else "")
+            e.args = (msg,) + e.args[1:]
+            raise
+
+        return schema
 
 # Late imports, for cross-importing
 from generator.config.Job import Job

@@ -51,6 +51,39 @@ qx.Class.define("qx.test.data.controller.Form",
     },
 
 
+    testSetModelNull : function() {
+      var c = new qx.data.controller.Form(this.__model, this.__form);
+
+      // set some values
+      this.__tf1.setValue("1111");
+      this.__tf2.setValue("2222");
+      this.__cb.setValue(true);
+
+      // set model to null
+      c.setModel(null);
+
+      // all values should be null as well
+      this.assertNull(this.__tf1.getValue());
+      this.assertNull(this.__tf2.getValue());
+      this.assertFalse(this.__cb.getValue());
+
+      c.dispose();
+    },
+
+
+    testInitialResetter : function() {
+      // create the controller which set the inital values and
+      // saves them for resetting
+      var c = new qx.data.controller.Form(this.__model, this.__form);
+
+      this.__tf2.setValue("affe");
+      this.__form.reset();
+      this.assertEquals(null, this.__tf2.getValue());
+
+      c.dispose();
+    },
+
+
     testUnidirectionalDeep: function() {
       this.__form.dispose();
       this.__form = new qx.ui.form.Form();
@@ -72,7 +105,7 @@ qx.Class.define("qx.test.data.controller.Form",
       c.updateModel();
       this.assertEquals("affee", model.getA().getTf2());
 
-      // distroy the controller
+      // destroy the controller
       c.dispose();
       model.dispose();
     },
@@ -520,6 +553,38 @@ qx.Class.define("qx.test.data.controller.Form",
       controller.dispose();
       tf1.destroy();
       tf2.destroy();
+      form.dispose();
+    },
+
+
+    testModelCreationWithList : function() {
+      var form = new qx.ui.form.Form();
+      var list = new qx.ui.form.List();
+      var i1 = new qx.ui.form.ListItem("A");
+      var i2 = new qx.ui.form.ListItem("B");
+      list.add(i1);
+      list.add(i2);
+
+      i1.setModel("A");
+      i2.setModel("B");
+
+      list.setSelection([]);
+
+      form.add(list, "list");
+
+      var controller = new qx.data.controller.Form(null, form);
+      var model = controller.createModel();
+
+      // check if the creation worked
+      this.assertNull(model.getList());
+      list.setSelection([i1]);
+      this.assertEquals("A", model.getList());
+
+      model.dispose();
+      controller.dispose();
+      list.destroy();
+      i1.destroy();
+      i2.destroy();
       form.dispose();
     },
 

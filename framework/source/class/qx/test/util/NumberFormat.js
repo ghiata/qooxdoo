@@ -17,10 +17,6 @@
 
 ************************************************************************ */
 
-/*
-#require qx.locale.data.de_DE
-*/
-
 qx.Class.define("qx.test.util.NumberFormat",
 {
   extend : qx.dev.unit.TestCase,
@@ -45,6 +41,41 @@ qx.Class.define("qx.test.util.NumberFormat",
       this.__nf.dispose();
     },
 
+    testNumberFormatConstructor: function() {
+      var wrongArgs = [null, undefined, NaN, Infinity, 1, {}, [], true],
+          correctArgs = ["de_DE"],
+          nf, i, len;
+
+      try {
+        nf = new qx.util.format.NumberFormat();
+      } catch (e) {
+        this.fail("Failed on an empty arguments list");
+      }
+
+      try {
+        nf = new qx.util.format.NumberFormat("de_DE", true);
+        this.fail("Did not fail on wrong arguments number");
+      } catch (e) {
+
+      }
+
+      for (i = 0, len= wrongArgs.length; i < len; i += 1) {
+        try {
+          nf = new qx.util.format.NumberFormat(wrongArgs[i]);
+          this.fail("A wrong argument did not raise an error: " + wrongArgs[i]);
+        } catch (e) {
+
+        }
+      }
+
+      for (i = 0, len= correctArgs.length; i < len; i += 1) {
+        try {
+          nf = new qx.util.format.NumberFormat(correctArgs[i]);
+        } catch (e) {
+          this.fail("A correct argument did raise an error: " + correctArgs[i]);
+        }
+      }
+    },
 
     testNumberFormat : function()
     {
@@ -77,9 +108,16 @@ qx.Class.define("qx.test.util.NumberFormat",
 
       var goodNumbers = {
         "1000" : 1000,
+        "-0,02" : -0.02,
+        "0,02" : 0.02,
+        ",02" : 0.02,
+        "-,02" : -0.02,
+        "+,02" : 0.02,
+        "-1.111.111,2" : -1111111.2,
         "-1.000.000" : -1000000,
         "+1.000,12" : 1000.12
-      }
+      };
+
       for (var number in goodNumbers) {
         this.assertEquals(nf.parse(number), goodNumbers[number]);
       }

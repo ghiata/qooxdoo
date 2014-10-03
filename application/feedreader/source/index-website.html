@@ -1,14 +1,27 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <title>qooxdoo &raquo; Feed Reader</title>
   <script type="text/javascript" src="script/feedreader-website.js"></script>
   <link href="resource/feedreader/css/website.css" rel="stylesheet" type="text/css">
+  <!--[if (gt IE 8)|!(IE)]><!-->
+    <link href='http://fonts.googleapis.com/css?family=Alike+Angular' rel='stylesheet' type='text/css'>
+  <!--<![endif]-->
+  <script type="text/javascript">
+  if (location.hostname === "demo.qooxdoo.org") {
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-415440-1']);
+    _gaq.push(['_setDomainName', 'qooxdoo.org']);
+    _gaq.push(['_trackPageview']);
 
-  <link href='http://fonts.googleapis.com/css?family=Alike+Angular' rel='stylesheet' type='text/css'>
-
-  <script type="text/javascript">if (location.hostname === "demo.qooxdoo.org") document.write('<script src="http://resources.qooxdoo.org/script/analytics.js" type="text/javascript"></scr' + 'ipt>');</script>
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  }
+  </script>
 </head>
 <body>
   <h1>Feed Reader</h1>
@@ -30,10 +43,7 @@
 
 
   <div id="tree-item" class="template">
-    <div>
-      <input type="radio" name="feeds" style="display: none;" id="{{id}}">
-      <label for="{{id}}" name="feedslabel" class="feed-item">{{title}}</label>
-    </div>
+    <div name="feedslabel" class="feed-item">{{title}}</div>
   </div>
 
 

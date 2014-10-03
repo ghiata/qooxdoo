@@ -18,12 +18,10 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#asset(qx/icon/${qx.icontheme}/48/devices/*)
-
-************************************************************************ */
-
+/**
+ * @asset(qx/icon/${qx.icontheme}/48/devices/*)
+ * @tag noPlayground
+ */
 qx.Class.define("demobrowser.demo.root.Inline_Dynamic_Resize",
 {
   extend : qx.application.Inline,
@@ -60,7 +58,7 @@ qx.Class.define("demobrowser.demo.root.Inline_Dynamic_Resize",
       for (var i=0; i<icons.length; i++)
       {
         slideBar.add((new qx.ui.basic.Image("icon/48/devices/" + icons[i])).set({
-          decorator: "group",
+          decorator: "main",
           padding: 4
         }));
       }

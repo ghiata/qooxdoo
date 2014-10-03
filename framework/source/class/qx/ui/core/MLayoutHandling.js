@@ -43,10 +43,9 @@ qx.Mixin.define("qx.ui.core.MLayoutHandling",
      *
      * @param layout {qx.ui.layout.Abstract} The new layout or
      *     <code>null</code> to reset the layout.
-     * @return {void}
      */
     setLayout : function(layout) {
-      return this._setLayout(layout);
+      this._setLayout(layout);
     },
 
 

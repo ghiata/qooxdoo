@@ -117,7 +117,9 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
       var widget = this.provider.getCellWidget(0,0);
 
       this.assertInstance(widget, qx.ui.tree.VirtualTreeItem);
-      this.assertTrue(widget.getUserData("cell.children"));
+      this.assertTrue(widget.hasChildren());
+      this.assertTrue(widget.getUserData("cell.showLeafs"));
+      this.assertTrue(widget.getUserData("cell.showLeafs"));
       this.assertEquals(0, widget.getUserData("cell.level"));
       this.assertTrue(widget.isOpen());
       this.assertTrue(widget.hasListener("changeOpen"));
@@ -125,7 +127,7 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
       this.assertCalledWith(spyBinding, widget, 0);
       this.assertCalledOnce(spySelection);
       this.assertCalledWith(spySelection, widget);
-      
+
       widget.dispose();
     },
 
@@ -137,7 +139,8 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
       var widget = this.provider.getCellWidget(1,0);
 
       this.assertInstance(widget, qx.ui.tree.VirtualTreeItem);
-      this.assertTrue(widget.getUserData("cell.children"));
+      this.assertFalse(widget.hasChildren());
+      this.assertTrue(widget.getUserData("cell.showLeafs"));
       this.assertEquals(1, widget.getUserData("cell.level"));
       this.assertFalse(widget.isOpen());
       this.assertTrue(widget.hasListener("changeOpen"));
@@ -145,7 +148,7 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
       this.assertCalledWith(spyBinding, widget, 1);
       this.assertCalledOnce(spySelection);
       this.assertCalledWith(spySelection, widget);
-      
+
       widget.dispose();
     },
 
@@ -157,7 +160,8 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
       var widget = this.provider.getCellWidget(3,0);
 
       this.assertInstance(widget, qx.ui.tree.VirtualTreeItem);
-      this.assertFalse(widget.getUserData("cell.children"));
+      this.assertFalse(widget.hasChildren());
+      this.assertTrue(widget.getUserData("cell.showLeafs"));
       this.assertEquals(1, widget.getUserData("cell.level"));
       this.assertFalse(widget.isOpen());
       this.assertTrue(widget.hasListener("changeOpen"));
@@ -165,7 +169,7 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
       this.assertCalledWith(spyBinding, widget, 3);
       this.assertCalledOnce(spySelection);
       this.assertCalledWith(spySelection, widget);
-      
+
       widget.dispose();
     },
 
@@ -182,7 +186,7 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
       this.assertCalledWith(spyPool, widget);
       this.assertCalledOnce(spyBinding);
       this.assertCalledWith(spyBinding, widget);
-      
+
       widget.dispose();
     },
 
@@ -204,7 +208,7 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
       this.assertEquals("Node1", widget.getIcon());
       this.assertEquals("virtual-tree-folder", widget.getAppearance());
       this.assertEquals(this.model.getKids().getItem(0), widget.getModel());
-      
+
       widget.dispose();
     },
 
@@ -219,7 +223,7 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
       this.assertEquals("Leaf1", widget.getIcon());
       this.assertEquals("virtual-tree-file", widget.getAppearance());
       this.assertEquals(this.model.getKids().getItem(2), widget.getModel());
-      
+
       widget.dispose();
     },
 
@@ -238,7 +242,7 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
 
       this.assertEquals(oldWidgetBindungs, newWidgetBindungs, "Binding on widget is not removed!");
       this.assertEquals(oldModelBindungs, newModelBindungs, "Binding on model is not removed!");
-      
+
       widget.dispose();
     },
 
@@ -258,7 +262,7 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
       var newModelBindungs = this.getLookupTable().getBindings().length;
       this.assertEquals(oldWidgetBindungs, newWidgetBindungs, "Binding on widget is not removed!");
       this.assertEquals(oldModelBindungs, newModelBindungs, "Binding on model is not removed!");
-      
+
       widget.dispose();
     },
 
@@ -285,7 +289,7 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
       this.assertEquals(oldWidget1Bindungs, newWidget1Bindungs, "Binding on first widget is not removed!");
       this.assertEquals(oldWidget1Bindungs, newWidget1Bindungs, "Binding on second widget is not removed!");
       this.assertEquals(oldModelBindungs, newModelBindungs, "Binding on model is not removed!");
-      
+
       widget1.dispose();
       widget2.dispose();
     },
@@ -376,6 +380,11 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
     },
 
 
+    isShowLeafs : function() {
+      return true;
+    },
+
+
     getSelection : function()
     {
       if (this.selection != null) {
@@ -443,7 +452,7 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
     hasChildren : function(node)
     {
       if (this.isNode(node)) {
-        return true;
+        return node.getKids().getLength() > 0;
       } else {
         return false;
       }
@@ -451,8 +460,10 @@ qx.Class.define("qx.test.ui.tree.virtual.WidgetProvider",
 
 
     openNode : function(node) {},
+    openNodeWithoutScrolling : function(node) {},
 
 
-    closeNode : function(node) {}
+    closeNode : function(node) {},
+    closeNodeWithoutScrolling : function(node) {}
   }
 });

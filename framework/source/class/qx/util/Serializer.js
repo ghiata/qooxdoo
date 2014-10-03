@@ -17,15 +17,11 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#ignore(qx.data.IListData)
-#ignore(qx.locale.LocalizedString)
-
-************************************************************************ */
-
 /**
  * This is an util class responsible for serializing qooxdoo objects.
+ *
+ * @ignore(qx.data, qx.data.IListData)
+ * @ignore(qx.locale, qx.locale.LocalizedString)
  */
 qx.Class.define("qx.util.Serializer",
 {
@@ -51,9 +47,13 @@ qx.Class.define("qx.util.Serializer",
     toUriParameter : function(object, qxSerializer, dateFormat)
     {
       var result = "";
-      var properties = qx.util.PropertyUtil.getProperties(object.constructor);
+      var properties = qx.util.PropertyUtil.getAllProperties(object.constructor);
 
       for (var name in properties) {
+        // ignore property groups
+        if (properties[name].group != undefined) {
+          continue;
+        }
         var value = object["get" + qx.lang.String.firstUp(name)]();
 
         // handle arrays
@@ -63,7 +63,7 @@ qx.Class.define("qx.util.Serializer",
           for (var i = 0; i < value.length; i++) {
             var valueAtI = isdataArray ? value.getItem(i) : value[i];
             result += this.__toUriParameter(name, valueAtI, qxSerializer);
-          };
+          }
         } else if (qx.lang.Type.isDate(value) && dateFormat != null) {
           result += this.__toUriParameter(
             name, dateFormat.format(value), qxSerializer
@@ -87,6 +87,15 @@ qx.Class.define("qx.util.Serializer",
      */
     __toUriParameter : function(name, value, qxSerializer)
     {
+
+      if (value && value.$$type == "Class") {
+        value = value.classname;
+      }
+
+      if (value && (value.$$type == "Interface" || value.$$type == "Mixin")) {
+        value = value.name;
+      }
+
       if (value instanceof qx.core.Object && qxSerializer != null) {
         var encValue = encodeURIComponent(qxSerializer(value));
         if (encValue === undefined) {
@@ -153,6 +162,16 @@ qx.Class.define("qx.util.Serializer",
         }
 
         return result;
+      }
+
+      // return names for qooxdoo classes
+      if (object.$$type == "Class") {
+        return object.classname;
+      }
+
+      // return names for qooxdoo interfaces and mixins
+      if (object.$$type == "Interface" || object.$$type == "Mixin") {
+        return object.name;
       }
 
       // qooxdoo object
@@ -227,11 +246,11 @@ qx.Class.define("qx.util.Serializer",
      * Serializes the properties of the given qooxdoo object into a json object.
      *
      * @param object {qx.core.Object} Any qooxdoo object
-     * @param qxSerializer {Function} Function used for serializing qooxdoo
+     * @param qxSerializer {Function?} Function used for serializing qooxdoo
      *   objects stored in the propertys of the object. Check for the type of
      *   classes <ou want to serialize and return the serialized value. In all
      *   other cases, just return nothing.
-     * @param dateFormat {qx.util.format.DateFormat} If a date formater is given,
+     * @param dateFormat {qx.util.format.DateFormat?} If a date formater is given,
      *   the format method of this given formater is used to convert date
      *   objects into strings.
      * @return {String} The serialized object.
@@ -268,6 +287,17 @@ qx.Class.define("qx.util.Serializer",
         return result + "]";
       }
 
+      // return names for qooxdoo classes
+      if (object.$$type == "Class") {
+        return '"' + object.classname + '"';
+      }
+
+      // return names for qooxdoo interfaces and mixins
+      if (object.$$type == "Interface" || object.$$type == "Mixin") {
+        return '"' + object.name + '"';
+      }
+
+
       // qooxdoo object
       if (object instanceof qx.core.Object) {
         if (qxSerializer != null) {
@@ -279,7 +309,7 @@ qx.Class.define("qx.util.Serializer",
           // continue otherwise
         }
         result += "{";
-        var properties = qx.util.PropertyUtil.getProperties(object.constructor);
+        var properties = qx.util.PropertyUtil.getAllProperties(object.constructor);
         for (var name in properties) {
           // ignore property groups
           if (properties[name].group != undefined) {
@@ -295,7 +325,7 @@ qx.Class.define("qx.util.Serializer",
       }
 
       // localized strings
-      if (object instanceof qx.locale.LocalizedString) {
+      if (qx.locale && qx.locale.LocalizedString && object instanceof qx.locale.LocalizedString) {
         object = object.toString();
         // no return here because we want to have the string checks as well!
       }

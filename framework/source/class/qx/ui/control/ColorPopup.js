@@ -125,6 +125,7 @@ qx.Class.define("qx.ui.control.ColorPopup",
     __boxes : null,
     __colorSelectorWindow : null,
     __colorSelector : null,
+    __buttonBar : null,
     __recentTableId : "recent",
     __fieldNumber : 12,
 
@@ -138,9 +139,9 @@ qx.Class.define("qx.ui.control.ColorPopup",
       {
         case "field":
           control = new qx.ui.core.Widget;
-          control.addListener("mousedown", this._onFieldMouseDown, this);
-          control.addListener("mouseover", this._onFieldMouseOver, this);
-          control.addListener("mouseout", this._onFieldMouseOut, this);
+          control.addListener("pointerdown", this._onFieldPointerDown, this);
+          control.addListener("pointerover", this._onFieldPointerOver, this);
+          control.addListener("pointerout", this._onFieldPointerOut, this);
           break;
 
         case "auto-button":
@@ -245,17 +246,17 @@ qx.Class.define("qx.ui.control.ColorPopup",
       win.setResizable(false);
       win.moveTo(20, 20);
 
-      this.__colorSelector = new qx.ui.control.ColorSelector;
+      this.__colorSelector = new qx.ui.control.ColorSelector();
       win.add(this.__colorSelector);
 
-      var buttonBar = new qx.ui.container.Composite(new qx.ui.layout.HBox(8, "right"));
-      win.add(buttonBar);
+      this.__buttonBar = new qx.ui.container.Composite(new qx.ui.layout.HBox(8, "right"));
+      win.add(this.__buttonBar);
 
       var btnCancel = this._createChildControl("colorselector-cancelbutton");
       var btnOk = this._createChildControl("colorselector-okbutton");
 
-      buttonBar.add(btnCancel);
-      buttonBar.add(btnOk);
+      this.__buttonBar.add(btnCancel);
+      this.__buttonBar.add(btnOk);
     },
 
 
@@ -342,12 +343,12 @@ qx.Class.define("qx.ui.control.ColorPopup",
     */
 
     /**
-     * Listener of mousedown event on a color field. Sets the ColorPoup's value
+     * Listener of pointerdown event on a color field. Sets the ColorPoup's value
      * to field's color value and paint the preview pane.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onFieldMouseDown : function(e)
+    _onFieldPointerDown : function(e)
     {
       var vValue = this.getChildControl("current-preview").getBackgroundColor();
       this.setValue(vValue);
@@ -359,29 +360,29 @@ qx.Class.define("qx.ui.control.ColorPopup",
 
 
     /**
-     * Listener of mousemove event on a color field. Sets preview pane's
+     * Listener of pointermove event on a color field. Sets preview pane's
      * background color to the field's color value.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onFieldMouseOver : function(e) {
+    _onFieldPointerOver : function(e) {
       this.getChildControl("current-preview").setBackgroundColor(e.getTarget().getBackgroundColor());
     },
 
     /**
-     * Listener of mouseout event on a color field. Reset the preview pane's
+     * Listener of pointerout event on a color field. Reset the preview pane's
      * background color to the old color value.
      *
-     * @param e {qx.event.type.Mouse} Incoming event object
+     * @param e {qx.event.type.Pointer} Incoming event object
      */
-    _onFieldMouseOut : function(e) {
+    _onFieldPointerOut : function(e) {
       var red = this.getRed();
       var green = this.getGreen();
       var blue = this.getBlue();
       var color = null;
 
       if (red !== null || green !== null || blue !== null) {
-        var color = qx.util.ColorUtil.rgbToRgbString([red, green, blue]);
+        color = qx.util.ColorUtil.rgbToRgbString([red, green, blue]);
       }
 
       this.getChildControl("current-preview").setBackgroundColor(color);
@@ -463,7 +464,7 @@ qx.Class.define("qx.ui.control.ColorPopup",
         var color = null;
 
         if (red !== null || green !== null || blue !== null) {
-          var color = qx.util.ColorUtil.rgbToRgbString([red, green, blue]);
+          color = qx.util.ColorUtil.rgbToRgbString([red, green, blue]);
         }
 
         this.getChildControl("selected-preview").setBackgroundColor(color);
@@ -478,13 +479,13 @@ qx.Class.define("qx.ui.control.ColorPopup",
     {
       core :
       {
-        label : "Basic Colors",
+        label : qx.locale.Manager.tr("Basic Colors"),
         values : [ "#000", "#333", "#666", "#999", "#CCC", "#FFF", "red", "green", "blue", "yellow", "teal", "maroon" ]
       },
 
       recent :
       {
-        label : "Recent Colors",
+        label : qx.locale.Manager.tr("Recent Colors"),
         values : [ ]
       }
     }
@@ -499,7 +500,11 @@ qx.Class.define("qx.ui.control.ColorPopup",
 
   destruct : function()
   {
-    this._disposeObjects("__colorSelectorWindow", "__colorSelector");
+    if (this.__colorSelectorWindow) {
+      this.__colorSelectorWindow.destroy();
+      this.__colorSelector.destroy();
+      this.__buttonBar.destroy();
+    }
     this._tables = this.__boxes = null;
   }
 });

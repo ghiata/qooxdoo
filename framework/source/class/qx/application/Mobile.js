@@ -16,18 +16,12 @@
      * Tino Butz (tbtz)
 
 ************************************************************************ */
-/* ************************************************************************
-
-#asset(qx/mobile/js)
-#asset(qx/mobile/css)
-
-************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * For a mobile application. Supports the mobile widget set.
  *
+ * @require(qx.core.Init)
+ * @asset(qx/mobile/css/*)
  */
 qx.Class.define("qx.application.Mobile",
 {
@@ -36,18 +30,38 @@ qx.Class.define("qx.application.Mobile",
   include : qx.locale.MTranslation,
 
 
- /*
-  *****************************************************************************
-     CONSTRUCTOR
-  *****************************************************************************
-  */
-
   construct : function()
   {
     this.base(arguments);
   },
 
 
+  /*
+  *****************************************************************************
+     EVENTS
+  *****************************************************************************
+  */
+
+  events :
+  {
+    /** Fired when the lifecycle method {@link #start} of any {@link qx.ui.mobile.page.Page page} is called */
+    "start" : "qx.event.type.Event",
+
+
+    /** Fired when the lifecycle method {@link #stop} of any {@link qx.ui.mobile.page.Page page} is called */
+    "stop" : "qx.event.type.Event",
+
+
+    /**
+     * Fired when the method {@link qx.ui.mobile.page.Page#back} is called. Data indicating
+     * whether the action was triggered by a key event or not.
+     */
+    "back" : "qx.event.type.Data",
+
+
+    /** Fired when a {@link qx.ui.mobile.dialog.Popup popup} appears on screen. */
+    "popup" : "qx.event.type.Event"
+  },
 
 
   /*
@@ -56,9 +70,11 @@ qx.Class.define("qx.application.Mobile",
   *****************************************************************************
   */
 
+
   members :
   {
     __root : null,
+    __routing : null,
 
 
     // interface method
@@ -79,6 +95,19 @@ qx.Class.define("qx.application.Mobile",
      */
     getRoot : function() {
       return this.__root;
+    },
+
+
+    /**
+     * Returns the application's routing.
+     *
+     * @return {qx.application.Routing} The application's routing.
+     */
+    getRouting : function() {
+      if(!this.__routing) {
+        this.__routing = new qx.application.Routing();
+      }
+      return this.__routing;
     },
 
 
@@ -116,16 +145,8 @@ qx.Class.define("qx.application.Mobile",
   },
 
 
-
-
- /*
-  *****************************************************************************
-     DESTRUCTOR
-  *****************************************************************************
-  */
-
   destruct : function()
   {
-    this.__root = null;
+    this.__root = this.__routing = null;
   }
 });

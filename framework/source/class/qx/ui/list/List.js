@@ -66,12 +66,12 @@ qx.Class.define("qx.ui.list.List",
 {
   extend : qx.ui.virtual.core.Scroller,
   include : [qx.ui.virtual.selection.MModel],
-
+  implement : qx.data.controller.ISelection,
 
   /**
    * Creates the <code>qx.ui.list.List</code> with the passed model.
    *
-   * @param model {qx.data.Array|null} model for the list.
+   * @param model {qx.data.IListData|null} model for the list.
    */
   construct : function(model)
   {
@@ -127,7 +127,7 @@ qx.Class.define("qx.ui.list.List",
     /** Data array containing the data which should be shown in the list. */
     model :
     {
-      check : "qx.data.Array",
+      check : "qx.data.IListData",
       apply : "_applyModel",
       event: "changeModel",
       nullable : true,
@@ -256,58 +256,58 @@ qx.Class.define("qx.ui.list.List",
 
   members :
   {
-    /** {qx.ui.virtual.layer.Row} background renderer */
+    /** @type {qx.ui.virtual.layer.Row} background renderer */
     _background : null,
 
 
-    /** {qx.ui.list.provider.IListProvider} provider for cell rendering */
+    /** @type {qx.ui.list.provider.IListProvider} provider for cell rendering */
     _provider : null,
 
 
-    /** {qx.ui.virtual.layer.Abstract} layer which contains the items. */
+    /** @type {qx.ui.virtual.layer.Abstract} layer which contains the items. */
     _layer : null,
 
 
     /**
-     * {Array} lookup table to get the model index from a row. To get the
-     * correct value after applying filter, sorter, group.
+     * @type {Array} lookup table to get the model index from a row. To get the
+     *   correct value after applying filter, sorter, group.
      *
      * Note the value <code>-1</code> indicates that the value is a group item.
      */
     __lookupTable : null,
 
 
-    /** {Array} lookup table for getting the group index from the row */
+    /** @type {Array} lookup table for getting the group index from the row */
     __lookupTableForGroup : null,
 
 
     /**
-     * {Map} contains all groups with the items as children. The key is
-     * the group name and the value is an <code>Array</code> containing each
-     * item's model index.
+     * @type {Map} contains all groups with the items as children. The key is
+     *   the group name and the value is an <code>Array</code> containing each
+     *   item's model index.
      */
     __groupHashMap : null,
 
 
     /**
-     * {Boolean} indicates when one or more <code>String</code> are used for grouping.
+     * @type {Boolean} indicates when one or more <code>String</code> are used for grouping.
      */
     __groupStringsUsed : false,
 
 
     /**
-     * {Boolean} indicates when one or more <code>Object</code> are used for grouping.
+     * @type {Boolean} indicates when one or more <code>Object</code> are used for grouping.
      */
     __groupObjectsUsed : false,
 
 
     /**
-     * {Boolean} indicates when a default group is used for grouping.
+     * @type {Boolean} indicates when a default group is used for grouping.
      */
     __defaultGroupUsed : false,
-    
+
     __defaultGroups : null,
-    
+
 
     /**
      * Trigger a rebuild from the internal data structure.
@@ -491,11 +491,11 @@ qx.Class.define("qx.ui.list.List",
     _applyModel : function(value, old)
     {
       if (value != null) {
-        value.addListener("change", this._onModelChange, this);
+        value.addListener("changeLength", this._onModelChange, this);
       }
 
       if (old != null) {
-        old.removeListener("change", this._onModelChange, this);
+        old.removeListener("changeLength", this._onModelChange, this);
       }
 
       this._provider.removeBindings();
@@ -797,13 +797,23 @@ qx.Class.define("qx.ui.list.List",
 
   destruct : function()
   {
+    var model = this.getModel();
+    if (model != null) {
+      model.removeListener("changeLength", this._onModelChange, this);
+    }
+
+    var pane = this.getPane()
+    if (pane != null) {
+      pane.removeListener("resize", this._onResize, this);
+    }
+
     this._background.dispose();
     this._provider.dispose();
     this._layer.dispose();
     this._background = this._provider = this._layer =
       this.__lookupTable = this.__lookupTableForGroup =
       this.__groupHashMap = null;
-    
+
     if (this.__defaultGroups) {
       this.__defaultGroups.dispose();
     }

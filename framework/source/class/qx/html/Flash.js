@@ -58,21 +58,21 @@ qx.Class.define("qx.html.Flash",
   members :
   {
 
-    /** {Map} The attributes for the Flash movie. */
+    /** @type {Map} The attributes for the Flash movie. */
     __params : null,
 
-    /** {Map} the attributes for the object tag */
+    /** @type {Map} the attributes for the object tag */
     __attributes : null,
 
-    /** {Map} The <code>FlashVars</code> to pass variables to the Flash movie. */
+    /** @type {Map} The <code>FlashVars</code> to pass variables to the Flash movie. */
     __variables : null,
 
-    /** {qx.bom.Flash} The DOM Flash element. */
+    /** @type {qx.bom.Flash} The DOM Flash element. */
     __flash : null,
 
     // overridden
     _createDomElement : function() {
-      return qx.bom.Element.create("div");
+      return qx.dom.Element.create("div");
     },
 
     /**
@@ -177,7 +177,10 @@ qx.Class.define("qx.html.Flash",
         }
       }
 
-      if (this.__flash) {
+      if (key == "$$widget" || key.indexOf("$$") === 0) {
+        this.base(arguments, key, value);
+      }
+      else if (this.__flash) {
         throw new Error("The attributes cannot be modified after initial creation");
       }
 

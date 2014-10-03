@@ -19,14 +19,13 @@
 
 /* ************************************************************************
 
-#asset(mobiletweets/css/styles.css)
-#asset(qx/mobile/icon/android/*)
-#asset(qx/mobile/icon/ios/*)
 
 ************************************************************************ */
 
 /**
  * This is the main application class of your custom application "mobiletweets"
+ *
+ * @asset(mobiletweets/css/styles.css)
  */
 qx.Class.define("mobiletweets.Application",
 {
@@ -36,7 +35,7 @@ qx.Class.define("mobiletweets.Application",
   properties :
   {
     /** Holds all feeds of a user */
-    tweets : 
+    tweets :
     {
       check : "qx.data.Array",
       nullable : true,
@@ -51,7 +50,7 @@ qx.Class.define("mobiletweets.Application",
     {
       check : "String",
       nullable : false,
-      init : null,
+      init : "",
       event : "changeUsername",
       apply : "_applyUsername" // this method will be called when the property is set
     }
@@ -69,7 +68,7 @@ qx.Class.define("mobiletweets.Application",
     __inputPage : null,
 
     /**
-     * This method contains the initial application code and gets called 
+     * This method contains the initial application code and gets called
      * during startup of the application
      */
     main : function()
@@ -93,8 +92,16 @@ qx.Class.define("mobiletweets.Application",
       -------------------------------------------------------------------------
       */
 
+      // Create a manager in mobile device context >> "false"
+      var manager = new qx.ui.mobile.page.Manager(false);
+
       // Create an instance of the Input class and initial show it
       var inputPage = this.__inputPage = new mobiletweets.page.Input();
+
+      // Add page to manager
+      manager.addDetail(inputPage);
+
+      // Display inputPage on start
       inputPage.show();
 
       // Create an instance of the Tweets class and establish data bindings
@@ -102,8 +109,14 @@ qx.Class.define("mobiletweets.Application",
       this.bind("tweets", tweetsPage, "tweets");
       this.bind("username", tweetsPage, "title");
 
+      // Add page to manager
+      manager.addDetail(tweetsPage);
+
       // Create an instance of the Tweet class
-      var tweetPage = new mobiletweets.page.Tweet();
+      var tweetPage = new mobiletweets.page.TweetDetail();
+
+      // Add page to manager
+      manager.addDetail(tweetPage);
 
       // Load the tweets and show the tweets page
       inputPage.addListener("requestTweet", function(evt) {
@@ -120,12 +133,16 @@ qx.Class.define("mobiletweets.Application",
 
       // Return to the Input page
       tweetsPage.addListener("back", function(evt) {
-        inputPage.show({reverse:true});
+        inputPage.show({
+          reverse: true
+        });
       }, this);
 
       // Return to the Tweets Page.
       tweetPage.addListener("back", function(evt) {
-        tweetsPage.show({reverse:true});
+        tweetsPage.show({
+          reverse: true
+        });
       }, this);
     },
 
@@ -134,7 +151,8 @@ qx.Class.define("mobiletweets.Application",
     _applyUsername : function(value, old) {
       this.__loadTweets();
     },
-    
+
+    // property apply
     _applyTweets : function(value, old) {
       // print the loaded data in the console
       this.debug("Tweets: ", qx.lang.Json.stringify(value)); // just display the data
@@ -146,19 +164,24 @@ qx.Class.define("mobiletweets.Application",
      */
     __loadTweets : function()
     {
-      // Public Twitter Tweets API
-      var url = "http://twitter.com/statuses/user_timeline/" + this.getUsername() + ".json";
+      // Mocked Identica Tweets API
       // Create a new JSONP store instance with the given url
-      var store = new qx.data.store.Jsonp(url);
+      var url = "http://demo.qooxdoo.org/" + qx.core.Environment.get("qx.version") + "/tweets_step4.5/resource/tweets/service.js";
+
+      var store = new qx.data.store.Jsonp();
+      store.setCallbackName("callback");
+      store.setUrl(url);
+
       // Use data binding to bind the "model" property of the store to the "tweets" property
       store.bind("model", this, "tweets");
+    },
 
-      // Some error handling
-      store.addListener("error", function(evt) {
-        var data = evt.getData();
-        qx.ui.mobile.dialog.Manager.getInstance().alert("Error", "Error loading the tweets for user " + this.getUsername());
-        this.__inputPage.show({reverse:true});
-      }, this);
+
+    /**
+     * Shows the input page of the application.
+     */
+    __showStartPage : function() {
+      this.__inputPage.show({reverse:true});
     }
   }
 });

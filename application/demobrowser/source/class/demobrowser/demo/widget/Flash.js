@@ -19,11 +19,14 @@
 
 /* ************************************************************************
 
-#asset(demobrowser/demo/flash/fo_tester.swf)
-#asset(demobrowser/demo/flash/TestFlash.swf)
-#asset(demobrowser/demo/flash/FlashVersion.swf)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(demobrowser/demo/flash/fo_tester.swf)
+ * @asset(demobrowser/demo/flash/TestFlash.swf)
+ * @asset(demobrowser/demo/flash/FlashVersion.swf)
+ */
 qx.Class.define("demobrowser.demo.widget.Flash",
 {
   extend : qx.application.Standalone,
@@ -194,6 +197,9 @@ qx.Class.define("demobrowser.demo.widget.Flash",
       this.__messageFromFlash.setValue(message);
     },
 
+    /**
+     * @lint ignoreDeprecated(alert)
+     */
     initFlash : function()
     {
       if (this.__flash.getFlashElement().setup)

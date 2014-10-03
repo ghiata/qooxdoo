@@ -39,7 +39,8 @@ qx.Class.define("feedreader.view.mobile.OverviewPage",
     feeds : {
       event : "changeFeeds",
       init : null,
-      apply : "_applyFeeds"
+      apply : "_applyFeeds",
+      nullable : true
     },
 
 
@@ -70,23 +71,43 @@ qx.Class.define("feedreader.view.mobile.OverviewPage",
         configureItem : function(item, data)
         {
           item.setTitle(data.getTitle());
-          item.setShowArrow(true);
+          item.setSubtitle(data.getState());
+
+          var state = data.getState();
+          if(state=="loading") {
+            item.setShowArrow(false);
+            item.setSubtitle("Feed is loading...");
+          } else {
+            item.setShowArrow(true);
+            item.setSubtitle(data.getArticles().getLength()+" items available");
+          }
         }
       });
 
       this.__list.addListener("changeSelection", function(e) {
         var item = this.__predefinedFeeds.getItem(e.getData());
-        this.setSelectedFeed(item);
+
+        var state = item.getState();
+        if(state!="loading") {
+          this.setSelectedFeed(item);
+        }
       }, this);
 
       this.getContent().add(this.__list);
     },
 
 
-    // property apply
+    /**
+     * property apply
+     * @lint ignoreUnused(old)
+     */
     _applyFeeds : function(value, old) {
-      this.__predefinedFeeds = value.getFeeds().getItem(0).getFeeds();
-      this.__list.setModel(this.__predefinedFeeds);
+      if(value != null){
+        this.__predefinedFeeds = value.getFeeds().getItem(0).getFeeds();
+        this.__list.setModel(this.__predefinedFeeds);
+      } else {
+        this.__list.setModel(null);
+      }
     }
   }
 });

@@ -8,22 +8,16 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
- * If you have added resources to your app, remove the leading '*' in the 
- * following line to make use of them.
- 
- * #asset(${Namespace}/*)
-
-************************************************************************ */
-
 /**
  * This is the main application class of your custom application "${Name}"
+ *
+ * If you have added resources to your app, remove the first '@' in the
+ * following line to make use of them.
+ * @@asset(${Namespace}/*)
  */
 qx.Class.define("${Namespace}.Application",
 {
   extend : qx.application.Native,
-
-
 
   /*
   *****************************************************************************
@@ -34,7 +28,7 @@ qx.Class.define("${Namespace}.Application",
   members :
   {
     /**
-     * This method contains the initial application code and gets called 
+     * This method contains the initial application code and gets called
      * during startup of the application
      */
     main : function()
@@ -56,24 +50,24 @@ qx.Class.define("${Namespace}.Application",
         Below is your actual application code...
       -------------------------------------------------------------------------
       */
-      
-      var logger = qx.bom.Element.create("div");
+
+      var logger = qx.dom.Element.create("div");
       var loggerStyles = {
         "width" : "80%",
         "height" : "250px",
         "border" : "1px solid lightgrey",
         "overflow" : "auto"
-      };      
+      };
       qx.bom.element.Style.setStyles(logger, loggerStyles);
-      document.body.appendChild(logger);      
-      
+      document.body.appendChild(logger);
+
       // indicate startup
-      logger.innerHTML += "Application ready ...<br/>"; 
+      logger.innerHTML += "Application ready ...<br/>";
 
       qx.bom.Element.addListener(document.body, "keydown", function(e) {
         logger.innerHTML += e.getKeyIdentifier() + "<br>";
       });
-            
+
     }
   }
 });

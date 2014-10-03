@@ -118,7 +118,7 @@ qx.Class.define("qx.io.remote.transport.Script",
 
     /**
      * Returns always true, because script transport is supported by all browsers.
-     *
+     * @return {Boolean} <code>true</code>
      */
     isSupported : function() {
       return true;
@@ -135,7 +135,7 @@ qx.Class.define("qx.io.remote.transport.Script",
 
     /**
      * For reference:
-     * http://msdn.microsoft.com/workshop/author/dhtml/reference/properties/readyState_1.asp
+     * http://msdn.microsoft.com/en-us/library/ie/ms534359%28v=vs.85%29.aspx
      *
      * @internal
      */
@@ -167,7 +167,7 @@ qx.Class.define("qx.io.remote.transport.Script",
       {
         if (qx.core.Environment.get("qx.debug"))
         {
-          if (qx.core.Environment.get("qx.ioRemoteDebug")) {
+          if (qx.core.Environment.get("qx.debug.io.remote")) {
             this.warn("Request finished for an unknown instance (probably aborted or timed out before)");
           }
         }
@@ -205,7 +205,6 @@ qx.Class.define("qx.io.remote.transport.Script",
     /**
      * Sends the request using "script" elements
      *
-     * @return {void}
      */
     send : function()
     {
@@ -263,7 +262,7 @@ qx.Class.define("qx.io.remote.transport.Script",
 
       if (qx.core.Environment.get("qx.debug"))
       {
-        if (qx.core.Environment.get("qx.ioRemoteDebugData"))
+        if (qx.core.Environment.get("qx.debug.io.remote.data"))
         {
           this.debug("Request: " + vUrl);
         }
@@ -277,7 +276,6 @@ qx.Class.define("qx.io.remote.transport.Script",
      * Switches the readystate by setting the internal state.
      *
      * @param vReadyState {String} readystate value
-     * @return {void}
      */
     _switchReadyState : function(vReadyState)
     {
@@ -314,7 +312,6 @@ qx.Class.define("qx.io.remote.transport.Script",
      *
      * @param vLabel {String} Request header name
      * @param vValue {var} Request header value
-     * @return {void}
      */
     setRequestHeader : function(vLabel, vValue) {},
 
@@ -400,7 +397,7 @@ qx.Class.define("qx.io.remote.transport.Script",
       {
         if (qx.core.Environment.get("qx.debug"))
         {
-          if (qx.core.Environment.get("qx.ioRemoteDebug")) {
+          if (qx.core.Environment.get("qx.debug.io.remote")) {
             this.warn("Transfer not complete, ignoring content!");
           }
         }
@@ -410,7 +407,7 @@ qx.Class.define("qx.io.remote.transport.Script",
 
       if (qx.core.Environment.get("qx.debug"))
       {
-        if (qx.core.Environment.get("qx.ioRemoteDebug")) {
+        if (qx.core.Environment.get("qx.debug.io.remote")) {
           this.debug("Returning content for responseType: " + this.getResponseType());
         }
       }
@@ -423,7 +420,7 @@ qx.Class.define("qx.io.remote.transport.Script",
         case "text/javascript":
           if (qx.core.Environment.get("qx.debug"))
           {
-            if (qx.core.Environment.get("qx.ioRemoteDebugData"))
+            if (qx.core.Environment.get("qx.debug.io.remote.data"))
             {
               this.debug("Response: " + this._responseContent);
             }

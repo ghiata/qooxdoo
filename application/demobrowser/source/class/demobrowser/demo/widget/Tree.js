@@ -20,9 +20,12 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/22/places/user-desktop.png)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/icon/${qx.icontheme}/22/places/user-desktop.png)
+ */
 
 qx.Class.define("demobrowser.demo.widget.Tree",
 {
@@ -54,7 +57,8 @@ qx.Class.define("demobrowser.demo.widget.Tree",
     {
       var tree = new qx.ui.tree.Tree().set({
         width : 200,
-        height : 400
+        height : 400,
+        draggable: true
       });
 
       var root = new qx.ui.tree.TreeFolder("root");
@@ -100,6 +104,12 @@ qx.Class.define("demobrowser.demo.widget.Tree",
     },
 
 
+    /**
+     *
+     * @param tree {qx.ui.tree.Tree} Tree
+     * @return {qx.ui.groupbox.GroupBox} group box
+     * @lint ignoreDeprecated(alert)
+     */
     getCommandFrame : function(tree)
     {
       var commandFrame = new qx.ui.groupbox.GroupBox("Control");
@@ -139,8 +149,8 @@ qx.Class.define("demobrowser.demo.widget.Tree",
       commandFrame.add(new qx.ui.core.Spacer(spacerSize, spacerSize), {row: row++, column: 0});
       commandFrame.add(new qx.ui.basic.Label("Open mode:"), {row: row, column: 0});
       var modes = {
-        "click": "click",
-        "dblclick": "double click",
+        "tap": "tap",
+        "dbltap": "double tap",
         "none": "none"
       };
 

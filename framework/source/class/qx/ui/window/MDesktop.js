@@ -17,16 +17,11 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#ignore(qx.ui.window.Window)
-
-************************************************************************ */
-
-
-
 /**
  * This mixin implements the key methods of the {@link qx.ui.window.IDesktop}.
+ *
+ * @ignore(qx.ui.window.Window)
+ * @ignore(qx.ui.window.Window.*)
  */
 qx.Mixin.define("qx.ui.window.MDesktop",
 {
@@ -151,7 +146,7 @@ qx.Mixin.define("qx.ui.window.MDesktop",
     /**
      * Overrides the method {@link qx.ui.core.Widget#_afterAddChild}
      *
-     * @param win {qx.core.Widget} added widget
+     * @param win {qx.ui.core.Widget} added widget
      */
     _afterAddChild : function(win)
     {
@@ -186,7 +181,7 @@ qx.Mixin.define("qx.ui.window.MDesktop",
     /**
      * Overrides the method {@link qx.ui.core.Widget#_afterRemoveChild}
      *
-     * @param win {qx.core.Widget} removed widget
+     * @param win {qx.ui.core.Widget} removed widget
      */
     _afterRemoveChild : function(win)
     {

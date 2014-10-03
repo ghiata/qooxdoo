@@ -16,13 +16,12 @@
      * Sebastian Werner (wpbasti)
      * Andreas Ecker (ecker)
      * Fabian Jakobs (fjakobs)
+     * Mustafa Sak (msak)
 
 ************************************************************************ */
 
-if ((qx.core.Environment.get("engine.name") == "mshtml")) {
-
 /**
- * Implements an iFrame based history manager for IE6/7.
+ * Implements an iFrame based history manager for IE 6/7/8.
  *
  * Creates a hidden iFrame and uses document.write to store entries in the
  * history browser's stack.
@@ -45,6 +44,8 @@ qx.Class.define("qx.bom.IframeHistory",
   {
     __iframe : null,
     __iframeReady : false,
+    __writeStateTimner : null,
+    __dontApplyState : null,
     __locationState : null,
 
 
@@ -56,10 +57,65 @@ qx.Class.define("qx.bom.IframeHistory",
     },
 
 
+    //overridden
     _setHash : function(value)
     {
       this.base(arguments, value);
       this.__locationState = this._encode(value);
+    },
+
+
+    //overridden
+    addToHistory : function(state, newTitle)
+    {
+      if (!qx.lang.Type.isString(state)) {
+        state = state + "";
+      }
+
+      if (qx.lang.Type.isString(newTitle))
+      {
+        this.setTitle(newTitle);
+        this._titles[state] = newTitle;
+      }
+
+      if (this.getState() !== state) {
+        this.setState(state);
+      }
+      this.fireDataEvent("request", state);
+    },
+
+
+    //overridden
+    _onHistoryLoad : function(state)
+    {
+      this._setState(state);
+      this.fireDataEvent("request", state);
+      if (this._titles[state] != null) {
+        this.setTitle(this._titles[state]);
+      }
+    },
+
+
+    /**
+     * Helper function to set state property. This will only be called
+     * by _onHistoryLoad. It determines, that no apply of state will be called.
+     * @param state {String} State loaded from history
+     */
+    _setState : function(state)
+    {
+      this.__dontApplyState = true;
+      this.setState(state);
+      this.__dontApplyState = false;
+    },
+
+
+    //overridden
+    _applyState : function(value, old)
+    {
+      if (this.__dontApplyState){
+        return;
+      }
+      this._writeState(value);
     },
 
 
@@ -76,7 +132,6 @@ qx.Class.define("qx.bom.IframeHistory",
 
       var doc = this.__iframe.contentWindow.document;
       var elem = doc.getElementById("state");
-
       return elem ? this._decode(elem.innerText) : "";
     },
 
@@ -85,24 +140,38 @@ qx.Class.define("qx.bom.IframeHistory",
      * Store state to the iframe
      *
      * @param state {String} state to save
-     * @return {void}
      */
     _writeState : function(state)
     {
+      if (!this.__iframeReady) {
+        this.__clearWriteSateTimer();
+        this.__writeStateTimner = qx.event.Timer.once(function(){this._writeState(state);}, this, 50);
+        return;
+      }
+      this.__clearWriteSateTimer();
+
       var state = this._encode(state);
 
-      this._setHash(state);
-      this.__locationState = state;
-
-      try
-      {
-        var doc = this.__iframe.contentWindow.document;
-        doc.open();
-        doc.write('<html><body><div id="state">' + state + '</div></body></html>');
-        doc.close();
+      // IE8 is sometimes recognizing a hash change as history entry. Cause of sporadic surface of this behavior, we have to prevent setting hash.
+      if (qx.core.Environment.get("engine.name") == "mshtml" && qx.core.Environment.get("browser.version") != 8){
+        this._setHash(state);
       }
-      catch (ex) {
-        // ignore
+
+      var doc = this.__iframe.contentWindow.document;
+      doc.open();
+      doc.write('<html><body><div id="state">' + state + '</div></body></html>');
+      doc.close();
+    },
+
+
+    /**
+     * Helper function to clear the write state timer.
+     */
+    __clearWriteSateTimer : function()
+    {
+      if (this.__writeStateTimner){
+        this.__writeStateTimner.stop();
+        this.__writeStateTimner.dispose();
       }
     },
 
@@ -135,7 +204,6 @@ qx.Class.define("qx.bom.IframeHistory",
       } else {
         currentState = this._readState();
       }
-
       if (qx.lang.Type.isString(currentState) && currentState != this.getState()) {
         this._onHistoryLoad(currentState);
       }
@@ -172,7 +240,6 @@ qx.Class.define("qx.bom.IframeHistory",
      * Initializes the iframe
      *
      * @param handler {Function?null} if given this callback is executed after iframe is ready to use
-     * @return {void}
      */
     __initIframe : function(handler)
     {
@@ -195,12 +262,12 @@ qx.Class.define("qx.bom.IframeHistory",
      * Setting the source before adding the iframe to the document.
      * Otherwise IE will bring up a "Unsecure items ..." warning in SSL mode
      *
-     * @return {IframeElement}
+     * @return {Iframe}
      */
     __createIframe : function ()
     {
       var iframe = qx.bom.Iframe.create({
-        src : qx.util.ResourceManager.getInstance().toUri("qx/static/blank.html")
+        src : qx.util.ResourceManager.getInstance().toUri(qx.core.Environment.get("qx.blankpage"))
       });
 
       iframe.style.visibility = "hidden";
@@ -248,8 +315,10 @@ qx.Class.define("qx.bom.IframeHistory",
   destruct : function()
   {
     this.__iframe = null;
-    qx.event.Idle.getInstance().addListener("interval", this.__onHashChange, this);
+    if (this.__writeStateTimner){
+      this.__writeStateTimner.dispose();
+      this.__writeStateTimner = null;
+    }
+    qx.event.Idle.getInstance().removeListener("interval", this.__onHashChange, this);
   }
 });
-
-} // variant select

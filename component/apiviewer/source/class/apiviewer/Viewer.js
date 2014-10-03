@@ -23,11 +23,6 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/Tango/22/apps/utilities-dictionary.png)
-#asset(qx/icon/Tango/22/actions/edit-find.png)
-#asset(qx/icon/Tango/22/apps/utilities-help.png)
-#asset(qx/icon/Tango/22/apps/utilities-graphics-viewer.png)
-#asset(qx/icon/Tango/22/actions/media-seek-forward.png)
 
 ************************************************************************ */
 
@@ -36,6 +31,12 @@
  *
  * The connections between the GUI components are established in
  * the {@link Controller}.
+ *
+ * @asset(qx/icon/Tango/22/apps/utilities-dictionary.png)
+ * @asset(qx/icon/Tango/22/actions/edit-find.png)
+ * @asset(qx/icon/Tango/22/apps/utilities-help.png)
+ * @asset(qx/icon/Tango/22/apps/utilities-graphics-viewer.png)
+ * @asset(qx/icon/Tango/22/actions/media-seek-forward.png)
  */
 qx.Class.define("apiviewer.Viewer",
 {
@@ -56,7 +57,6 @@ qx.Class.define("apiviewer.Viewer",
     this.__menuItemStore = {};
 
     var layout = new qx.ui.layout.VBox;
-    layout.setSeparator("separator-vertical");
 
     this.setLayout(layout);
 
@@ -74,6 +74,14 @@ qx.Class.define("apiviewer.Viewer",
     var mainFrame = this.__createDetailFrame();
 
     this.add(this.__createSplitPane(toggleView, mainFrame), {flex:1});
+
+    // Search for the value of the "search" URL query key.
+    var parsedUri = qx.util.Uri.parseUri(location.href);
+    if (parsedUri.queryKey && parsedUri.queryKey.search) {
+      this._searchView.search(parsedUri.queryKey.search);
+      toggleView.setSelection([this._searchView]);
+      this.__toggleGroup.setSelection([this.__toggleGroup.getChildren()[1]]);
+    }
   },
 
 
@@ -384,6 +392,7 @@ qx.Class.define("apiviewer.Viewer",
     __createSplitPane : function(leftWidget, rightWidget)
     {
       var mainSplitPane = new qx.ui.splitpane.Pane("horizontal");
+      mainSplitPane.setAppearance("app-splitpane");
       mainSplitPane.add(leftWidget, 0);
       mainSplitPane.add(rightWidget, 1);
       return mainSplitPane;
@@ -400,6 +409,7 @@ qx.Class.define("apiviewer.Viewer",
 
       var title = new qx.ui.basic.Label("API Documentation");
       var version = new qxc.ui.versionlabel.VersionLabel();
+      version.setFont("default");
 
       header.add(title);
       header.add(new qx.ui.core.Spacer, {flex : 1});

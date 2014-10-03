@@ -233,7 +233,6 @@ qx.Class.define("qx.ui.progressive.Progressive",
      * @param renderer {qx.ui.progressive.renderer.Abstract}
      *   Renderer object used if the data model references the specified name.
      *
-     * @return {void}
      */
     addRenderer : function(name, renderer)
     {
@@ -247,7 +246,6 @@ qx.Class.define("qx.ui.progressive.Progressive",
      * @param name {String}
      *   Remove the renderer which was assigned this name.
      *
-     * @return {void}
      */
     removeRenderer : function(name)
     {
@@ -267,7 +265,6 @@ qx.Class.define("qx.ui.progressive.Progressive",
      * used to regain control a short while later, in order to render the
      * next batch of element.
      *
-     * @return {void}
      */
     render : function()
     {
@@ -312,7 +309,7 @@ qx.Class.define("qx.ui.progressive.Progressive",
       else
       {
         // Ensure we leave enough time that 'this' has been rendered, so that
-        // this.getContainerElement().getDomElement() is valid and has
+        // this.getContentElement().getDomElement() is valid and has
         // properties.  It's needed by some renderers.
         //
         // FIXME: Why isn't an event listener for "appear" an adequate delay???
@@ -343,7 +340,6 @@ qx.Class.define("qx.ui.progressive.Progressive",
      * @param value {qx.ui.progressive.model.Abstract}
      *   The old data model.
      *
-     * @return {void}
      */
     _applyDataModel : function(value, old)
     {
@@ -369,7 +365,6 @@ qx.Class.define("qx.ui.progressive.Progressive",
      * @param state {qx.ui.progressive.State}
      *   The current state of rendering.
      *
-     * @return {void}
      */
     __renderElementBatch : function(state)
     {
@@ -439,7 +434,8 @@ qx.Class.define("qx.ui.progressive.Progressive",
 
 
     /**
-     * Create the array of empty objects for use by the renderers.
+     * Create the map of empty objects for use by the renderers.
+     * @return {Map} renderer data map
      */
     __createStateRendererData : function()
     {
@@ -459,7 +455,6 @@ qx.Class.define("qx.ui.progressive.Progressive",
      * @param e {qx.event.type.Data}
      *   A "dataAvailable" event's data contains the initial number of elements
      *
-     * @return {void}
      */
     __dataAvailable : function(e)
     {

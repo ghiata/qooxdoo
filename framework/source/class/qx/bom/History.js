@@ -69,7 +69,6 @@
 
 /* ************************************************************************
 
-#asset(qx/static/blank.html)
 
 ************************************************************************ */
 
@@ -90,9 +89,11 @@
  * This module is based on the ideas behind the YUI Browser History Manager
  * by Julien Lecomte (Yahoo), which is described at
  * http://yuiblog.com/blog/2007/02/21/browser-history-manager/. The Yahoo
- * implementation can be found at http://developer.yahoo.com/yui/history.
+ * implementation can be found at http://developer.yahoo.com/yui/history/.
  * The original code is licensed under a BSD license
  * (http://developer.yahoo.com/yui/license.txt).
+ *
+ * @asset(qx/static/blank.html)
  */
 qx.Class.define("qx.bom.History",
 {
@@ -114,7 +115,7 @@ qx.Class.define("qx.bom.History",
 
     this._baseUrl = window.location.href.split('#')[0] + '#';
 
-    this.__titles = {};
+    this._titles = {};
     this._setInitialState();
   },
 
@@ -144,13 +145,9 @@ qx.Class.define("qx.bom.History",
   statics :
   {
     /**
-     * {Boolean} Whether the browser supports the 'hashchange' event natively.
+     * @type {Boolean} Whether the browser supports the 'hashchange' event natively.
      */
-    SUPPORTS_HASH_CHANGE_EVENT :
-      (qx.core.Environment.get("engine.name") == "mshtml" &&
-       document.documentMode >= 8) ||
-      (!(qx.core.Environment.get("engine.name") == "mshtml") &&
-       document.documentMode && "onhashchange" in window),
+    SUPPORTS_HASH_CHANGE_EVENT : qx.core.Environment.get("event.hashchange"),
 
 
     /**
@@ -160,13 +157,37 @@ qx.Class.define("qx.bom.History",
      */
     getInstance : function()
     {
+      var runsInIframe = !(window == window.top);
+
       if (!this.$$instance)
       {
-        if (this.SUPPORTS_HASH_CHANGE_EVENT) {
-          this.$$instance = new qx.bom.NativeHistory();
-        } else if ((qx.core.Environment.get("engine.name") == "mshtml")) {
+        // in iframe + IE9
+        if (runsInIframe
+          && qx.core.Environment.get("browser.documentmode") == 9
+        ) {
+          this.$$instance = new qx.bom.HashHistory();
+        }
+
+        // in iframe + IE<9
+        else if (runsInIframe
+          && qx.core.Environment.get("engine.name") == "mshtml"
+          && qx.core.Environment.get("browser.documentmode") < 9
+        ) {
           this.$$instance = new qx.bom.IframeHistory();
-        } else {
+        }
+
+        // browser with hashChange event
+        else if (this.SUPPORTS_HASH_CHANGE_EVENT) {
+          this.$$instance = new qx.bom.NativeHistory();
+        }
+
+        // IE without hashChange event
+        else if ((qx.core.Environment.get("engine.name") == "mshtml")) {
+          this.$$instance = new qx.bom.IframeHistory();
+        }
+
+        // fallback
+        else {
           this.$$instance = new qx.bom.NativeHistory();
         }
       }
@@ -217,7 +238,7 @@ qx.Class.define("qx.bom.History",
 
   members :
   {
-    __titles : null,
+    _titles : null,
 
 
     // property apply
@@ -294,7 +315,7 @@ qx.Class.define("qx.bom.History",
       if (qx.lang.Type.isString(newTitle))
       {
         this.setTitle(newTitle);
-        this.__titles[state] = newTitle;
+        this._titles[state] = newTitle;
       }
 
       if (this.getState() !== state) {
@@ -308,7 +329,7 @@ qx.Class.define("qx.bom.History",
      * Simulates a back button click.
      */
      navigateBack : function() {
-       qx.event.Timer.once(function() {history.back();}, 0);
+       qx.event.Timer.once(function() {history.back();}, this, 100);
      },
 
 
@@ -317,7 +338,7 @@ qx.Class.define("qx.bom.History",
      * Simulates a forward button click.
      */
      navigateForward : function() {
-       qx.event.Timer.once(function() {history.forward();}, 0);
+       qx.event.Timer.once(function() {history.forward();}, this, 100);
      },
 
 
@@ -330,9 +351,8 @@ qx.Class.define("qx.bom.History",
     {
       this.setState(state);
       this.fireDataEvent("request", state);
-
-      if (this.__titles[state] != null) {
-        this.setTitle(this.__titles[state]);
+      if (this._titles[state] != null) {
+        this.setTitle(this._titles[state]);
       }
     },
 
@@ -350,7 +370,6 @@ qx.Class.define("qx.bom.History",
     /**
      * Save a state into the browser history.
      *
-     * @return {void}
      */
     _writeState : function() {
       throw new Error("Abstract method call");
@@ -389,6 +408,6 @@ qx.Class.define("qx.bom.History",
 
   destruct : function()
   {
-    this.__titles = null;
+    this._titles = null;
   }
 });

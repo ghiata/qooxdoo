@@ -14,8 +14,10 @@
 
    Authors:
      * Martin Wittemann (martinwittemann)
+     * Christopher Zuendorf (czuendorf)
 
 ************************************************************************ */
+
 /**
  * Widget responsible for hosting the run code for mobile apps.
  */
@@ -23,8 +25,73 @@ qx.Class.define("playground.view.MobilePlayArea",
 {
   extend : playground.view.RiaPlayArea,
 
+
+  construct : function() {
+    this.base(arguments);
+
+    this.setBackgroundColor("#d4d4d4");
+
+    var sizeSelect = new qx.ui.form.SelectBox();
+    sizeSelect.setMaxHeight(21);
+    sizeSelect.setMarginTop(6);
+    sizeSelect.setPaddingTop(-1);
+    sizeSelect.setPaddingBottom(0);
+    sizeSelect.setWidth(130);
+    sizeSelect.add(new qx.ui.form.ListItem("Fit to viewport"));
+
+    var resolutions = [
+      [320, 480, "iPhone 3+4, Android"],
+      [480, 320, "iPhone 3+4, Android"],
+      [320, 568, "iPhone 5"],
+      [568, 320, "iPhone 5"],
+      [480, 800, "Android"],
+      [800, 480, "Android"],
+      [380, 685, "Android"],
+      [685, 320, "Android"]
+    ];
+
+    for (var i = 0; i < resolutions.length; i++) {
+      var res = resolutions[i];
+      var listItemText = "[" + res[0] + " x " + res[1] + "] " + res[2];
+      var item = new qx.ui.form.ListItem(listItemText);
+      item.setModel(res);
+      sizeSelect.add(item);
+    }
+
+    sizeSelect.addListener("changeSelection", function(e) {
+      var newRes = e.getData()[0].getModel();
+      if (newRes) {
+        this.__setFixDimensions(newRes[0], newRes[1]);
+      } else {
+        this.__setFixDimensions(null, null);
+      }
+    }, this);
+
+    this._caption.addAt(sizeSelect, 2);
+  },
+
+
   members :
   {
+    // Page manager
+    __manager : null,
+
+    /**
+     * Sets the dimensions to the given values.
+     * @param width {Number} The width to set.
+     * @param height {Number} The height to set.
+     */
+    __setFixDimensions : function(width, height) {
+      this._dummy.setMinWidth(width);
+      this._dummy.setMinHeight(height);
+      this._dummy.setMaxWidth(width);
+      this._dummy.setMaxHeight(height);
+
+      this.setMinWidth(width ? width + 2 : null);
+      this.setMinHeight(height ? height + 2 : null);
+    },
+
+
     // overridden
     init : function()
     {
@@ -41,17 +108,17 @@ qx.Class.define("playground.view.MobilePlayArea",
         playRootEl.style["background"] = "none";
       }
 
-
       this._playRoot = new qx.ui.mobile.core.Root(playRootEl);
 
+      qx.ui.mobile.dialog.Popup.ROOT = this._playRoot;
+      qx.ui.mobile.core.Blocker.ROOT = this._playRoot;
+      qx.ui.mobile.basic.Image.ROOT = this._playRoot;
+
       var self = this;
-      qx.ui.mobile.page.Page.getManager()._getRoot = function() {
-        return self._playRoot;
-      };
 
       this._playApp = new qx.application.Mobile();
-      this._playApp.getRoot = function() {
-        return self._playRoot;
+      this._playApp.getManager = function() {
+        return self.__manager;
       };
 
       this._initialized = true;
@@ -61,12 +128,13 @@ qx.Class.define("playground.view.MobilePlayArea",
     // overridden
     reset : function(beforeReg, afterReg, code) {
       this._playRoot.removeAll();
-      var manager = qx.ui.mobile.page.Page.getManager();
-      if (manager) {
-        qx.ui.mobile.page.Page.setManager(null);
-        manager.dispose();
+
+      if(this.__manager) {
+        this.__manager.dispose();
+        this.__manager = null;
       }
-      qx.ui.mobile.page.Page.setManager(new qx.ui.mobile.page.manager.Animation(this._playRoot));
+
+      this.__manager = new qx.ui.mobile.page.Manager(false, this._playRoot);
     }
   }
 });

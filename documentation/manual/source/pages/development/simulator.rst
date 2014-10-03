@@ -3,6 +3,12 @@
 Simulator
 *********
 
+.. note::
+
+    The Simulator component is based on Selenium RC, which is deprecated. It is thus no
+    longer supported and will be removed from the qooxdoo framework in the near future.
+    The `qxwebdriver-java library <https://github.com/qooxdoo/qxwebdriver-java/>`_ provides a modern alternative based on Selenium RC's replacement, WebDriver.
+
 Overview
 --------
 
@@ -27,7 +33,7 @@ How it works
 
 Similar to :ref:`unit tests <pages/unit_testing#unit_testing>`, Simulator test cases are defined as qooxdoo classes living in the application's source directory. As such they support qooxdoo's OO features such as inheritance and nested namespaces. The setUp, testSomething, tearDown pattern is supported, as well as all assertion functions defined by `qx.core.MAssert <http://demo.qooxdoo.org/%{version}/apiviewer/#qx.core.MAssert>`_.
 
-The main API that is used to define the test logic is **QxSelenium**, which means the `DefaultSelenium API <http://jarvana.com/jarvana/view/org/seleniumhq/selenium/selenium-rc-documentation/1.0/selenium-rc-documentation-1.0-doc.zip!/java/com/thoughtworks/selenium/DefaultSelenium.html>`_ plus the Locator strategies and commands from the `qooxdoo user extensions for Selenium <http://qooxdoo.org/contrib/project/simulator#selenium_user_extension_for_qooxdoo>`_.
+The main API that is used to define the test logic is **QxSelenium**, which means the `DefaultSelenium API <http://release.seleniumhq.org/selenium-remote-control/1.0-beta-2/doc/java/com/thoughtworks/selenium/DefaultSelenium.html>`_ plus the Locator strategies and commands from the `qooxdoo user extensions for Selenium <http://qooxdoo.org/contrib/project/simulator#selenium_user_extension_for_qooxdoo>`_.
 
 As with qooxdoo's unit testing framework, the Generator is used to create a test runner application (the Simulator). User-defined test classes are included into this application, which extends `qx.application.Native <http://demo.qooxdoo.org/%{version}/apiviewer/#qx.application.Native>`_ and uses a simplified loader so it can run in Rhino.
 
@@ -43,11 +49,11 @@ The following sections describe the steps necessary to set up Simulator tests fo
 Required Libraries
 ==================
 
-The Simulator needs the following external resources to run: 
+The Simulator needs the following external resources to run:
 
 * Java Runtime Environment: Version 1.6 is known to work.
-* `Selenium Server and Java Client Driver <http://seleniumhq.org/download>`_: Version 1.0.3  or later. Later versions should generally be OK as long as the Selenium API remains stable.
-* `Mozilla Rhino <http://www.mozilla.org/rhino/download.html>`_: Version 1.7R1 or later.
+* `Selenium Server and Java Client Driver <http://seleniumhq.org/download>`_: Version 1.0.3 or later. All versions up to and including 2.26.0 are known to work. Newer versions should generally be OK as long as the Selenium API remains stable.
+* `Mozilla Rhino <http://www.mozilla.org/rhino/download.html>`_: Versions 1.7R1 through 1.7R3 are supported. **Version 1.7R4 does not work!**
 
 The Java archives for the Selenium client driver and Rhino must be located on the same machine as the application to be tested. For Rhino, this means js.jar. Older versions of Selenium provide a single archive (selenium-java-client-driver.jar), while newer ones are split up into the actual driver (selenium-java-<x.y.z>.jar) and several external libraries found in the "libs" folder of the ZIP archive.
 
@@ -57,19 +63,19 @@ The Selenium Server (selenium-server.jar, or selenium-server-standalone.jar for 
 Generator Configuration
 =======================
 
-Unlike other framework components, the Simulator isn't ready to run out of the box: The application developer needs to specify the location of the required external libraries (Selenium's Java bindings and Mozilla Rhino). This is easily accomplished by redefining the *SIMULATOR_CLASSPATH* macro (in the applicaton's config.json file; be sure to heed the :ref:`general information about paths <pages/tool/generator_config_articles#path_names>` in config files):
+Unlike other framework components, the Simulator isn't ready to run out of the box: The application developer needs to specify the location of the required external libraries (Selenium's Java bindings and Mozilla Rhino). This is easily accomplished by redefining the *SIMULATOR_CLASSPATH* macro (in the application's config.json file; be sure to heed the :ref:`general information about paths <pages/tool/generator/generator_config_articles#path_names>` in config files):
 
 ::
 
     "let" :
     {
-      "SIMULATOR_CLASSPATH" : 
+      "SIMULATOR_CLASSPATH" :
       [
-        "../selenium/selenium-java-2.4.0.jar",
+        "../selenium/selenium-java-2.22.0.jar",
         "../selenium/libs/*",
         "../rhino/js.jar"
       ]
-    } 
+    }
 
 
 The "environment" section of the "simulation-run" job configures where the AUT is located and how to reach the Selenium server that will launch the test browser and run the test commands.
@@ -83,15 +89,15 @@ The following example shows the minimum configuration needed to launch a Simulat
       {
         "SIMULATOR_CLASSPATH" :
         [
-          "../selenium/selenium-java-2.4.0.jar",
-          "../selenium/libs/*", 
+          "../selenium/selenium-java-2.22.0.jar",
+          "../selenium/libs/*",
           "../rhino/js.jar"
         ]
       },
 
       "environment" :
       {
-        "simulator.testBrowser" : "*firefox3",
+        "simulator.testBrowser" : "*firefox",
         "simulator.selServer" : "localhost",
         "simulator.selPort" : 4444,
         "simulator.autHost" : "http://localhost",
@@ -99,16 +105,16 @@ The following example shows the minimum configuration needed to launch a Simulat
       }
     }
 
-See the :ref:`job reference <pages/tool/generator_default_jobs#simulation-run>` for a listing of all supported settings and their default values.
-Additional runtime options are available, although their default settings should be fine for most cases. See the :ref:`simulate job key reference <pages/tool/generator_config_ref#simulate>` for details.
+See the :ref:`job reference <pages/tool/generator/generator_default_jobs#simulation-run>` for a listing of all supported settings and their default values.
+Additional runtime options are available, although their default settings should be fine for most cases. See the :ref:`simulate job key reference <pages/tool/generator/generator_config_ref#simulate>` for details.
 
 .. _pages/development/simulator#writing_tests:
 
 Writing Test Cases
 ------------------
 
-As mentioned above, Simulator test cases are qooxdoo classes living (at least by default) in the application's **simulation** name space. 
-They inherit from simulator.unit.TestCase, which includes the assertion functions from qx.core.MAssert. 
+As mentioned above, Simulator test cases are qooxdoo classes living (at least by default) in the application's **simulation** name space.
+They inherit from simulator.unit.TestCase, which includes the assertion functions from qx.core.MAssert.
 Simulator tests look very similar to qooxdoo unit tests as they follow the same pattern of **setUp**, **testSomething**, **tearDown**. Typically, each test* method will use the QxSelenium API to interact with some part of the AUT,
 then use assertions to check if the AUT's state has changed as expected, e.g. by querying the value of a qooxdoo property.
 
@@ -142,12 +148,7 @@ This Firefox plugin allows test developers to run Selenium commands against a we
 
 ::
 
-  C:\workspace\qooxdoo-1.4-sdk\component\simulator\tool\user-extensions\user-extensions.js
-  
-Inspector
-=========
-
-qooxdoo's :ref:`Inspector component <pages/application/inspector_selenium#using_the_qooxdoo_inspector_to_write_selenium_tests>` can provide assistance to test developers by automatically determining locators for widgets.
+  C:\workspace\qooxdoo-%{version}-sdk\component\simulator\tool\user-extensions\user-extensions.js
 
 .. _pages/development/simulator#generating:
 
@@ -166,11 +167,11 @@ Note that the Simulator application contains the test classes. This means that i
 Starting the Selenium server
 ----------------------------
 
-The Selenium server must be started with the *-userExtensions* command line option pointing to the qooxdoo user extenions for Selenium mentioned above:
+The Selenium server must be started with the *-userExtensions* command line option pointing to the qooxdoo user extensions for Selenium mentioned above:
 
 ::
 
-  java -jar selenium-server-standalone.jar -userExtensions <QOOXDOO-TRUNK>/component/simulator/tool/user-extensions/user-extensions.js
+  java -jar selenium-server-standalone-2.22.0.jar -userExtensions <QOOXDOO-TRUNK>/component/simulator/tool/user-extensions/user-extensions.js
 
 .. _pages/development/simulator#running_tests:
 
@@ -213,28 +214,10 @@ General
 
 Since the Simulator uses Selenium RC to start the browser and run tests, the relevant sections from the `Selenium documentation <http://seleniumhq.org/docs/05_selenium_rc.html>`_ apply. Due to the special nature of qooxdoo applications, however, some browsers require additional configuration steps before they can be tested.
 
-Firefox
-=======
+Firefox, Chrome
+===============
 
-The 3.x line of Mozilla Firefox is usually the most reliable option for Simulator tests. Firefox 3.0, 3.5 and 3.6 are all known to work on Windows XP and 7 as well as Linux and OS X.
-
-Firefox 4 is not supported by Selenium 1.0.3 out of the box, but it can be used for testing by starting it with a custom profile. These are the necessary steps:
-
-* Start Firefox 4 with the -P option to bring up the Profile Manager
-* Create a new profile, naming it e.g. "FF4-selenium"
-* Under Options -> Advanced -> Network -> Settings, select Manual Proxy Configuration and enter the host name or IP address and port number of your Selenium server
-* In your application's config.json, use the *\*custom* browser launcher followed by the full path to the Firefox executable and the name of the profile:
-
-::
-
-  "simulation-run" :
-  {
-    "environment" :
-    {
-      "simulator.testBrowser" : "*custom C:/Program Files/Mozilla Firefox/firefox.exe -P FF4-selenium",
-      [...]
-    }
-  }
+Firefox and Chrome are generally well supported by Selenium, just make sure to use a Selenium version that isn't (much) older than the browser you intend to use for testing.
 
 Internet Explorer 6, 7, 8 and 9
 ===============================
@@ -264,4 +247,4 @@ To launch IE, the *\*iexploreproxy* launcher should be used. The *\*iexplore* la
       [...]
     }
   }
-  
+

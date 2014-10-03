@@ -5,7 +5,7 @@
    #  http://qooxdoo.org
    #
    #  Copyright:
-   #    2006-2011 1&1 Internet AG, Germany, http://www.1und1.de
+   #    2006-2012 1&1 Internet AG, Germany, http://www.1und1.de
    #
    #  License:
    #    LGPL: http://www.gnu.org/licenses/lgpl.html
@@ -18,8 +18,8 @@
    ################################################################################
 
 
-Manual |version|
-****************
+qooxdoo Manual v%{version}
+***************************
 
 .. toctree::
    :maxdepth: 1
@@ -27,75 +27,59 @@ Manual |version|
 
    toc
 
+.. |started| image:: _static/getting-started.png
+.. |core| image:: _static/core.png
+.. |desktop| image:: _static/desktop.png
+.. |mobile| image:: _static/mobile.png
+.. |website| image:: _static/website.png
+.. |server| image:: _static/server.png
+.. |tooling| image:: _static/tooling.png
+.. |refer| image:: _static/references.png
 
-.. |apiviewer| image:: _static/apiviewer.png
-.. |fce_thumb| image:: _static/fce_thumb.png
-.. |feedreadermobile_ios| image:: _static/feedreadermobile_ios.png
-.. |portal| image:: _static/portal.png
-.. |widgetbrowser| image:: _static/widgetbrowser.png
-.. |g_book| image:: _static/utilities-notes.png
-.. |o_star| image:: _static/development.png
-.. .. |g_write| image:: _static/internet-blog.png
-.. |g_write| image:: _static/office-contact.png
-.. |o_folder| image:: _static/utilities-dictionary.png
-.. |o_save| image:: _static/document-open.png
-.. |g_faq| image:: _static/engineering.png
-.. |tutorial| image:: _static/internet-blog1.png
+Welcome to the manual of qooxdoo. Here are some highlights of what you can find here. The main entries are the qooxdoo components *Core*, *Website*, *Desktop*, *Mobile* and *Server*. For a full overview proceed to the :doc:`table of contents <toc>`.
 
-Welcome to the qooxdo manual. Here are some highlights of what you can find here. For a full overview proceed to the :doc:`table of contents <toc>`.
+.. rst-class:: toc
+.. rst-class:: table-overview 
 
-
-  +----------+-------------------------------------------------------------------------------------+
-  | |o_star| | **Getting Started**                                                                 |
-  |          |   * :ref:`Prerequisites <pages/getting_started/helloworld#requirements>`            |
-  |          |   * :ref:`Download <pages/getting_started/helloworld#download>`                     |
-  |          |   * :ref:`Installation <pages/getting_started/helloworld#installation>`             |
-  |          |   * :ref:`"Hello World" <pages/getting_started/helloworld#create_your_application>` |
-  +----------+-------------------------------------------------------------------------------------+
-
-  +----------+-------------------------------------------------------------------------------------+
-  ||tutorial|| **Tutorials**                                                                       |
-  |          |   * :doc:`Rich Internet Applications  <pages/tutorials/tutorial-part-1>`            |
-  |          |   * :doc:`Mobile Apps <pages/mobile/tutorial>`                                      |
-  |          |   * :doc:`Tooling      <pages/tool/tutorial_basics>`                                |
-  +----------+-------------------------------------------------------------------------------------+
-
-
-  +----------+-------------------------------------------------------------------------------------+
-  ||g_book|  | **Core Concepts**                                                                   |
-  |          |   * :doc:`Classes       <pages/core/oo_introduction>`                               |
-  |          |   * :doc:`Properties <pages/core/understanding_properties>`                         |
-  |          |   * :doc:`Data Binding <pages/data_binding/data_binding>`                           |
-  |          |   * :doc:`Environment   <pages/core/environment>`                                   |
-  +----------+-------------------------------------------------------------------------------------+
-
-
-  +----------+-------------------------------------------------------------------------------------+
-  ||g_write| | **APIs**                                                                            |
-  |          |   * :doc:`Widgets       <pages/gui_toolkit/ui_widgets>`                             |
-  |          |   * :doc:`Low-level  <pages/low_level/low_level_apis>`                              |
-  |          |   * :doc:`Mobile       <pages/mobile/mobile_overview>`                              |
-  +----------+-------------------------------------------------------------------------------------+
-
-
-  +----------+-------------------------------------------------------------------------------------+
-  ||o_folder|| **Reference**                                                                       |
-  |          |   * :doc:`Table of Contents <toc>`                                                  |
-  |          |   * :doc:`Collection of technical references <pages/references>`                    |
-  |          |   * :doc:`Glossary                <pages/glossary>`                                 |
-  |          |   * :ref:`Index                              <genindex>`                            |
-  +----------+-------------------------------------------------------------------------------------+
-
-
-  +----------+-------------------------------------------------------------------------------------+
-  ||g_faq|   | **Migration**                                                                       |
-  |          |   * :doc:`Migration Guide <pages/migration/migration_guide>`                        |
-  +----------+-------------------------------------------------------------------------------------+
-
-
-  +----------+-------------------------------------------------------------------------------------+
-  | |o_save| | **Offline Manual**                                                                  |
-  |          |   * `Get the PDF <qooxdoo.pdf>`__                                                   |
-  +----------+-------------------------------------------------------------------------------------+
++----------+-------------------------------------------------------------------------------------+
+||started| | **Getting Started**                                                                 |
+|          |   * :doc:`pages/getting_started`                                                    |
++----------+-------------------------------------------------------------------------------------+
+||core|    | **Core**                                                                            |
+|          |   * :doc:`Classes       <pages/core/oo_introduction>`                               |
+|          |   * :doc:`Properties <pages/core/understanding_properties>`                         |
+|          |   * :doc:`Data Binding <pages/data_binding/data_binding>`                           |
+|          |   * :doc:`Environment   <pages/core/environment>`                                   |
++----------+-------------------------------------------------------------------------------------+
+||desktop| | **Desktop**                                                                         |
+|          |   * :doc:`Introduction  <pages/desktop/ui_overview>`                                |
+|          |   * :doc:`Tutorial      <pages/desktop/tutorials/tutorial-part-1>`                  |
+|          |   * :doc:`Reference     <pages/desktop/ui_widgets>`                                 |
++----------+-------------------------------------------------------------------------------------+
+||mobile|  | **Mobile**                                                                          |
+|          |   * :doc:`Introduction  <pages/mobile/mobile_overview>`                             |
+|          |   * :doc:`Tutorial      <pages/mobile/tutorial>`                                    |
+|          |   * :ref:`Reference     <pages/mobile_overview#api>`                                |
++----------+-------------------------------------------------------------------------------------+
+||website| | **Website**                                                                         |
+|          |   * :doc:`Introduction     <pages/website/overview>`                                |
+|          |   * :doc:`Tutorial         </pages/website/tutorial_web_developers>`                |
+|          |   * :ref:`Reference        <pages/webite_overview#api>`                             |
++----------+-------------------------------------------------------------------------------------+
+||server|  | **Server**                                                                          |
+|          |   * :doc:`Introduction    <pages/server/overview>`                                  |
++----------+-------------------------------------------------------------------------------------+
+||tooling| | **Tooling**                                                                         |
+|          |   * :ref:`Introduction <pages/tool#tooling>`                                        |
+|          |   * :ref:`Tutorial     <pages/getting_started/helloworld#helloworld>`               |
+|          |   * :ref:`Reference    <pages/references#tooling>`                                  |
++----------+-------------------------------------------------------------------------------------+
+| |refer|  | **References**                                                                      |
+|          |   * :doc:`Table of Contents <toc>`                                                  |
+|          |   * :doc:`Collection of technical references <pages/references>`                    |
+|          |   * :doc:`Glossary                <pages/glossary>`                                 |
+|          |   * :ref:`Index                              <genindex>`                            |
+|          |   * `Offline Manual <qooxdoo.pdf>`__                                                |
++----------+-------------------------------------------------------------------------------------+
 
 

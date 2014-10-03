@@ -99,7 +99,7 @@ qx.Class.define("qx.dev.ObjectSummary",
       {
         vObject = vDb[key];
 
-        if (vObject && vObject.__disposed === false)
+        if (vObject && vObject.isDisposed() === false)
         {
           var sClassName = vObject.classname;
           if (vData[sClassName] == null) {
@@ -109,7 +109,7 @@ qx.Class.define("qx.dev.ObjectSummary",
           }
           ar = mHashCode[sClassName];
           if (ar == null) {
-            ar = mHashCode[sClassName] = new Array();
+            ar = mHashCode[sClassName] = [];
           }
           ar[ar.length] = vObject.toHashCode();
           vCounter++;

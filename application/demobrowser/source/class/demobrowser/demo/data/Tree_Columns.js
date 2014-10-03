@@ -20,10 +20,13 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/16/places/user-desktop.png)
-#asset(qx/icon/${qx.icontheme}/16/status/dialog-information.png)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/icon/${qx.icontheme}/16/places/user-desktop.png)
+ * @asset(qx/icon/${qx.icontheme}/16/status/dialog-information.png)
+ */
 
 qx.Class.define("demobrowser.demo.data.Tree_Columns",
 {
@@ -91,13 +94,15 @@ qx.Class.define("demobrowser.demo.data.Tree_Columns",
       }
 
       this.extendData(data);
-      data.checked = true; // make sure the root node is open
       var model = qx.data.marshal.Json.createModel(data);
 
       // data binding
       var treeController = new qx.data.controller.Tree(null, tree, "children", "label");
       treeController.setDelegate(this);
       treeController.setModel(model);
+
+      // make sure the root node is open
+      tree.getRoot().setOpen(true);
     },
 
 
@@ -122,8 +127,6 @@ qx.Class.define("demobrowser.demo.data.Tree_Columns",
       controller.bindProperty("size", "size", null, item, id);
       controller.bindProperty("checked", "checked", null, item, id);
       controller.bindPropertyReverse("checked", "checked", null, item, id);
-      controller.bindProperty("checked", "open", null, item, id);
-      controller.bindPropertyReverse("checked", "open", null, item, id);
       controller.bindProperty("date", "date", null, item, id);
       controller.bindProperty("mode", "mode", null, item, id);
       controller.bindProperty("light", "light", null, item, id);

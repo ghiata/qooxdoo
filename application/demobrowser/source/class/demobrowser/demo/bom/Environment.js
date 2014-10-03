@@ -19,9 +19,15 @@
 ************************************************************************ */
 
 /*
- #use(feature-checks)
  */
 
+/**
+ * @tag noPlayground
+ * @lint environmentNonLiteralKey(key)
+ *
+ * @use(feature-checks)
+ * @require(qx.lang.normalize.Object)
+ */
 qx.Class.define("demobrowser.demo.bom.Environment",
 {
   extend : qx.application.Native,
@@ -41,8 +47,8 @@ qx.Class.define("demobrowser.demo.bom.Environment",
       output.add("<table border='0'>");
 
       // this should not be used directly. Its just to show all added checks
-      var checks = qx.core.Environment._checks;
-      var keys = qx.lang.Object.getKeys(checks);
+      var checks = qx.core.Environment.getChecks();
+      var keys = Object.keys(checks);
       keys.sort();
 
       var lastPrefix = "";
@@ -58,8 +64,14 @@ qx.Class.define("demobrowser.demo.bom.Environment",
           output.add("<tr><td colspan='2'><b>" + prefix + "</b></td></tr>");
         }
 
+        var value = qx.core.Environment.get(key);
+        if (key == "event.mousewheel") {
+          // the 'target' property value is a Window object which cannot
+          // be serialized due to circular references.
+          value.target = value.target.toString();
+        }
         output.add("<tr><td>", key, "</td><td>",
-          qx.core.Environment.get(key), "</td></tr>");
+          qx.lang.Json.stringify(value, null, 2), "</td></tr>");
       }
 
 
@@ -68,9 +80,9 @@ qx.Class.define("demobrowser.demo.bom.Environment",
       output.add("<tr><td colspan='2'><h2>Asynchronous checks</h2></td></tr>");
 
       // this should not be used directly. Its just to show all added checks
-      checks = qx.core.Environment._asyncChecks;
+      checks = qx.core.Environment.getAsyncChecks();
       var numberOfChecks = qx.lang.Object.getLength(checks);
-      keys = qx.lang.Object.getKeys(checks);
+      keys = Object.keys(checks);
 
       if (numberOfChecks)
       {
@@ -78,7 +90,7 @@ qx.Class.define("demobrowser.demo.bom.Environment",
         {
           var key = keys[i];
           qx.core.Environment.getAsync(key, function(result) {
-            output.add("<tr><td>", this, "</td><td>", result, "</td></tr>");
+            output.add("<tr><td>", this, "</td><td>", qx.lang.Json.stringify(result, null, 2), "</td></tr>");
             numberOfChecks--;
             if (numberOfChecks === 0) {
               output.add("</table>");

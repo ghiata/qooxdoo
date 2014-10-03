@@ -18,7 +18,7 @@
 ************************************************************************ */
 /**
  * Mixin for supporting the background images on decorators.
- * This mixin is usually used by {@link qx.ui.decoration.DynamicDecorator}.
+ * This mixin is usually used by {@link qx.ui.decoration.Decorator}.
  */
 qx.Mixin.define("qx.ui.decoration.MBackgroundImage",
 {
@@ -53,7 +53,7 @@ qx.Mixin.define("qx.ui.decoration.MBackgroundImage",
     backgroundPositionX :
     {
       nullable : true,
-      apply : "_applyBackgroundImage"
+      apply : "_applyBackgroundPosition"
     },
 
 
@@ -68,7 +68,7 @@ qx.Mixin.define("qx.ui.decoration.MBackgroundImage",
     backgroundPositionY :
     {
       nullable : true,
-      apply : "_applyBackgroundImage"
+      apply : "_applyBackgroundPosition"
     },
 
 
@@ -85,74 +85,54 @@ qx.Mixin.define("qx.ui.decoration.MBackgroundImage",
   members :
   {
     /**
-     * Mapping for the dynamic decorator.
+     * Adds the background-image styles to the given map
+     * @param styles {Map} CSS style map
      */
-    _generateMarkup : this._generateBackgroundMarkup,
-
-
-    /**
-     * Responsible for generating the markup for the background.
-     * This method just uses the settings in the properties to generate
-     * the markup.
-     *
-     * @param styles {Map} CSS styles as map
-     * @param content {String?null} The content of the created div as HTML
-     * @return {String} The generated HTML fragment
-     */
-    _generateBackgroundMarkup: function(styles, content)
+    _styleBackgroundImage : function(styles)
     {
-      var markup = "";
-
       var image = this.getBackgroundImage();
+      if(!image) {
+        return;
+      }
+
+      var id = qx.util.AliasManager.getInstance().resolve(image);
+      var source = qx.util.ResourceManager.getInstance().toUri(id);
+      if (styles["background-image"]) {
+        styles["background-image"] +=  ', url(' + source + ')';
+      } else {
+        styles["background-image"] = 'url(' + source + ')';
+      }
+
       var repeat = this.getBackgroundRepeat();
-
-      var top = this.getBackgroundPositionY();
-      if (top == null) {
-        top = 0;
+      if (repeat === "scale") {
+        styles["background-size"] = "100% 100%";
+      }
+      else {
+        styles["background-repeat"] = repeat;
       }
 
-      var left = this.getBackgroundPositionX();
-      if (left == null) {
-        left = 0;
+      var top = this.getBackgroundPositionY() || 0;
+      var left = this.getBackgroundPositionX() || 0;
+
+      if (!isNaN(top)) {
+        top += "px";
       }
 
-      styles.backgroundPosition = left + " " + top;
+      if (!isNaN(left)) {
+        left += "px";
+      }
 
-      // Support for images
-      if (image)
+      styles["background-position"] = left + " " + top;
+
+      if (qx.core.Environment.get("qx.debug") &&
+        source &&  qx.lang.String.endsWith(source, ".png") &&
+        (repeat == "scale" || repeat == "no-repeat") &&
+        qx.core.Environment.get("engine.name") == "mshtml" &&
+        qx.core.Environment.get("browser.documentmode") < 9)
       {
-        var resolved = qx.util.AliasManager.getInstance().resolve(image);
-        markup = qx.bom.element.Decoration.create(resolved, repeat, styles);
+        this.warn("Background PNGs with repeat == 'scale' or repeat == 'no-repeat'" +
+          " are not supported in this client! The image's resource id is '" + id + "'");
       }
-      else
-      {
-        if ((qx.core.Environment.get("engine.name") == "mshtml"))
-        {
-          /*
-           * Internet Explorer as of version 6 for quirks and standards mode,
-           * or version 7 in quirks mode adds an empty string to the "div"
-           * node. This behavior causes rendering problems, because the node
-           * would then have a minimum size determined by the font size.
-           * To be able to set the "div" node height to a certain (small)
-           * value independent of the minimum font size, an "overflow:hidden"
-           * style is added.
-           * */
-          if (parseFloat(qx.core.Environment.get("engine.version")) < 7 ||
-            qx.core.Environment.get("browser.quirksmode"))
-          {
-            // Add additionally style
-            styles.overflow = "hidden";
-          }
-        }
-
-        if (!content) {
-          content = "";
-        }
-
-        markup = '<div style="' + qx.bom.element.Style.compile(styles) + '">' + content + '</div>';
-      }
-
-      return markup;
     },
 
 
@@ -163,6 +143,22 @@ qx.Mixin.define("qx.ui.decoration.MBackgroundImage",
       {
         if (this._isInitialized()) {
           throw new Error("This decorator is already in-use. Modification is not possible anymore!");
+        }
+      }
+    },
+
+    // property apply
+    _applyBackgroundPosition : function()
+    {
+      if (qx.core.Environment.get("qx.debug"))
+      {
+        if (this._isInitialized()) {
+          throw new Error("This decorator is already in-use. Modification is not possible anymore!");
+        }
+        if (qx.core.Environment.get("engine.name") == "mshtml" &&
+          qx.core.Environment.get("browser.documentmode") < 9)
+        {
+          this.warn("The backgroundPosition property is not supported by this client!");
         }
       }
     }

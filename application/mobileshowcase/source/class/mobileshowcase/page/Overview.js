@@ -49,25 +49,34 @@ qx.Class.define("mobileshowcase.page.Overview",
         configureItem : function(item, data, row)
         {
           item.setTitle(data.title);
-          item.setSubTitle(data.subTitle);
+          item.setSubtitle(data.subtitle);
           item.setShowArrow(true);
         }
       });
 
       var data = [
-          {title : "Form Elements", subTitle : "TextField, TextArea, ToggleButton, Button...", path:"form"},
-          {title : "List", subTitle : "A large list", path:"list"},
-          {title : "Tab Bar", subTitle : "Usings tabs to switch views", path:"tab"},
-          {title : "Toolbar", subTitle : "toolbar, buttons, separators", path:"toolbar"},
-          {title : "Events", subTitle : "Touch, Tap, Swipe...", path:"event"},
-          {title : "Page Transitions", subTitle : "Slide, Fade, Cube...", path:"animation"}
+          {title : "Basic Widgets", subtitle : "Buttons, Labels, Images, Atoms...", path:"basic"},
+          {title : "Dialog Widgets", subtitle : "Popups, Confirm Dialogs...", path:"dialog"},
+          {title : "Form Elements", subtitle : "TextField, TextArea, Checkboxes...", path:"form"},
+          {title : "List", subtitle : "A large list", path:"list"},
+          {title : "Carousel", subtitle : "A carousel container", path:"carousel"},
+          {title : "Drawer", subtitle : "Create a drawer container", path:"drawer"},
+          {title : "Tab Bar", subtitle : "Using tabs to switch views", path:"tab"},
+          {title : "Toolbar", subtitle : "Toolbar buttons and separators", path:"toolbar"},
+          {title : "Maps", subtitle : "Geolocation on a fullscreen map", path:"maps"},
+          {title : "Canvas", subtitle : "Draw onto a HTML5 canvas", path:"canvas"},
+          {title : "Events", subtitle : "Touch, Tap, Swipe...", path:"event"},
+          {title : "Data Binding", subtitle : "See how data binding works", path:"databinding"},
+          {title : "Page Transitions", subtitle : "Slide, Fade, Cube...", path:"animation"},
+          {title : "Theming", subtitle : "Modify the look of an app...", path:"theming"}
       ];
 
       list.setModel(new qx.data.Array(data));
       list.addListener("changeSelection", function(evt) {
         var path = data[evt.getData()].path;
-        qx.ui.mobile.navigation.Manager.getInstance().executeGet("/"+path);
+        qx.core.Init.getApplication().getRouting().executeGet("/"+path);
       }, this);
+
       this.getContent().add(list);
 
     }

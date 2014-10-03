@@ -1,73 +1,40 @@
 {
-  "name"    : "todo",
+    "name"    : "todo_q",
 
   "include" :
   [
     {
-      "path" : "${QOOXDOO_PATH}/tool/data/config/application.json"
+      "path" : "${WEBSITE}/website.json"
     }
   ],
 
   "export" :
   [
-    "api",
-    "api-data",
-    "build",
+    "build-mini",
     "clean",
-    "distclean",
-    "fix",
-    "info",
-    "lint",
-    "migration",
-    "pretty",
-    "profiling",
-    "source",
-    "source-all",
-    "source-hybrid",
-    "test",
-    "test-source",
-    "translation"
+    "distclean"
   ],
-  
-  "default-job" : "source",
+
+  "default-job" : "build-mini",
 
   "let" :
   {
-    "APPLICATION"  : "todo",
+    "APPLICATION"  : "todo_q",
     "QOOXDOO_PATH" : "../..",
-    "API_EXCLUDE"  : ["qx.test.*", "${APPLICATION}.test.*"],
-    "LOCALES"      : [ "en" ],
+    "WEBSITE"      : "${QOOXDOO_PATH}/component/standalone/website",
     "CACHE"        : "${TMPDIR}/qx${QOOXDOO_VERSION}/cache",
+    "BUILD_PATH"   : "script",
     "ROOT"         : "."
-  },
+  }
 
-  "config-warnings" : 
+  ,"jobs" :
   {
-    "job-shadowing" : ["source-all-script", "common"]
-  },
-
-  "jobs" :
-  {
-    "common" :
+    "build-mini" : // cannot use 'build-min' b.o. cyclic extends
     {
-      "=include" :
-      [
-        "${APPLICATION}.Application"
-      ],
-      
-      "=environment" :
-      {
-        "qx.version"     : "1.6",
-        "qx.application" : "${APPLICATION}.Application"
-      }
-    },
-
-    "source-all-script" :
-    {
-      "=exclude" : 
-      [
-        "qx.test.*",
-        "${APPLICATION}.test.*"
+      "run" : [
+        "build-core-min",
+        "build-module-storage-min",
+        "build-module-template-min"
       ]
     }
   }

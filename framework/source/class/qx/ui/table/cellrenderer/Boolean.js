@@ -42,6 +42,13 @@ qx.Class.define("qx.ui.table.cellrenderer.Boolean",
 
     this.initIconTrue();
     this.initIconFalse();
+
+    // dynamic theme switch
+    if (qx.core.Environment.get("qx.dyntheme")) {
+      qx.theme.manager.Meta.getInstance().addListener(
+        "changeTheme", this._onChangeTheme, this
+      );
+    }
   },
 
 
@@ -87,6 +94,19 @@ qx.Class.define("qx.ui.table.cellrenderer.Boolean",
     __iconUrlFalse : false,
     __aliasManager : null,
 
+
+    /**
+     * Handler for theme changes.
+     * @signature function()
+     */
+    _onChangeTheme : qx.core.Environment.select("qx.dyntheme",
+    {
+      "true" : function() {
+        this._applyIconTrue(this.getIconTrue());
+        this._applyIconFalse(this.getIconFalse());
+      },
+      "false" : null
+    }),
 
     // property apply
     _applyIconTrue : function(value) {
@@ -145,5 +165,11 @@ qx.Class.define("qx.ui.table.cellrenderer.Boolean",
 
   destruct : function() {
     this.__aliasManager = null;
+    // remove dynamic theme listener
+    if (qx.core.Environment.get("qx.dyntheme")) {
+      qx.theme.manager.Meta.getInstance().removeListener(
+        "changeTheme", this._onChangeTheme, this
+      );
+    }
   }
 });

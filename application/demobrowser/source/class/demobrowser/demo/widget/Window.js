@@ -20,18 +20,19 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/16/apps/office-calendar.png)
-#asset(qx/icon/${qx.icontheme}/32/apps/office-address-book.png)
-#asset(qx/icon/${qx.icontheme}/16/apps/internet-feed-reader.png)
-#asset(qx/icon/${qx.icontheme}/16/apps/internet-telephony.png)
-#asset(qx/icon/${qx.icontheme}/22/apps/utilities-calculator.png)
-#asset(qx/icon/${qx.icontheme}/32/status/dialog-error.png)
-#asset(qx/icon/${qx.icontheme}/16/actions/dialog-ok.png)
-#asset(qx/icon/${qx.icontheme}/16/actions/dialog-cancel.png)
 
 ************************************************************************ */
 /**
  * @tag showcase
+ *
+ * @asset(qx/icon/${qx.icontheme}/16/apps/office-calendar.png)
+ * @asset(qx/icon/${qx.icontheme}/32/apps/office-address-book.png)
+ * @asset(qx/icon/${qx.icontheme}/16/apps/internet-feed-reader.png)
+ * @asset(qx/icon/${qx.icontheme}/16/apps/internet-telephony.png)
+ * @asset(qx/icon/${qx.icontheme}/22/apps/utilities-calculator.png)
+ * @asset(qx/icon/${qx.icontheme}/32/status/dialog-error.png)
+ * @asset(qx/icon/${qx.icontheme}/16/actions/dialog-ok.png)
+ * @asset(qx/icon/${qx.icontheme}/16/actions/dialog-cancel.png)
  */
 qx.Class.define("demobrowser.demo.widget.Window",
 {
@@ -253,6 +254,11 @@ qx.Class.define("demobrowser.demo.widget.Window",
     },
 
 
+    /**
+     *
+     * @return {qx.ui.window.Window} modal window
+     * @lint ignoreDeprecated(alert)
+     */
     getModalWindow2 : function()
     {
       var wm2 = new qx.ui.window.Window("Second Modal Dialog");
@@ -277,7 +283,7 @@ qx.Class.define("demobrowser.demo.widget.Window",
 
       var btn4 = new qx.ui.form.Button("No", "icon/16/actions/dialog-cancel.png");
       btn4.addListener("execute", function(e) {
-        alert("Sorry, please click 'Yes'!");
+        alert("Sorry, please tap 'Yes'!");
       });
       box.add(btn4);
 

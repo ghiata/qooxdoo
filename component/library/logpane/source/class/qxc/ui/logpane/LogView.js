@@ -19,13 +19,16 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/Tango/16/actions/edit-clear.png)
-#asset(qx/icon/Tango/16/categories/system.png)
-#asset(qx/icon/Tango/16/status/dialog-information.png)
-#asset(qx/icon/Tango/16/status/dialog-warning.png)
-#asset(qx/icon/Tango/16/status/dialog-error.png)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/icon/Tango/16/actions/edit-clear.png)
+ * @asset(qx/icon/Tango/16/categories/system.png)
+ * @asset(qx/icon/Tango/16/status/dialog-information.png)
+ * @asset(qx/icon/Tango/16/status/dialog-warning.png)
+ * @asset(qx/icon/Tango/16/status/dialog-error.png)
+ */
 
 qx.Class.define("qxc.ui.logpane.LogView", {
   extend : qx.ui.container.Composite,
@@ -49,7 +52,8 @@ qx.Class.define("qxc.ui.logpane.LogView", {
     var caption = new qx.ui.basic.Label(this.tr("Log")).set(
     {
       font       : "bold",
-      padding    : 6,
+      padding    : 10,
+      alignY     : "middle",
       allowGrowX : true,
       allowGrowY : true
     });
@@ -59,6 +63,7 @@ qx.Class.define("qxc.ui.logpane.LogView", {
     this.__toolbar = new qx.ui.toolbar.ToolBar();
     this.__toolbar.add(caption);
     this.__toolbar.addSpacer();
+    this.__toolbar.setBackgroundColor("white");
     var clearButton = new qx.ui.toolbar.Button(this.tr("Clear"), "icon/16/actions/edit-clear.png");
     clearButton.addListener("execute", function(e) {
       this.clear();
@@ -76,6 +81,7 @@ qx.Class.define("qxc.ui.logpane.LogView", {
       font : "monospace",
       padding: 3
     });
+    logArea.getContentElement().setStyle("WebkitOverflowScrolling", "touch");
     this.add(logArea, {flex : 1});
 
     // log appender

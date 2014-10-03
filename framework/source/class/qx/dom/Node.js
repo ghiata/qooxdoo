@@ -20,7 +20,7 @@
 /**
  * Basic node creation and type detection
  */
-qx.Class.define("qx.dom.Node",
+qx.Bootstrap.define("qx.dom.Node",
 {
   /*
   *****************************************************************************
@@ -37,7 +37,7 @@ qx.Class.define("qx.dom.Node",
     */
 
     /**
-     * {Map} Node type:
+     * @type {Map} Node type:
      *
      * * ELEMENT
      * * ATTRIBUTE
@@ -186,6 +186,17 @@ qx.Class.define("qx.dom.Node",
 
 
     /**
+     * Whether the given object is a DOM document fragment node
+     *
+     * @param node {Node} the node which should be tested
+     * @return {Boolean} true when the node is a DOM document fragment
+     */
+    isDocumentFragment : function(node) {
+      return !!(node && node.nodeType === this.DOCUMENT_FRAGMENT);
+    },
+
+
+    /**
      * Whether the given object is a DOM text node
      *
      * @param node {Node} the node which should be tested
@@ -269,7 +280,7 @@ qx.Class.define("qx.dom.Node",
           var i, a=[], nodes=node.childNodes, length=nodes.length;
           for (i=0; i<length; i++) {
             a[i] = this.getText(nodes[i]);
-          };
+          }
 
           return a.join("");
 

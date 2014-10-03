@@ -17,20 +17,16 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#use(qx.event.handler.Focus)
-#use(qx.event.handler.Window)
-#use(qx.event.handler.Capture)
-
-************************************************************************ */
-
 /**
  * Implementation of the Internet Explorer specific event capturing mode for
  * mouse events http://msdn2.microsoft.com/en-us/library/ms536742.aspx.
  *
  * This class is used internally by {@link qx.event.Manager} to do mouse event
  * capturing.
+ *
+ * @use(qx.event.handler.Focus)
+ * @use(qx.event.handler.Window)
+ * @use(qx.event.handler.Capture)
  */
 qx.Class.define("qx.event.dispatch.MouseCapture",
 {
@@ -55,7 +51,7 @@ qx.Class.define("qx.event.dispatch.MouseCapture",
 
   statics :
   {
-    /** {Integer} Priority of this dispatcher */
+    /** @type {Integer} Priority of this dispatcher */
     PRIORITY : qx.event.Registration.PRIORITY_FIRST
   },
 
@@ -93,10 +89,7 @@ qx.Class.define("qx.event.dispatch.MouseCapture",
     // overridden
     dispatchEvent : function(target, event, type)
     {
-      // Conforming to the MS implementation a mouse click will stop mouse
-      // capturing. The event is "eaten" by the capturing handler.
-      if (type == "click")
-      {
+      if (type == "click") {
         event.stopPropagation();
 
         this.releaseCapture();
@@ -131,7 +124,15 @@ qx.Class.define("qx.event.dispatch.MouseCapture",
       "dblclick": 1,
       "mousemove": 1,
       "mouseout": 1,
-      "mouseover": 1
+      "mouseover": 1,
+
+      "pointerdown" : 1,
+      "pointerup" : 1,
+      "pointermove" : 1,
+      "pointerover" : 1,
+      "pointerout" : 1,
+      "tap" : 1,
+      "dbltap" : 1
     },
 
 
@@ -166,9 +167,8 @@ qx.Class.define("qx.event.dispatch.MouseCapture",
       }
 
       // turn on native mouse capturing if the browser supports it
-      this.nativeSetCapture(element, containerCapture);
-      if (this.hasNativeCapture)
-      {
+      if (this.hasNativeCapture) {
+        this.nativeSetCapture(element, containerCapture);
         var self = this;
         qx.bom.Event.addNativeListener(element, "losecapture", function()
         {
@@ -213,13 +213,19 @@ qx.Class.define("qx.event.dispatch.MouseCapture",
     },
 
 
-    /** Whether the browser has native mouse capture support */
-    hasNativeCapture : qx.core.Environment.get("engine.name") == "mshtml",
+    /** Whether the browser should use native mouse capturing */
+    hasNativeCapture : (qx.core.Environment.get("engine.name") == "mshtml" &&
+      qx.core.Environment.get("browser.documentmode") < 9 ||
+      (parseInt(qx.core.Environment.get("os.version"), 10) > 7 && qx.core.Environment.get("browser.documentmode") > 9)
+    ),
 
 
     /**
      * If the browser supports native mouse capturing, sets the mouse capture to
      * the object that belongs to the current document.
+     *
+     * Please note that under Windows 7 (but not Windows 8), capturing is
+     * not only applied to mouse events as expected, but also to native pointer events.
      *
      * @param element {Element} The capture DOM element
      * @param containerCapture {Boolean?true} If true all events originating in
@@ -233,7 +239,7 @@ qx.Class.define("qx.event.dispatch.MouseCapture",
         element.setCapture(containerCapture !== false);
       },
 
-      "default" : qx.lang.Function.empty
+      "default" : (function() {})
     }),
 
 
@@ -250,7 +256,7 @@ qx.Class.define("qx.event.dispatch.MouseCapture",
         element.releaseCapture();
       },
 
-      "default" : qx.lang.Function.empty
+      "default" : (function() {})
     })
   },
 

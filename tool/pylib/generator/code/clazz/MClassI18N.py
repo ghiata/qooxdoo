@@ -25,7 +25,7 @@
 
 import sys, os, types, re, string
 from ecmascript.frontend import treeutil
-from ecmascript.frontend.tree import NodeAccessException
+from ecmascript.transform.optimizer import reducer
 from misc import util
 
 class MClassI18N(object):
@@ -39,7 +39,7 @@ class MClassI18N(object):
     # returns array of message dicts [{method:, line:, column:, hint:, id:, plural:},...]
     def messageStrings(self, variants):
         # this duplicates codef from Locale.getTranslation
-        
+
         classVariants     = self.classVariants()
         relevantVariants  = self.projectClassVariantsToCurrent(classVariants, variants)
         variantsId        = util.toString(relevantVariants)
@@ -57,7 +57,7 @@ class MClassI18N(object):
         console.indent()
         cached = False
 
-        tree = self.tree(variants)
+        tree = self.tree()
 
         try:
             messages = self._findTranslationBlocks(tree, [])
@@ -79,10 +79,10 @@ class MClassI18N(object):
         if node.type == "call":
             oper = node.getChild("operand", False)
             if oper:
-                var = oper.getChild("variable", False)
-                if var:
+                var = oper.getFirstChild()
+                if var.isVar():
                     varname = (treeutil.assembleVariable(var))[0]
-                    for entry in [ ".tr", ".trn", ".trc", ".marktr" ]:
+                    for entry in [ ".tr", ".trn", ".trc", ".trnc", ".marktr" ]:
                         if varname.endswith(entry):
                             self._addTranslationBlock(entry[1:], messages, node, var)
                             break
@@ -93,7 +93,7 @@ class MClassI18N(object):
 
         return messages
 
-     
+
     def _addTranslationBlock(self, method, data, node, var):
         entry = {
             "method" : method,
@@ -105,12 +105,14 @@ class MClassI18N(object):
         # tr(msgid, args)
         # trn(msgid, msgid_plural, count, args)
         # trc(hint, msgid, args)
+        # trnc(hint, msgid, msgid_plural, count, args)
         # marktr(msgid)
 
-        if method == "trn" or method == "trc": minArgc=2
+        if method == "trnc": minArgc=3
+        elif method == "trn" or method == "trc": minArgc=2
         else: minArgc=1
 
-        params = node.getChild("params", False)
+        params = node.getChild("arguments", False)
         if not params or not params.hasChildren():
             raise NameError("Invalid param data for localizable string method at line %s!" % node.get("line"))
 
@@ -125,7 +127,7 @@ class MClassI18N(object):
             elif child.type == "constant" and child.get("constantType") == "string":
                 strings.append(child.get("value"))
 
-            elif child.type == "operation":
+            elif child.type == "operation": # must be "foo" + "bar"
                 strings.append(self._concatOperation(child))
 
             elif len(strings) < minArgc:
@@ -137,7 +139,7 @@ class MClassI18N(object):
 
         lenStrings = len(strings)
         if lenStrings > 0:
-            if method == "trc":
+            if method in ("trc", "trnc"):
                 entry["hint"] = strings[0]
                 if lenStrings > 1 and strings[1]:  # msgid must not be ""
                     entry["id"]   = strings[1]
@@ -148,6 +150,9 @@ class MClassI18N(object):
             if method == "trn" and lenStrings > 1:
                 entry["plural"] = strings[1]
 
+            if method == "trnc" and lenStrings > 2:
+                entry["plural"] = strings[2]
+
         # register the entry only if we have a proper key
         if "id" in entry:
             data.append(entry)
@@ -156,22 +161,14 @@ class MClassI18N(object):
 
 
     def _concatOperation(self, node):
-        result = ""
         console = self.context['console']
-
-        try:
-            first = node.getChild("first").getChildByTypeAndAttribute("constant", "constantType", "string")
-            result += first.get("value")
-
-            second = node.getChild("second").getFirstChild(True, True)
-            if second.type == "operation":
-                result += self._concatOperation(second)
-            else:
-                result += second.get("value")
-
-        except NodeAccessException:
-            console.warn("Unknown expression as argument to translation method (%s:%s)" % (treeutil.getFileFromSyntaxItem(node), node.get("line"),))
-
+        result = ""
+        reduced_node = reducer.ast_reduce(node)
+        if reduced_node.type == 'constant' and reduced_node.get("constantType",'') == "string":
+            result = reduced_node.get('value')
+        else:
+            console.warn("Cannot extract string argument to translation method (%s:%s): %s" % (
+                treeutil.getFileFromSyntaxItem(node), node.get("line"), node.toJS(None)))
         return result
 
 

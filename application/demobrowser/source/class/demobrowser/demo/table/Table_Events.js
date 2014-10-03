@@ -19,10 +19,6 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/22/actions/media-record.png)
-#asset(qx/icon/${qx.icontheme}/16/actions/edit-cut.png)
-#asset(qx/icon/${qx.icontheme}/16/actions/edit-copy.png)
-#asset(qx/icon/${qx.icontheme}/16/actions/edit-paste.png)
 
 ************************************************************************ */
 
@@ -31,6 +27,11 @@
  * editing, sorting, column resizing, column reordering,
  * column hiding.
  * @tag noPlayground
+ *
+ * @asset(qx/icon/${qx.icontheme}/22/actions/media-record.png)
+ * @asset(qx/icon/${qx.icontheme}/16/actions/edit-cut.png)
+ * @asset(qx/icon/${qx.icontheme}/16/actions/edit-copy.png)
+ * @asset(qx/icon/${qx.icontheme}/16/actions/edit-paste.png)
  */
 qx.Class.define("demobrowser.demo.table.Table_Events",
 {
@@ -118,8 +119,8 @@ qx.Class.define("demobrowser.demo.table.Table_Events",
       table.addListener("columnVisibilityMenuCreateEnd", logTableEvent, this);
       table.addListener("tableWidthChanged", logTableEvent, this);
       table.addListener("verticalScrollBarChanged", logTableEvent, this);
-      table.addListener("cellClick", logCellEvent, this);
-      table.addListener("cellDblclick", logCellEvent, this);
+      table.addListener("cellTap", logCellEvent, this);
+      table.addListener("cellDbltap", logCellEvent, this);
       table.addListener("cellContextmenu", logCellEvent, this);
 
       tableModel.addListener("sorted", logSortedEvent, this);

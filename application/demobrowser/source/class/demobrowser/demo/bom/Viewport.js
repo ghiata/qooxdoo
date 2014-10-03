@@ -18,6 +18,9 @@
 
 ************************************************************************ */
 
+/**
+ * @tag noPlayground
+ */
 qx.Class.define("demobrowser.demo.bom.Viewport",
 {
   extend : qx.application.Native,
@@ -30,7 +33,7 @@ qx.Class.define("demobrowser.demo.bom.Viewport",
 
       qx.bom.Element.addListener(
         document.body,
-        "click",
+        "tap",
         function()
         {
           this.debug("Document Dimension: " + qx.bom.Document.getWidth() + "x" + qx.bom.Document.getHeight());

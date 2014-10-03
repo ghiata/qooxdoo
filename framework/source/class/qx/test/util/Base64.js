@@ -21,11 +21,6 @@ qx.Class.define("qx.test.util.Base64", {
   extend : qx.dev.unit.TestCase,
 
   members : {
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
     testEncodeDecode : function() {
       var str = "Luke, I'm your father! Nooooooooooo!";
       var encodedStr = qx.util.Base64.encode(str);
@@ -33,11 +28,6 @@ qx.Class.define("qx.test.util.Base64", {
     },
 
 
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
     testChineseChars : function() {
       var str = "Abecedariab语言工具";
       var encodedStr = qx.util.Base64.encode(str);
@@ -45,11 +35,6 @@ qx.Class.define("qx.test.util.Base64", {
     },
 
 
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
     testChineseCharsExplicitNot8bit : function() {
       var str = "Abecedariab语言工具";
       var encodedStr = qx.util.Base64.encode(str, false);
@@ -57,11 +42,6 @@ qx.Class.define("qx.test.util.Base64", {
     },
 
 
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
     testChineseCharsExplicit8bit : function() {
       var str = "Abecedariab语言工具";
       var encodedStr = qx.util.Base64.encode(str, false);
@@ -69,17 +49,12 @@ qx.Class.define("qx.test.util.Base64", {
     },
 
 
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
     testGermanChars : function() {
       var str = "Am Donnerstag diskutieren die Abgeordneten dann ab 9 Uhr zweieinhalb Stunden lang in erster Lesung über drei fraktionsübergreifende Gesetzentwürfe zur Präimplantationsdiagnostik (PID). Weitere Themen sind am Donnerstag unter anderem der Schutz vor Straßen- und Schienenlärm und die Einführung eines Mindestlohns";
       var encodedStr = qx.util.Base64.encode(str);
       this.assertEquals(str, qx.util.Base64.decode(encodedStr));
     },
-    
+
     testKnownEncoding : function() {
       var str = "Hello\nThis\nIs\nA\nText\nFile";
       var expected = "SGVsbG8KVGhpcwpJcwpBClRleHQKRmlsZQ==";

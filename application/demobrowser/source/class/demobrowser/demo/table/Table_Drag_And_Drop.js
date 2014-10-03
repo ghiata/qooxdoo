@@ -19,11 +19,6 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/22/actions/list-add.png)
-#asset(qx/icon/${qx.icontheme}/22/actions/list-remove.png)
-#asset(qx/icon/${qx.icontheme}/22/actions/edit-undo.png)
-#asset(qx/icon/${qx.icontheme}/22/status/dialog-information.png)
-#asset(qx/icon/${qx.icontheme}/16/apps/office-calendar.png)
 
 ************************************************************************ */
 
@@ -32,6 +27,12 @@
  * editing, sorting, column resizing, column reordering,
  * column hiding.
  *
+ *
+ * @asset(qx/icon/${qx.icontheme}/22/actions/list-add.png)
+ * @asset(qx/icon/${qx.icontheme}/22/actions/list-remove.png)
+ * @asset(qx/icon/${qx.icontheme}/22/actions/edit-undo.png)
+ * @asset(qx/icon/${qx.icontheme}/22/status/dialog-information.png)
+ * @asset(qx/icon/${qx.icontheme}/16/apps/office-calendar.png)
  * @tag noPlayground
  * @tag showcase
  */
@@ -72,7 +73,7 @@ qx.Class.define("demobrowser.demo.table.Table_Drag_And_Drop",
 
       table.setDraggable(true);
       table.setDroppable(true);
-      table.setFocusCellOnMouseMove(true);
+      table.setFocusCellOnPointerMove(true);
 
       table.addListener("dragstart", this._handleDragStart, this);
       table.addListener("droprequest", this._handleDropRequest, this);
@@ -83,6 +84,8 @@ qx.Class.define("demobrowser.demo.table.Table_Drag_And_Drop",
 
 
     _handleDragStart: function(e) {
+      var focusedRow = this._table.getFocusedRow();
+      this._startRow = {maxIndex: focusedRow, minIndex: focusedRow};
       e.addAction("move");
       e.addType("movetransfer");
     },
@@ -92,6 +95,11 @@ qx.Class.define("demobrowser.demo.table.Table_Drag_And_Drop",
     {
       var type = e.getCurrentType();
       var sel = this._table.getSelectionModel().getSelectedRanges();
+
+      // use the focused row instead of the selection in nothing selected
+      if (sel.length == 0) {
+        sel = [this._startRow];
+      }
 
       var selMap = [];
 

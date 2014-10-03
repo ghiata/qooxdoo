@@ -36,7 +36,7 @@ qx.Class.define("fce.view.List", {
 
     this._setUpDragDrop();
 
-    this.addListener("keypress", function(ev) {
+    this.addListener("keyup", function(ev) {
       if (ev.getKeyIdentifier() === "Delete") {
         this.removeSelected();
       }
@@ -146,6 +146,21 @@ qx.Class.define("fce.view.List", {
         var modelItem = listSelection[i].getModelItem();
         this.getSelectedItems().remove(modelItem);
         listSelection[i].destroy();
+        qx.lang.Array.remove(this.__listedItems, modelItem);
+      }
+    },
+
+
+    /**
+     * Removes all entries from the list
+     */
+    removeAll : function()
+    {
+      var listItems = this.getChildren().concat();
+      for (var i=0,l=listItems.length; i<l; i++) {
+        var modelItem = listItems[i].getModelItem();
+        this.getSelectedItems().remove(modelItem);
+        listItems[i].destroy();
         qx.lang.Array.remove(this.__listedItems, modelItem);
       }
     },

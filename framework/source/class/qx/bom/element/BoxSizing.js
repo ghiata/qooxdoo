@@ -25,7 +25,7 @@
  * * "content-box" = W3C model (dimensions are content specific)
  * * "border-box" = Microsoft model (dimensions are box specific incl. border and padding)
  */
-qx.Class.define("qx.bom.element.BoxSizing",
+qx.Bootstrap.define("qx.bom.element.BoxSizing",
 {
   /*
   *****************************************************************************
@@ -35,7 +35,7 @@ qx.Class.define("qx.bom.element.BoxSizing",
 
   statics :
   {
-    /** {Map} Internal data structure for __usesNativeBorderBox() */
+    /** @type {Map} Internal data structure for __usesNativeBorderBox() */
     __nativeBorderBox :
     {
       tags :
@@ -78,12 +78,14 @@ qx.Class.define("qx.bom.element.BoxSizing",
     compile : function(value)
     {
       if (qx.core.Environment.get("css.boxsizing")) {
-        var prop = qx.lang.String.hyphenate(qx.core.Environment.get("css.boxsizing"));
+        var prop = qx.bom.Style.getCssName(qx.core.Environment.get("css.boxsizing"));
         return prop + ":" + value + ";";
       }
       else {
-        qx.log.Logger.warn(this, "This client does not support dynamic modification of the boxSizing property.");
-        qx.log.Logger.trace();
+        if (qx.core.Environment.get("qx.debug")) {
+          qx.log.Logger.warn(this, "This client does not support dynamic modification of the boxSizing property.");
+          qx.log.Logger.trace();
+        }
       }
     },
 
@@ -99,7 +101,7 @@ qx.Class.define("qx.bom.element.BoxSizing",
       if (qx.core.Environment.get("css.boxsizing")) {
         return qx.bom.element.Style.get(element, "boxSizing", null, false) || "";
       }
-      
+
       if (qx.bom.Document.isStandardMode(qx.dom.Node.getWindow(element)))
       {
         if (!this.__usesNativeBorderBox(element)) {
@@ -116,7 +118,6 @@ qx.Class.define("qx.bom.element.BoxSizing",
      *
      * @param element {Element} The element to modify
      * @param value {String} New box sizing value to set
-     * @return {void}
      */
     set : function(element, value)
     {
@@ -125,11 +126,15 @@ qx.Class.define("qx.bom.element.BoxSizing",
         try {
           element.style[qx.core.Environment.get("css.boxsizing")] = value;
         } catch(ex) {
-          qx.log.Logger.warn(this, "This client does not support the boxSizing value", value);
+          if (qx.core.Environment.get("qx.debug")) {
+            qx.log.Logger.warn(this, "This client does not support the boxSizing value", value);
+          }
         }
       }
       else {
-        qx.log.Logger.warn(this, "This client does not support dynamic modification of the boxSizing property.");
+        if (qx.core.Environment.get("qx.debug")) {
+          qx.log.Logger.warn(this, "This client does not support dynamic modification of the boxSizing property.");
+        }
       }
     },
 
@@ -138,7 +143,6 @@ qx.Class.define("qx.bom.element.BoxSizing",
      * Removes the local box sizing applied to the element
      *
      * @param element {Element} The element to modify
-     * @return {void}
      */
     reset : function(element) {
       this.set(element, "");

@@ -32,22 +32,19 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.lang.Array)
-
-************************************************************************ */
-
 /**
  * Collection of helper methods operating on functions.
+ *
+ * @ignore(qx.core.Object)
+ * @require(qx.lang.Array)
  */
-qx.Class.define("qx.lang.Function",
+qx.Bootstrap.define("qx.lang.Function",
 {
   statics :
   {
     /**
      * Extract the caller of a function from the arguments variable.
-     * This will not work in Opera.
+     * This will not work in Opera < 9.6.
      *
      * @param args {arguments} The local arguments variable
      * @return {Function} A reference to the calling function or "undefined" if caller is not supported.
@@ -144,62 +141,6 @@ qx.Class.define("qx.lang.Function",
 
 
     /**
-     * empty function
-     */
-    empty : function() {},
-
-
-    /**
-     * Simply return true.
-     *
-     * @return {Boolean} Always returns true.
-     */
-    returnTrue : function() {
-      return true;
-    },
-
-
-    /**
-     * Simply return false.
-     *
-     * @return {Boolean} Always returns false.
-     */
-    returnFalse : function() {
-      return false;
-    },
-
-
-    /**
-     * Simply return null.
-     *
-     * @return {var} Always returns null.
-     */
-    returnNull : function() {
-      return null;
-    },
-
-
-    /**
-     * Return "this".
-     *
-     * @return {Object} Always returns "this".
-     */
-    returnThis : function() {
-      return this;
-    },
-
-
-    /**
-     * Simply return 0.
-     *
-     * @return {Number} Always returns 0.
-     */
-    returnZero : function() {
-      return 0;
-    },
-
-
-    /**
      * Base function for creating functional closures which is used by most other methods here.
      *
      * *Syntax*
@@ -207,7 +148,7 @@ qx.Class.define("qx.lang.Function",
      * <pre class='javascript'>var createdFunction = qx.lang.Function.create(myFunction, [options]);</pre>
      *
      * @param func {Function} Original function to wrap
-     * @param options? {Map} Map of options
+     * @param options {Map?} Map of options
      * <ul>
      * <li><strong>self</strong>: The object that the "this" of the function will refer to. Default is the same as the wrapper function is called.</li>
      * <li><strong>args</strong>: An array of arguments that will be passed as arguments to the function when called.
@@ -241,7 +182,7 @@ qx.Class.define("qx.lang.Function",
       {
         if (qx.core.Environment.get("qx.debug"))
         {
-          if (options.self instanceof qx.core.Object)
+          if (qx.core.Object && options.self && qx.Bootstrap.isObject(options.self) && options.self.isDisposed && qx.Bootstrap.isFunction(options.self.isDisposed))
           {
             qx.core.Assert && qx.core.Assert.assertFalse(
               options.self.isDisposed(),
@@ -260,9 +201,13 @@ qx.Class.define("qx.lang.Function",
 
         if (options.delay || options.periodical)
         {
-          var returns = qx.event.GlobalError.observeMethod(function() {
+          var returns = function() {
             return func.apply(options.self||this, args);
-          });
+          };
+
+          if (qx.core.Environment.get("qx.globalErrorHandling")) {
+            returns = qx.event.GlobalError.observeMethod(returns);
+          }
 
           if (options.delay) {
             return window.setTimeout(returns, options.delay);
@@ -292,6 +237,15 @@ qx.Class.define("qx.lang.Function",
 
     /**
      * Returns a function whose "this" is altered.
+     *
+     *
+     * *Native way*
+     *
+     * This is also a feature of JavaScript 1.8.5 and will be supplied
+     * by modern browsers. Including {@link qx.lang.normalize.Function}
+     * will supply a cross browser normalization of the native
+     * implementation. We like to encourage you to use the native function!
+     *
      *
      * *Syntax*
      *
@@ -381,7 +335,7 @@ qx.Class.define("qx.lang.Function",
         {
           // Directly execute, but force first parameter to be the event object.
           return func.call(self||this, event||window.event);
-        }
+        };
       }
       else
       {

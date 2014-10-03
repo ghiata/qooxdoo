@@ -22,7 +22,6 @@ qx.Class.define("qx.test.ui.form.Placeholder",
 
   members :
   {
-
     __testInit : function(clazz, childControlName) {
       var widget = new clazz();
       widget.setValue("affe");
@@ -86,23 +85,22 @@ qx.Class.define("qx.test.ui.form.Placeholder",
       widget.focus();
       this.flush();
       this.assertEquals("", this.__getVisibleValueOf(widget), "wrong visible value after focus");
-      this.assertFalse(this.__isPlaceholderVisible(widget));
+      this.assertFalse(this.__isPlaceholderVisible(widget), "1");
 
       // test focus out
       this.getRoot().focus();
       this.flush();
 
-      var timer = qx.util.TimerManager.getInstance();
-      timer.start(function() {
+      window.setTimeout(function() {
         this.resume(function() {
           this.getRoot().focus();
           this.flush();
-          this.assertTrue(this.__isPlaceholderVisible(widget));
+          this.assertTrue(this.__isPlaceholderVisible(widget), "2");
           this.assertEquals("abc", this.__getPlaceholderValueOf(widget), "wrong visible value after blur");
           // get rid of the widget
           widget.destroy();
         }, this);
-      }, 0, this, null, 300);
+      }.bind(this), 500);
 
       this.wait();
     },
@@ -168,9 +166,7 @@ qx.Class.define("qx.test.ui.form.Placeholder",
     },
 
     __getPlaceholderValueOf: function(widget) {
-      var useQxPlaceholder = !qx.core.Environment.get("css.placeholder") ||
-        (qx.core.Environment.get("engine.name") == "gecko" &&
-         parseFloat(qx.core.Environment.get("engine.version")) >= 2);
+      var useQxPlaceholder = !qx.core.Environment.get("css.placeholder");
 
       if (!useQxPlaceholder) {
         if (qx.Class.isSubClassOf(widget.constructor, qx.ui.form.AbstractField)) {
@@ -180,38 +176,37 @@ qx.Class.define("qx.test.ui.form.Placeholder",
         }
       } else {
         if (qx.Class.isSubClassOf(widget.constructor, qx.ui.form.AbstractField)) {
-          return widget.getContainerElement().getChildren()[1].getValue();
+          return widget._getPlaceholderElement().getValue();
         } else if (this.__hasTextfieldChildControl(widget)) {
-          return widget.getChildControl("textfield").getContainerElement().getChildren()[1].getValue();
+          return widget.getChildControl("textfield")._getPlaceholderElement().getValue();
         }
       }
     },
 
     __isPlaceholderVisible: function(widget) {
-      var useQxPlaceholder = !qx.core.Environment.get("css.placeholder") ||
-        (qx.core.Environment.get("engine.name") == "gecko" &&
-         parseFloat(qx.core.Environment.get("engine.version")) >= 2);
+      var useQxPlaceholder = !qx.core.Environment.get("css.placeholder");
 
       if (!useQxPlaceholder) {
         var contentElem;
         if (qx.Class.isSubClassOf(widget.constructor, qx.ui.form.AbstractField)) {
           contentElem = widget.getContentElement();
-          return widget.getValue() == null &&
+          return (widget.getValue() == null || widget.getValue() == "") &&
             contentElem.getAttribute("placeholder") != "" &&
             contentElem.getAttribute("placeholder") != null &&
             !qx.ui.core.FocusHandler.getInstance().isFocused(widget);
         } else if (this.__hasTextfieldChildControl(widget)) {
           contentElem = widget.getChildControl("textfield").getContentElement();
-          return widget.getChildControl("textfield").getValue() == null &&
+          return (widget.getChildControl("textfield").getValue() == null ||
+            widget.getChildControl("textfield").getValue() == "") &&
             contentElem.getAttribute("placeholder") != "" &&
             contentElem.getAttribute("placeholder") != null &&
             !qx.ui.core.FocusHandler.getInstance().isFocused(widget);
         }
       } else {
         if (qx.Class.isSubClassOf(widget.constructor, qx.ui.form.AbstractField)) {
-          return widget.getContainerElement().getChildren()[1].getStyle("visibility") != "hidden";
+          return widget._getPlaceholderElement().getStyle("visibility") != "hidden";
         } else if (this.__hasTextfieldChildControl(widget)) {
-          return widget.getChildControl("textfield").getContainerElement().getChildren()[1].getStyle("visibility") != "hidden";
+          return widget.getChildControl("textfield")._getPlaceholderElement().getStyle("visibility") != "hidden";
         }
       }
     },
@@ -269,6 +264,11 @@ qx.Class.define("qx.test.ui.form.Placeholder",
     },
 
     testChangeValuePasswordField : function() {
+      if (qx.core.Environment.get("engine.name") == "mshtml" &&
+        qx.core.Environment.get("browser.documentmode") < 9)
+      {
+        this.skip("Skipped in IE 8 until bug #8424 is fixed.");
+      }
       this.__testChangeValue(qx.ui.form.PasswordField);
     },
 

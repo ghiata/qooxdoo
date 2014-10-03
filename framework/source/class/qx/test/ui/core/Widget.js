@@ -16,15 +16,14 @@
      * Martin Wittemann (martinwittemann)
 
 ************************************************************************ */
-/* ************************************************************************
 
-#ignore(qx.test.ui.core.W)
-
-************************************************************************ */
+/**
+ * @ignore(qx.test.ui.core.W)
+ */
 qx.Class.define("qx.test.ui.core.Widget",
 {
   extend : qx.test.ui.LayoutTestCase,
-  include : [qx.dev.unit.MMock],
+  include : [qx.dev.unit.MMock, qx.dev.unit.MRequirements],
 
   members :
   {
@@ -199,19 +198,6 @@ qx.Class.define("qx.test.ui.core.Widget",
       w.destroy();
     },
 
-
-    testGetShadowElement : function()
-    {
-      var w = new qx.ui.core.Widget();
-      this.assertNull(w.getShadowElement());
-
-      w.setShadow("shadow-window");
-      this.assertInstance(w.getShadowElement(), qx.html.Decorator);
-      this.assertEquals("shadow-window", w.getShadowElement().getId());
-
-      w.destroy();
-    },
-
     testScrollChildIntoViewChangesScheduled : function() {
       var msg,
           scrollPane,
@@ -311,6 +297,32 @@ qx.Class.define("qx.test.ui.core.Widget",
     },
 
 
+    testReleaseChildControl : function() {
+      qx.Class.define("qx.test.ui.core.W", {
+        extend : qx.ui.core.Widget,
+
+        members : {
+          _createChildControlImpl: function(id) {
+            return new qx.ui.core.Widget();
+          }
+        }
+      });
+
+      var w = new qx.test.ui.core.W();
+
+      var child = w.getChildControl("xyz");
+      this.flush();
+      this.assertEquals(w._getCreatedChildControls()["xyz"], child);
+
+      w._releaseChildControl("xyz");
+      this.assertUndefined(w._getCreatedChildControls()["xyz"]);
+
+      child.dispose();
+      w.dispose();
+      qx.Class.undefine("qx.test.ui.core.W");
+    },
+
+
     testCreateChildControlHash: function(){
       qx.Class.define("qx.test.ui.core.W", {
         extend : qx.ui.core.Widget,
@@ -392,6 +404,48 @@ qx.Class.define("qx.test.ui.core.Widget",
       var hint = w._computeSizeHint();
 
       this.assertEquals(200, hint.maxHeight);
+      w.dispose();
+    },
+
+
+    testAddUndefined : function() {
+      this.require(["qx.debug"]);
+
+      var w = new qx.ui.core.Widget();
+
+      this.assertException(function(){
+        w._add(undefined);
+      },
+      qx.core.AssertionError.constructor,
+      /Expected value to be instanceof 'qx.ui.core.LayoutItem'/
+      );
+
+      w.dispose();
+    },
+
+
+    testAddNoWidget : function() {
+      this.require(["qx.debug"]);
+
+      var w = new qx.ui.core.Widget();
+
+      this.assertException(function(){
+        w._add(new qx.bom.Font());
+      },
+      qx.core.AssertionError.constructor,
+      /Expected value to be instanceof 'qx.ui.core.LayoutItem'/
+      );
+
+      w.dispose();
+    },
+
+
+    testAddWidget : function() {
+      this.require(["qx.debug"]);
+
+      var w = new qx.ui.core.Widget();
+      w._add(new qx.ui.container.Composite());
+
       w.dispose();
     }
   }

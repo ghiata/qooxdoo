@@ -16,17 +16,12 @@
      * Tino Butz (tbtz)
 
 ************************************************************************ */
-/* ************************************************************************
-
-#require(qx.event.handler.Input)
-
-************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * The mixin contains all functionality to provide common properties for
  * text fields.
+ *
+ * @require(qx.event.handler.Input)
  */
 qx.Mixin.define("qx.ui.mobile.form.MText",
 {
@@ -78,7 +73,7 @@ qx.Mixin.define("qx.ui.mobile.form.MText",
       check : "String",
       nullable : true,
       init : null,
-      apply : "_applyAttribute"
+      apply : "_applyPlaceholder"
     },
 
 
@@ -108,6 +103,44 @@ qx.Mixin.define("qx.ui.mobile.form.MText",
     _applyMaxLength : function(value, old)
     {
       this._setAttribute("maxlength", value);
+    },
+
+
+    // property apply
+    _applyPlaceholder : function(value, old)
+    {
+      // Android is not able to indent placeholder.
+      // Adding a space before the placeholder text, as a fix.
+      if (qx.core.Environment.get("os.name") == "android" && value !== null) {
+        value = " " + value;
+      }
+      this._setAttribute("placeholder", value);
+    },
+
+
+    /**
+     * Points the focus of the form to this widget.
+     */
+    focus : function() {
+      if(this.isReadOnly() || this.getEnabled() == false) {
+        return;
+      }
+
+      var targetElement = this.getContainerElement();
+      if(targetElement) {
+        qx.bom.Element.focus(targetElement);
+      }
+    },
+
+
+    /**
+     * Removes the focus from this widget.
+     */
+    blur : function() {
+      var targetElement = this.getContainerElement();
+      if(targetElement) {
+        qx.bom.Element.blur(targetElement);
+      }
     }
   }
 });

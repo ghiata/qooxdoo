@@ -18,12 +18,6 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#ignore(qx.core.Environment)
-
-************************************************************************ */
-
 /**
  * The GlobalError class stores a reference to a global error handler function.
  *
@@ -32,11 +26,19 @@
  *  be enabled and an error handler must be registered.
  *  Further each JavaScript "entry point" must be wrapped with a call to
  *  {@link qx.event.GlobalError#observeMethod}.
+ *
+ * @ignore(qx.core, qx.core.Environment)
  */
 qx.Bootstrap.define("qx.event.GlobalError",
 {
   statics :
   {
+    __callback : null,
+
+    __originalOnError : null,
+
+    __context : null,
+
     /**
      * Little helper to check if the global error handling is enabled.
      * @return {Boolean} <code>true</code>, if it is enabled.
@@ -108,7 +110,6 @@ qx.Bootstrap.define("qx.event.GlobalError",
       if (this.__callback)
       {
         this.handleError(new qx.core.WindowError(msg, uri, lineNumber));
-        return true;
       }
     },
 
@@ -148,7 +149,7 @@ qx.Bootstrap.define("qx.event.GlobalError",
     /**
      * Delegates every given exception to the registered error handler
      *
-     * @param ex {qx.core.WindowError|exception} Exception to delegate
+     * @param ex {qx.core.WindowError|Error} Exception to delegate
      */
     handleError : function(ex)
     {

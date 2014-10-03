@@ -47,7 +47,7 @@ qx.Class.define("qx.test.ui.form.Resetter",
 
 
     testReset: function() {
-      // set the initla values
+      // set the initial values
       this.__username.setValue("A");
       this.__password1.setValue("B");
       this.__password2.setValue("C");
@@ -66,6 +66,29 @@ qx.Class.define("qx.test.ui.form.Resetter",
       this.assertEquals("A", this.__username.getValue());
       this.assertEquals("B", this.__password1.getValue());
       this.assertEquals("C", this.__password2.getValue());
+    },
+
+
+    testRemove: function() {
+      // set the initial values
+      this.__username.setValue("A");
+      this.__password1.setValue("B");
+      // add the fields to the form manager
+      this.__resetter.add(this.__username);
+      this.__resetter.add(this.__password1);
+      // change the values of the fields
+      this.__username.setValue("a");
+      this.__password1.setValue("b");
+      // remove one item
+      this.assertTrue(this.__resetter.remove(this.__password1));
+      // remove again to see that it has not been removed
+      this.assertFalse(this.__resetter.remove(this.__password1));
+      // reset the manager
+      this.__resetter.reset();
+
+      // check if the initial values are reset or kept
+      this.assertEquals("A", this.__username.getValue());
+      this.assertEquals("b", this.__password1.getValue());
     },
 
 
@@ -110,24 +133,29 @@ qx.Class.define("qx.test.ui.form.Resetter",
       list.add(l1);
       var l2 = new qx.ui.form.ListItem("2");
       list.add(l2);
+      var model = new qx.data.Array("a", "b", "c");
+      var vsb = new qx.ui.form.VirtualSelectBox(model);
 
       // set the init values
       slider.setValue(22);
       textarea.setValue("aaa");
       radiobutton.setValue(false);
       list.setSelection([l2]);
+      vsb.getSelection().setItem(0, "b");
 
       // add the resetter
       this.__resetter.add(slider);
       this.__resetter.add(textarea);
       this.__resetter.add(radiobutton);
       this.__resetter.add(list);
+      this.__resetter.add(vsb);
 
       // change the values
       slider.setValue(55);
       textarea.setValue("bbb");
       radiobutton.setValue(true);
       list.setSelection([l1]);
+      vsb.getSelection().setItem(0, "c");
 
       // reset
       this.__resetter.reset();
@@ -137,12 +165,15 @@ qx.Class.define("qx.test.ui.form.Resetter",
       this.assertEquals("aaa", textarea.getValue());
       this.assertEquals(false, radiobutton.getValue());
       this.assertEquals(l2, list.getSelection()[0]);
+      this.assertEquals("b", vsb.getSelection().getItem(0));
 
       // tear down
       list.dispose();
       radiobutton.dispose();
       textarea.dispose();
       slider.dispose();
+      vsb.destroy();
+      model.dispose();
     },
 
 

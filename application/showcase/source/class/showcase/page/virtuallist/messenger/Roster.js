@@ -38,7 +38,8 @@ qx.Class.define("showcase.page.virtuallist.messenger.Roster",
       height: 300,
       itemHeight: 28,
       decorator: null,
-      autoGrouping: false
+      autoGrouping: false,
+      padding: 0
     });
     list.setDelegate(this);
     this._add(list, {flex: 1});
@@ -52,8 +53,8 @@ qx.Class.define("showcase.page.virtuallist.messenger.Roster",
     // configure row colors
     var rowLayer = list.getChildControl("row-layer");
     rowLayer.set({
-      colorEven: "white",
-      colorOdd: "rgb(238, 243, 255)"
+      colorEven: "progressive-table-row-background-even",
+      colorOdd: "progressive-table-row-background-odd"
     });
 
     // Creates the prefetch behavior

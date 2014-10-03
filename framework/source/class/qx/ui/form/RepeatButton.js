@@ -22,10 +22,10 @@
 
 /**
  * The RepeatButton is a special button, which fires repeatedly {@link #execute}
- * events, while the mouse button is pressed on the button. The initial delay
+ * events, while a button is pressed on the button. The initial delay
  * and the interval time can be set using the properties {@link #firstInterval}
  * and {@link #interval}. The {@link #execute} events will be fired in a shorter
- * amount of time if the mouse button is hold, until the min {@link #minTimer}
+ * amount of time if a button is hold, until the min {@link #minTimer}
  * is reached. The {@link #timerDecrease} property sets the amount of milliseconds
  * which will decreased after every firing.
  *
@@ -44,7 +44,7 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/widget/repeatbutton.html' target='_blank'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/widget/repeatbutton.html' target='_blank'>
  * Documentation of this widget in the qooxdoo manual.</a>
  */
 qx.Class.define("qx.ui.form.RepeatButton",
@@ -70,7 +70,7 @@ qx.Class.define("qx.ui.form.RepeatButton",
   {
     /**
      * This event gets dispatched with every interval. The timer gets executed
-     * as long as the user holds down the mouse button.
+     * as long as the user holds down a button.
      */
     "execute" : "qx.event.type.Event",
 
@@ -132,11 +132,10 @@ qx.Class.define("qx.ui.form.RepeatButton",
 
 
     /**
-     * Calling this function is like a click from the user on the
+     * Calling this function is like a tap from the user on the
      * button with all consequences.
      * <span style='color: red'>Be sure to call the {@link #release} function.</span>
      *
-     * @return {void}
      */
     press : function()
     {
@@ -164,7 +163,6 @@ qx.Class.define("qx.ui.form.RepeatButton",
      * this function.
      *
      * @param fireExecuteEvent {Boolean?true} flag which signals, if an event should be fired
-     * @return {void}
      */
     release : function(fireExecuteEvent)
     {
@@ -204,6 +202,11 @@ qx.Class.define("qx.ui.form.RepeatButton",
 
       if (!value)
       {
+        if (this.isCapturing()) {
+          // also release capture because out event is missing on iOS
+          this.releaseCapture();
+        }
+
         // remove button states
         this.removeState("pressed");
         this.removeState("abandoned");
@@ -221,16 +224,15 @@ qx.Class.define("qx.ui.form.RepeatButton",
     */
 
     /**
-     * Listener method for "mouseover" event
+     * Listener method for "pointerover" event
      * <ul>
      * <li>Adds state "hovered"</li>
      * <li>Removes "abandoned" and adds "pressed" state (if "abandoned" state is set)</li>
      * </ul>
      *
-     * @param e {Event} Mouse event
-     * @return {void}
+     * @param e {Event} Pointer event
      */
-    _onMouseOver : function(e)
+    _onPointerOver : function(e)
     {
       if (!this.isEnabled() || e.getTarget() !== this) {
         return;
@@ -248,16 +250,15 @@ qx.Class.define("qx.ui.form.RepeatButton",
 
 
     /**
-     * Listener method for "mouseout" event
+     * Listener method for "pointerout" event
      * <ul>
      * <li>Removes "hovered" state</li>
      * <li>Adds "abandoned" and removes "pressed" state (if "pressed" state is set)</li>
      * </ul>
      *
-     * @param e {Event} Mouse event
-     * @return {void}
+     * @param e {Event} Pointer event
      */
-    _onMouseOut : function(e)
+    _onPointerOut : function(e)
     {
       if (!this.isEnabled() || e.getTarget() !== this) {
         return;
@@ -275,22 +276,21 @@ qx.Class.define("qx.ui.form.RepeatButton",
 
 
     /**
-     * Callback method for the "mouseDown" method.
+     * Callback method for the "pointerdown" method.
      *
      * Sets the interval of the timer (value of firstInterval property) and
      * starts the timer. Additionally removes the state "abandoned" and adds the
      * state "pressed".
      *
-     * @param e {qx.event.type.Mouse} mouseDown event
-     * @return {void}
+     * @param e {qx.event.type.Pointer} pointerdown event
      */
-    _onMouseDown : function(e)
+    _onPointerDown : function(e)
     {
       if (!e.isLeftPressed()) {
         return;
       }
 
-      // Activate capturing if the button get a mouseout while
+      // Activate capturing if the button get a pointerout while
       // the button is pressed.
       this.capture();
 
@@ -300,16 +300,15 @@ qx.Class.define("qx.ui.form.RepeatButton",
 
 
     /**
-     * Callback method for the "mouseUp" event.
+     * Callback method for the "pointerup" event.
      *
-     * Handles the case that the user is releasing the mouse button
+     * Handles the case that the user is releasing a button
      * before the timer interval method got executed. This way the
      * "execute" method get executed at least one time.
      *
-     * @param e {qx.event.type.Mouse} mouseUp event
-     * @return {void}
+     * @param e {qx.event.type.Pointer} pointerup event
      */
-    _onMouseUp : function(e)
+    _onPointerUp : function(e)
     {
       this.releaseCapture();
 
@@ -327,15 +326,18 @@ qx.Class.define("qx.ui.form.RepeatButton",
     },
 
 
+    // Nothing to do, 'execute' is already fired by _onPointerUp.
+    _onTap : function(e) {},
+
+
     /**
      * Listener method for "keyup" event.
      *
      * Removes "abandoned" and "pressed" state (if "pressed" state is set)
-     * for the keys "Enter" or "Space" and stopps the internal timer
-     * (same like mouse up).
+     * for the keys "Enter" or "Space" and stops the internal timer
+     * (same like pointer up).
      *
      * @param e {Event} Key event
-     * @return {void}
      */
     _onKeyUp : function(e)
     {
@@ -363,10 +365,9 @@ qx.Class.define("qx.ui.form.RepeatButton",
      *
      * Removes "abandoned" and adds "pressed" state
      * for the keys "Enter" or "Space". It also starts
-     * the internal timer (same like mousedown).
+     * the internal timer (same like pointerdown).
      *
      * @param e {Event} Key event
-     * @return {void}
      */
     _onKeyDown : function(e)
     {
@@ -390,7 +391,6 @@ qx.Class.define("qx.ui.form.RepeatButton",
      * Dispatches the "execute" event.
      *
      * @param e {qx.event.type.Event} interval event
-     * @return {void}
      */
     _onInterval : function(e)
     {
@@ -409,7 +409,6 @@ qx.Class.define("qx.ui.form.RepeatButton",
      * Starts the internal timer which causes firing of execution
      * events in an interval. It also presses the button.
      *
-     * @return {void}
      */
     __startInternalTimer : function()
     {
@@ -432,7 +431,6 @@ qx.Class.define("qx.ui.form.RepeatButton",
     /**
      * Stops the internal timer and releases the button.
      *
-     * @return {void}
      */
     __stopInternalTimer : function()
     {

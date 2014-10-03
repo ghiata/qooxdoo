@@ -17,9 +17,9 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-#ignore(qx.test.data.singlevalue.Array_MultiBinding)
-************************************************************************ */
+/**
+ * @ignore(qx.test.data.singlevalue.Array_MultiBinding)
+ */
 
 /**
  * Test-Class for testing the single value binding

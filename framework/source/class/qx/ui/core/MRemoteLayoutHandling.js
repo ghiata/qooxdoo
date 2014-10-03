@@ -44,10 +44,9 @@ qx.Mixin.define("qx.ui.core.MRemoteLayoutHandling",
      *
      * @param layout {qx.ui.layout.Abstract} The new layout or
      *     <code>null</code> to reset the layout.
-     * @return {void}
      */
     setLayout : function(layout) {
-      return this.getChildrenContainer().setLayout(layout);
+      this.getChildrenContainer().setLayout(layout);
     },
 
 

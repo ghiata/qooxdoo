@@ -1,4 +1,6 @@
 {
+  "name" : "qooxdoo framework configuration",
+
   "include" :
   [
     {
@@ -14,23 +16,32 @@
   [
     "api",
     "api-data",
+    "api-verify",
     //"build-all",
+    "dependencies",
     "clean",
+    "clean-cache",
+    "compile-framework-scss",
     "distclean",
     "fix",
     "images",
+    "info",
     "lint",
     "lint-test",
     "provider",
+    "pretty-test",
     "test",
     "test-inline",
     "test-source",
     "test-performance",
     "test-performance-source",
+    "test-mobile",
+    "test-mobile-compile-scss",
+    "test-mobile-source",
     "translation",
-    "qxoo-build",
-    "qxoo-noopt",
-    "qxoo-api"
+    "validate-config",
+    "validate-manifest",
+    "watch-scss"
   ],
 
 
@@ -38,33 +49,43 @@
   {
     "APPLICATION"  : "qx",
     "QOOXDOO_PATH" : "..",
+    "API_INCLUDE"    : ["q", "qxWeb", "qx.*"],
     "API_EXCLUDE"  : ["qx.test.*"],
     "TEST_INCLUDE" : "qx.test.*",
-    "LOCALES"      : [ 
+    "TEST_PERFORMANCE_INCLUDE" : "qx.test.performance.*",
+    "LOCALES"      : [
+       "cs",  // Czech
        "de",
        "en",
        "es",
        "fr",
        "it",
        "nl",
-       "no",
+       "nb",  // Norwegian
        "pl",
+       "pt",  // Portuguese
        "ro",
-       "sl",
-       "sv"
+       "sl",  // Slovene
+       "sv"   // Swedish
     ],
     "CACHE"        : "${TMPDIR}/qx${QOOXDOO_VERSION}/cache"
   },
 
   "config-warnings" :
   {
-    "job-shadowing" : 
+    "job-shadowing" :
     [
+      "api",
       "common",
+      "dependencies",
       "lint",
+      "provider-deps",
+      "provider-classes",
       "test",
       "test-source",
       "test-inline",
+      "test-mobile",
+      "test-mobile-source",
       "testrunner::tests-common",
       "translation"
     ]
@@ -73,119 +94,6 @@
   "jobs":
   {
 
-    "qxoo" : 
-    {
-      "config-warnings" :
-      {
-        "exclude" : ["qx.event.GlobalError"] 
-      },
-
-      "library" :
-      [
-        {
-          "manifest" : "${QOOXDOO_PATH}/framework/Manifest.json",
-          "uri" : ".."          
-        }
-      ],
-
-      "extend" : [ "cache" ],
-      
-      "include" : 
-      [
-        "qx.Class",
-        "qx.Mixin",
-        "qx.Interface"
-      ],
-      
-      "exclude" :
-      [
-        "qx.event.GlobalError"
-      ],
-
-      "environment" :
-      {
-        "qx.debug" : false,
-        "qx.debug.dispose" : false,
-        "qx.debug.databinding" : false,
-        "qx.aspects" : false,
-        "qx.globalErrorHandling" : false
-      },
-
-      "compile-options" :
-      {
-        "paths" :
-        {
-          "loader-template" : "../tool/data/generator/oo.loader.tmpl.js"
-        },
-        "uris" :
-        {
-          "script"   : ".",
-          "resource" : "."
-        }
-      }
-    },
-
-
-    "qxoo-build" : 
-    {
-      "desc" : "a basic qooxdoo OO library",
-      "extend" : [ "qxoo" ],
-      
-      "compile-options" :
-      {
-        "paths" :
-        {
-          "file" : "build/script/qx-oo.js",
-          "app-root" : "."
-        },
-        "code" :
-        {
-          "format"   : true,
-          "except"   : [],
-          "optimize" : [ "variables", "basecalls", "privates", "strings", "variants" ]
-        }
-      },
-      "compile" : { "type" : "build" }
-    },
-    
-    
-    "qxoo-noopt" : 
-    {
-      "desc" : "a basic qooxdoo OO library (non-optimized)",
-      "extend" : [ "qxoo" ],
-      
-      "compile-options" :
-      {
-        "paths" :
-        {
-          "file" : "build/script/qx-oo-noopt.js",
-          "app-root" : "."
-        },
-        "code" :
-        {
-          "format"   : true,
-          "except"   : [],
-          "optimize" : [ ]
-        }
-      },
-      "compile" : { "type" : "build" }
-    },
-
-
-    "qxoo-api" :
-    {
-      "desc" : "create api doc for qxoo",
-      "extend" : [ "apiconf::build" ],
-      "let" :
-      {
-        "APIVIEWER_ROOT" : "${QOOXDOO_PATH}/component/apiviewer",
-        "BUILD_PATH"     : "${ROOT}/qxoo_api",
-        "API_INCLUDE"    : ["qx.Class", "qx.Mixin", "qx.Interface"],
-        "API_EXCLUDE"    : ["qx.test.*", "qx.event.GlobalError"]
-      }
-    },
-    
-    
     "build-all" :
     {
       "library" :
@@ -198,7 +106,7 @@
       "extend" : [ "cache" ],
 
       "include": ["qx.*"],
-      "exclude": ["=qx.test.*"],
+      "exclude": ["qx.test.*"],
 
       "environment" :
       {
@@ -215,12 +123,12 @@
         },
         "code"  :
         {
-          "format"   : "on",
+          "format"   : true,
           "except"   : [],
-          "optimize" : ["basecalls", "variables", "privates", "strings"]
+          "optimize" : ["basecalls", "variables", "privates", "strings", "whitespace"]
         }
       },
-      
+
       "compile" : { "type" : "build" },
 
       "copy-resources" :
@@ -229,12 +137,22 @@
       }
     },
 
+    // suppress addtl. lint checks when building with framework classes
+    "no-compile-lint" : {
+      "compile-options" : {
+        "code" : {
+          "lint-check" : false
+        }
+      }
+    },
+
 
     // -- Test Jobs ------------------------------------------------------------
 
     // This one is used in all jobs relating to the generated AUT
-    "testrunner::tests-common" : 
+    "testrunner::tests-common" :
     {
+      "extend" : [ "no-compile-lint" ],
       "environment" :
       {
         "qx.test.bool_true" : true,
@@ -244,6 +162,7 @@
 
     "test" :
     {
+      "extend" : [ "no-compile-lint" ],
       "config-warnings" : {
         "environment" : ["non-literal-keys"]
       },
@@ -252,10 +171,10 @@
       "let" :
       {
         "LOCALES" : ["de", "de_DE", "en", "en_GB", "en_US"],
-        "TEST_EXCLUDE" : "qx.test.performance.*"
+        "TEST_EXCLUDE" : "${TEST_PERFORMANCE_INCLUDE}"
       }
     },
-    
+
     "test-inline" :
     {
       "run" : ["test-copy-files"],
@@ -263,7 +182,7 @@
       "let" :
       {
         "LOCALES" : ["de", "de_DE", "en", "en_GB", "en_US"],
-        "TEST_EXCLUDE" : "qx.test.performance.*"
+        "TEST_EXCLUDE" : "${TEST_PERFORMANCE_INCLUDE}"
       }
     },
 
@@ -282,53 +201,105 @@
 
     "test-source" :
     {
+      "extend" : [ "no-compile-lint" ],
       "let" :
       {
         "LOCALES" : ["de", "de_DE", "en", "en_GB", "en_US"],
-        "TEST_EXCLUDE" : "qx.test.performance.*"
+        "TEST_EXCLUDE" : "${TEST_PERFORMANCE_INCLUDE}"
       }
     },
-    
+
     "test-performance" :
     {
       "desc" : "Create a Performance Test Runner for the qx.test.performance namespace",
-      
+
       "extend" : ["testrunner::build"],
-      
+
       "let" :
       {
-        "TESTRUNNER_VIEW" : "testrunner.view.Performance",
         "TESTRUNNER_ROOT" : "${QOOXDOO_PATH}/component/testrunner",
-        "TEST_INCLUDE"    : "qx.test.performance.*",
-        "TEST_EXCLUDE"    : "",
-        "BUILD_PATH"      : "${ROOT}/test-performance"
-      }
-    },
-    
-    "test-performance-source" :
-    {
-      "desc" : "Create a Performance Test Runner for the qx.test.performance namespace",
-      
-      "extend" : ["testrunner::build-with-tests-source"],
-      
-      "let" :
-      {
-        "TESTRUNNER_VIEW" : "testrunner.view.Performance",
-        "TESTRUNNER_ROOT" : "${QOOXDOO_PATH}/component/testrunner",
-        "TEST_INCLUDE"    : "qx.test.performance.*",
+        "TEST_INCLUDE"    : "${TEST_PERFORMANCE_INCLUDE}",
         "TEST_EXCLUDE"    : "",
         "BUILD_PATH"      : "${ROOT}/test-performance"
       }
     },
 
+    "test-performance-source" :
+    {
+      "desc" : "Create a Performance Test Runner for the qx.test.performance namespace",
+
+      "extend" : ["testrunner::build-with-tests-source"],
+
+      "let" :
+      {
+        "TESTRUNNER_ROOT" : "${QOOXDOO_PATH}/component/testrunner",
+        "TEST_INCLUDE"    : "${TEST_PERFORMANCE_INCLUDE}",
+        "TEST_EXCLUDE"    : "",
+        "BUILD_PATH"      : "${ROOT}/test-performance"
+      }
+    },
+
+    "test-mobile-compile-scss" :
+    {
+      "desc"   : "Compile the theme scss once",
+      "extend" : ["cache"],
+      "let" :
+      {
+        "QX_MOBILE_THEME_PATH" : "${QOOXDOO_PATH}/framework/source/resource/qx/mobile/scss",
+        "QX_SHARED_THEME_PATH" : "${QOOXDOO_PATH}/framework/source/resource/qx/scss",
+        "MOBILE_RESOURCE_PATH" : "${QOOXDOO_PATH}/component/testrunner/source/resource/testrunner/view/mobile"
+      },
+      "shell" :
+      {
+        "command" : "sass -C -t compressed -I ${QX_MOBILE_THEME_PATH} -I ${QX_SHARED_THEME_PATH} --update ${MOBILE_RESOURCE_PATH}/scss:${MOBILE_RESOURCE_PATH}/css",
+        "command-not-found" : "It seems that Sass (http://sass-lang.com/) is not installed and/or executable, which is needed for the SCSS-compilation."
+      }
+    },
+
+    "test-mobile" :
+    {
+      "let" :
+      {
+        "TEST_INCLUDE"    : "qx.test.mobile.*",
+        "BUILD_PATH"      : "${ROOT}/test-mobile"
+      },
+
+      "run" : [
+        "test-mobile-compile-scss"
+      ]
+    },
+
+    "test-mobile-source" :
+    {
+      "let" :
+      {
+        "TEST_INCLUDE"    : "qx.test.mobile.*",
+        "BUILD_PATH"      : "${ROOT}/test-mobile"
+      }
+    },
+
+    "provider-classes" :
+    {
+      "provider" :
+      {
+        "include" : [ "q", "qxWeb" ]
+      }
+    },
+
+    "provider-deps" :
+    {
+      "include" : [ "q", "qxWeb" ]
+    },
+
     "images" :
     {
+      "desc" : "clip and combine all images used in the framework",
       "run" : [ "image-clipping", "image-combine" ]
     },
 
     "lint" :
     {
-      "exclude": ["=qx.test.*", "=qx.dev.unit.Sinon"]
+      "exclude": ["qx.test.*"]
     },
 
     "lint-test" :
@@ -338,7 +309,55 @@
 
     "translation" :
     {
-      "=include": ["qx.*"]
+      "=include": ["qx.*"],
+      "translate" : { "poentry-with-occurrences" : false  }
+    },
+
+    "api" :
+    {
+      "extend" : [ "no-compile-lint" ],
+      "config-warnings" :
+      {
+        "environment" : [ "non-literal-keys" ]
+      }
+    },
+
+    "api-verify" :
+    {
+      "desc" : "creates an Apiviewer while checking internal links. Also creates an XML sitemap with a link for each class",
+      "extend" : [ "api" ],
+      "api" : {
+        "verify" : [ "links", "types", "statistics" ],
+        "sitemap" :
+        {
+          "link-uri" : "http://api.qooxdoo.org/#%s",
+          "file" : "api/sitemap.xml"
+        }
+      }
+    },
+
+    "watch-scss" :
+    {
+      "desc": "Watch and compile the theme scss",
+      "extend": ["cache"],
+      "let": {
+        "QX_MOBILE_THEME_PATH": "source/resource/qx/mobile",
+        "QX_SHARED_THEME_PATH": "source/resource/qx/scss"
+      },
+      "shell": {
+        "command": "sass -C -t compressed -I ${QX_MOBILE_THEME_PATH}/scss -I ${QX_SHARED_THEME_PATH} --watch ${QX_MOBILE_THEME_PATH}/scss:${QX_MOBILE_THEME_PATH}/css"
+      }
+    },
+
+    "pretty-test" :
+    {
+      "desc" : "This is just to test pretty-printing - don't commit after running.",
+      "extend" : ["pretty"]
+    },
+
+    "dependencies" :
+    {
+      "=exclude" : [ "${APPLICATION}.test.*" ]
     }
   }
 }

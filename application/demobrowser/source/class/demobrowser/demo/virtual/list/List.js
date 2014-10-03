@@ -40,7 +40,7 @@ qx.Class.define("demobrowser.demo.virtual.list.List",
 
     this.__selectionManager = new qx.ui.virtual.selection.Row(this.getPane());
     this.__selectionManager.addListener("changeSelection", this._onChangeSelection, this);
-    this.__selectionManager.attachMouseEvents();
+    this.__selectionManager.attachPointerEvents();
     this.__selectionManager.attachKeyEvents(this);
     this.__selectionManager.attachListEvents(this);
 
@@ -188,7 +188,7 @@ qx.Class.define("demobrowser.demo.virtual.list.List",
 
 
     /**
-     * Enable quick selection mode, where no click is needed to change the selection.
+     * Enable quick selection mode, where no tap is needed to change the selection.
      *
      * Only possible for the modes <code>single</code> and <code>one</code>.
      */
@@ -376,7 +376,7 @@ qx.Class.define("demobrowser.demo.virtual.list.List",
      * Returns the children list
      *
      * @return {LayoutItem[]} The children array (Arrays are
-     *   reference types, please to not modify them in-place)
+     *   reference types, please do not modify them in-place)
      */
     getChildren : function() {
       return this.__items;
@@ -687,7 +687,7 @@ qx.Class.define("demobrowser.demo.virtual.list.List",
      * Get the selected item. This method does only work in <code>single</code>
      * selection mode.
      *
-     * @deprecated Use 'getSelected' instead!
+     * @deprecated {3.0} Use 'getSelected' instead!
      * @return {Object} The selected item.
      */
     getSelectedItem : function() {
@@ -737,7 +737,7 @@ qx.Class.define("demobrowser.demo.virtual.list.List",
 
 
     /**
-     * Returns the last selection context. One of <code>click</code>,
+     * Returns the last selection context. One of <code>tap</code>,
      * <code>quick</code>, <code>drag</code> or <code>key</code> or
      * <code>null</code>.
      */

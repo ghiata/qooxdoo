@@ -37,7 +37,7 @@ qx.Class.define("qx.ui.menu.Button",
   /**
    * @param label {String} Initial label
    * @param icon {String} Initial icon
-   * @param command {qx.ui.core.Command} Initial command (shortcut)
+   * @param command {qx.ui.command.Command} Initial command (shortcut)
    * @param menu {qx.ui.menu.Menu} Initial sub menu
    */
   construct : function(label, icon, command, menu)
@@ -100,30 +100,16 @@ qx.Class.define("qx.ui.menu.Button",
 
 
     // overridden
-    _onClick : function(e)
+    _onTap : function(e)
     {
-      if (e.isLeftPressed())
-      {
+      if (e.isLeftPressed() && this.getMenu()) {
         this.execute();
-
         // don't close menus if the button is a sub menu button
-        if (this.getMenu()) {
-          return;
-        }
-      } else {
-        // don't close menus if the button has a context menu
-        if (this.getContextMenu()) {
-          return;
-        }
+        this.getMenu().open();
+        return;
       }
 
-      qx.ui.menu.Manager.getInstance().hideAll();
-    },
-
-
-    // overridden
-    _onKeyPress : function(e) {
-      this.execute();
+      this.base(arguments, e);
     }
   }
 });

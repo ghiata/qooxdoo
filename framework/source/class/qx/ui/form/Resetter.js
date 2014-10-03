@@ -52,11 +52,31 @@ qx.Class.define("qx.ui.form.Resetter",
         var init = item.getValue();
       } else if (this.__supportsSingleSelection(item)) {
         var init = item.getSelection();
+      } else if (this.__supportsDataBindingSelection(item)) {
+        var init = item.getSelection().concat();
       } else {
         throw new Error("Item " + item + " not supported for reseting.");
       }
       // store the item and its init value
       this.__items.push({item: item, init: init});
+    },
+
+
+    /**
+     * Removes a widget to the reseter
+     *
+     * @param item {qx.ui.core.Widget} The widget which should be removed.
+     * @return {Boolean} <code>true</code>, if the widget has been removed.
+     */
+    remove : function(item) {
+      for (var i = 0; i < this.__items.length; i++) {
+        var storedItem = this.__items[i];
+        if (storedItem.item === item) {
+          this.__items.splice(i, 1);
+          return true;
+        }
+      }
+      return false;
     },
 
 
@@ -113,8 +133,11 @@ qx.Class.define("qx.ui.form.Resetter",
       // set the init value
       if (this._supportsValue(item)) {
         item.setValue(init);
-      } else if (this.__supportsSingleSelection(item)) {
-        item.setSelection(init)
+      } else if (
+        this.__supportsSingleSelection(item) ||
+        this.__supportsDataBindingSelection(item)
+      ) {
+        item.setSelection(init);
       }
     },
 
@@ -161,15 +184,19 @@ qx.Class.define("qx.ui.form.Resetter",
 
 
     /**
-     * Internel helper top access the value of a given item.
+     * Internal helper top access the value of a given item.
      *
      * @param item {qx.ui.core.Widget} The item to access.
+     * @return {var} The item's value
      */
     __getCurrentValue : function(item)
     {
       if (this._supportsValue(item)) {
         return item.getValue();
-      } else if (this.__supportsSingleSelection(item)) {
+      } else if (
+        this.__supportsSingleSelection(item) ||
+        this.__supportsDataBindingSelection(item)
+      ) {
         return item.getSelection();
       }
     },
@@ -180,7 +207,7 @@ qx.Class.define("qx.ui.form.Resetter",
      * {@link qx.ui.core.ISingleSelection} interface.
      *
      * @param formItem {qx.core.Object} The item to check.
-     * @return {boolean} true, if the given item implements the
+     * @return {Boolean} true, if the given item implements the
      *   necessary interface.
      */
     __supportsSingleSelection : function(formItem) {
@@ -190,10 +217,24 @@ qx.Class.define("qx.ui.form.Resetter",
 
 
     /**
+     * Returns true, if the given item implements the
+     * {@link qx.data.controller.ISelection} interface.
+     *
+     * @param formItem {qx.core.Object} The item to check.
+     * @return {Boolean} true, if the given item implements the
+     *   necessary interface.
+     */
+    __supportsDataBindingSelection : function(formItem) {
+      var clazz = formItem.constructor;
+      return qx.Class.hasInterface(clazz, qx.data.controller.ISelection);
+    },
+
+
+    /**
      * Returns true, if the value property is supplied by the form item.
      *
      * @param formItem {qx.core.Object} The item to check.
-     * @return {boolean} true, if the given item implements the
+     * @return {Boolean} true, if the given item implements the
      *   necessary interface.
      */
     _supportsValue : function(formItem) {

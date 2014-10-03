@@ -20,11 +20,14 @@
 
 /* ************************************************************************
 
-#asset(demobrowser/demo/html/ModalWindow.html)
 
 ************************************************************************ */
 
-
+/**
+ *
+ * @asset(demobrowser/demo/html/ModalWindow.html)
+ * @tag noPlayground
+ */
 qx.Class.define("demobrowser.demo.bom.Window",
 {
   extend : qx.application.Native,
@@ -33,6 +36,9 @@ qx.Class.define("demobrowser.demo.bom.Window",
   {
     __urls : null,
 
+    /**
+     * @lint ignoreDeprecated(alert)
+     */
     main : function()
     {
       this.base(arguments);
@@ -48,7 +54,7 @@ qx.Class.define("demobrowser.demo.bom.Window",
       qx.bom.Input.setValue(button1, "Open Native Window");
       document.body.appendChild(button1);
 
-      qx.event.Registration.addListener(button1, "click", function(e)
+      qx.event.Registration.addListener(button1, "tap", function(e)
       {
         var options = { width: 400,
                         height: 200,
@@ -65,7 +71,7 @@ qx.Class.define("demobrowser.demo.bom.Window",
       qx.bom.Input.setValue(button2, "Window closed?");
       document.body.appendChild(button2);
 
-      qx.event.Registration.addListener(button2, "click", function(e)
+      qx.event.Registration.addListener(button2, "tap", function(e)
       {
         alert(qx.bom.Window.isClosed(this.window1));
       }, this);
@@ -76,7 +82,7 @@ qx.Class.define("demobrowser.demo.bom.Window",
       document.body.appendChild(button3);
 
 
-      qx.event.Registration.addListener(button3, "click", function(e)
+      qx.event.Registration.addListener(button3, "tap", function(e)
       {
         var options = { width: 400,
                         height: 200,
@@ -91,7 +97,7 @@ qx.Class.define("demobrowser.demo.bom.Window",
       qx.bom.Input.setValue(button4, "Modal Window closed?");
       document.body.appendChild(button4);
 
-      qx.event.Registration.addListener(button4, "click", function(e)
+      qx.event.Registration.addListener(button4, "tap", function(e)
       {
         alert(qx.bom.Window.isClosed(this.window2));
       }, this);
@@ -102,7 +108,7 @@ qx.Class.define("demobrowser.demo.bom.Window",
       document.body.appendChild(button5);
 
 
-      qx.event.Registration.addListener(button5, "click", function(e)
+      qx.event.Registration.addListener(button5, "tap", function(e)
       {
         var options = { width: 800,
                         height: 600,

@@ -18,13 +18,12 @@
      * Christian Hagendorn (chris_schmidt)
 
 ************************************************************************ */
-/*
- #require(qx.event.type.Native)
- #require(qx.event.Pool)
-*/
 
 /**
  * This handler provides event for the window object.
+ *
+ * @require(qx.event.type.Native)
+ * @require(qx.event.Pool)
  */
 qx.Class.define("qx.event.handler.Window",
 {
@@ -69,10 +68,10 @@ qx.Class.define("qx.event.handler.Window",
 
   statics :
   {
-    /** {Integer} Priority of this handler */
+    /** @type {Integer} Priority of this handler */
     PRIORITY : qx.event.Registration.PRIORITY_NORMAL,
 
-    /** {Map} Supported event types */
+    /** @type {Map} Supported event types */
     SUPPORTED_TYPES :
     {
       error : 1,
@@ -84,10 +83,10 @@ qx.Class.define("qx.event.handler.Window",
       beforeshutdown : 1
     },
 
-    /** {Integer} Which target check to use */
+    /** @type {Integer} Which target check to use */
     TARGET_CHECK : qx.event.IEventHandler.TARGET_WINDOW,
 
-    /** {Integer} Whether the method "canHandleEvent" must be called */
+    /** @type {Integer} Whether the method "canHandleEvent" must be called */
     IGNORE_CAN_HANDLE : true
   },
 
@@ -134,9 +133,8 @@ qx.Class.define("qx.event.handler.Window",
     */
 
     /**
-     * Initializes the native mouse event listeners.
+     * Initializes the native window event listeners.
      *
-     * @return {void}
      */
     _initWindowObserver : function()
     {
@@ -150,9 +148,8 @@ qx.Class.define("qx.event.handler.Window",
 
 
     /**
-     * Disconnect the native mouse event listeners.
+     * Disconnect the native window event listeners.
      *
-     * @return {void}
      */
     _stopWindowObserver : function()
     {
@@ -189,7 +186,7 @@ qx.Class.define("qx.event.handler.Window",
       var win = this._window;
       try {
         var doc = win.document;
-      } catch (e) {
+      } catch (ex) {
         // IE7 sometimes dispatches "unload" events on protected windows
         // Ignore these events
         return;

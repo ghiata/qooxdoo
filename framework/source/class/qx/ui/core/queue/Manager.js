@@ -18,31 +18,29 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.event.handler.UserAction)
-
-************************************************************************ */
-
 /**
  * This class performs the auto flush of all layout relevant queues.
+ *
+ * @require(qx.event.handler.UserAction)
  */
 qx.Class.define("qx.ui.core.queue.Manager",
 {
   statics :
   {
-    /** {Boolean} Whether a flush was scheduled */
+    /** @type {Boolean} Whether a flush was scheduled */
     __scheduled : false,
 
+    /** @type {Boolean} true, if the flush should not be executed */
+    __canceled : false,
 
-    /** {Map} Internal data structure for the current job list */
+    /** @type {Map} Internal data structure for the current job list */
     __jobs : {},
 
 
-    /** {Integer} Counts how often a flush failed due to exceptions */
+    /** @type {Integer} Counts how often a flush failed due to exceptions */
     __retries : 0,
 
-    /** {Integer} Maximum number of flush retries */
+    /** @type {Integer} Maximum number of flush retries */
     MAX_RETRIES : 10,
 
 
@@ -51,7 +49,6 @@ qx.Class.define("qx.ui.core.queue.Manager",
      *
      * @param job {String} The job, which should be performed. Valid values are
      *     <code>layout</code>, <code>decoration</code> and <code>element</code>.
-     * @return {void}
      */
     scheduleFlush : function(job)
     {
@@ -62,7 +59,15 @@ qx.Class.define("qx.ui.core.queue.Manager",
 
       if (!self.__scheduled)
       {
-        self.__deferredCall.schedule();
+        self.__canceled = false;
+
+        qx.bom.AnimationFrame.request(function() {
+          if (self.__canceled) {
+            self.__canceled = false;
+            return;
+          }
+          self.flush();
+        }, self);
         self.__scheduled = true;
       }
     },
@@ -72,14 +77,9 @@ qx.Class.define("qx.ui.core.queue.Manager",
      * Flush all layout queues in the correct order. This function is called
      * deferred if {@link #scheduleFlush} is called.
      *
-     * @return {void}
      */
     flush : function()
     {
-      if (qx.ui.core.queue.Manager.PAUSE) {
-        return;
-      }
-
       // Sometimes not executed in context, fix this
       var self = qx.ui.core.queue.Manager;
 
@@ -91,7 +91,7 @@ qx.Class.define("qx.ui.core.queue.Manager",
       self.__inFlush = true;
 
       // Cancel timeout if called manually
-      self.__deferredCall.cancel();
+      self.__canceled = true;
 
       var jobs = self.__jobs;
 
@@ -104,19 +104,46 @@ qx.Class.define("qx.ui.core.queue.Manager",
           if (jobs.widget)
           {
             delete jobs.widget;
-            qx.ui.core.queue.Widget.flush();
+
+            if (qx.core.Environment.get("qx.debug.ui.queue")) {
+              try {
+                qx.ui.core.queue.Widget.flush();
+              } catch (e) {
+                qx.log.Logger.error(qx.ui.core.queue.Widget, "Error in the 'Widget' queue:" + e, e);
+              }
+            } else {
+              qx.ui.core.queue.Widget.flush();
+            }
           }
 
           if (jobs.visibility)
           {
             delete jobs.visibility;
-            qx.ui.core.queue.Visibility.flush();
+
+            if (qx.core.Environment.get("qx.debug.ui.queue")) {
+              try {
+                qx.ui.core.queue.Visibility.flush();
+              } catch (e) {
+                qx.log.Logger.error(qx.ui.core.queue.Visibility, "Error in the 'Visibility' queue:" + e, e);
+              }
+            } else {
+              qx.ui.core.queue.Visibility.flush();
+            }
           }
 
           if (jobs.appearance)
           {
             delete jobs.appearance;
-            qx.ui.core.queue.Appearance.flush();
+
+            if (qx.core.Environment.get("qx.debug.ui.queue")) {
+              try {
+                qx.ui.core.queue.Appearance.flush();
+              } catch (e) {
+                qx.log.Logger.error(qx.ui.core.queue.Appearance, "Error in the 'Appearance' queue:" + e, e);
+              }
+            } else {
+              qx.ui.core.queue.Appearance.flush();
+            }
           }
 
           // Defer layout as long as possible
@@ -127,7 +154,16 @@ qx.Class.define("qx.ui.core.queue.Manager",
           if (jobs.layout)
           {
             delete jobs.layout;
-            qx.ui.core.queue.Layout.flush();
+
+            if (qx.core.Environment.get("qx.debug.ui.queue")) {
+              try {
+                qx.ui.core.queue.Layout.flush();
+              } catch (e) {
+                qx.log.Logger.error(qx.ui.core.queue.Layout, "Error in the 'Layout' queue:" + e, e);
+              }
+            } else {
+              qx.ui.core.queue.Layout.flush();
+            }
           }
 
           // Defer element as long as possible
@@ -150,7 +186,16 @@ qx.Class.define("qx.ui.core.queue.Manager",
         if (jobs.dispose)
         {
           delete jobs.dispose;
-          qx.ui.core.queue.Dispose.flush();
+
+          if (qx.core.Environment.get("qx.debug.ui.queue")) {
+            try {
+              qx.ui.core.queue.Dispose.flush();
+            } catch (e) {
+              qx.log.Logger.error("Error in the 'Dispose' queue:" + e);
+            }
+          } else {
+            qx.ui.core.queue.Dispose.flush();
+          }
         }
       }, function() {
         // Clear flag
@@ -201,14 +246,6 @@ qx.Class.define("qx.ui.core.queue.Manager",
           self.__inFlush = false;
           self.__retries += 1;
 
-          // this hack is used to fix [BUG #3688]
-          if(
-            qx.core.Environment.get("browser.name") == 'ie' &&
-            qx.core.Environment.get("browser.version") <= 7
-          ) {
-            finallyCode();
-          }
-
           if (self.__retries <= self.MAX_RETRIES) {
             self.scheduleFlush();
           } else {
@@ -240,24 +277,7 @@ qx.Class.define("qx.ui.core.queue.Manager",
      */
     __onUserAction : function(e)
     {
-      var statics = qx.ui.core.queue.Manager;
-      // pospone the flush for 500ms due to the fact that iOS stops firing
-      // events if the dom gets changed during the vent chain [BUG #4033]
-      if (e.getData() == "touchend")
-      {
-        statics.PAUSE = true;
-        if (statics.__pauseTimeout) {
-          window.clearTimeout(statics.__pauseTimeout);
-        }
-        statics.__pauseTimeout = window.setTimeout(function()
-        {
-          statics.PAUSE = false;
-          statics.__pauseTimeout = null;
-          statics.flush();
-        }, 500);
-      } else {
-        statics.flush();
-      }
+      qx.ui.core.queue.Manager.flush();
     }
   },
 
@@ -272,9 +292,6 @@ qx.Class.define("qx.ui.core.queue.Manager",
 
   defer : function(statics)
   {
-    // Initialize deferred call
-    statics.__deferredCall = new qx.util.DeferredCall(statics.flush);
-
     // Replace default scheduler for HTML element with local one.
     // This is quite a hack, but allows us to force other flushes
     // before the HTML element flush.

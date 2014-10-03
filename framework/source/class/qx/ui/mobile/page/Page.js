@@ -18,8 +18,6 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * A page is a widget which provides a screen with which users
  * can interact in order to do something. Most times a page provides a single task
  * or a group of related tasks.
@@ -32,15 +30,14 @@
  * for the navigation between pages.
  *
  * To navigate between two pages, just call the {@link #show} method of the page
- * that should be shown. Depending on the used page manager
- * ({@link qx.ui.mobile.page.manager.Simple} or {@link qx.ui.mobile.page.manager.Animation})
- * a page transition will be animated. There are several animations available. Have
- * a look at the {@link qx.ui.mobile.page.manager.Animation} manager for more information.
+ * that should be shown. Depending on the used page manager a page transition will be animated.
+ * There are several animations available. Have
+ * a look at the {@link qx.ui.mobile.page.Manager} manager or {@link qx.ui.mobile.layout.Card} card layout for more information.
  *
  * A page has predefined lifecycle methods that get called by the used page manager
  * when a page gets shown. Each time another page is requested to be shown the currently shown page
  * is stopped. The other page, will be, if shown for the first time, initialized and started
- * afterwards. For all called lifecylce methods an event is fired.
+ * afterwards. For all called lifecycle methods an event is fired.
  *
  * Call of the {@link #show} method triggers the following lifecycle methods:
  *
@@ -56,51 +53,11 @@
  * {@link #_initialize} lifecycle method are only called when the page is shown
  * for the first time.
  *
- * *Example*
- *
- * Here is a little example of how to use the widget.
- *
- * <pre class='javascript'>
- *  // Create a page
- *  var page1 = new qx.ui.mobile.page.Page();
- *
- *  // Create all child widgets on initialize
- *  page1.addListener("initialize", function()
- *  {
- *    var button = new qx.ui.mobile.form.Button("Next Page");
- *    button.addListener("tap", function() {
- *      // show the next page
- *      page2.show();
- *    }, this);
- *    page1.add(button);
- *  },this);
- *
- *  // Create a second page
- *  var page2 = new qx.ui.mobile.page.Page();
- *
- *  // Create all child widgets on initialize
- *  page2.addListener("initialize", function()
- *  {
- *    var button = new qx.ui.mobile.form.Button("Back");
- *    button.addListener("tap", function() {
- *      // show the first page with a reverse animation if the Animation
- *      // page mangager is used.
- *      page1.show({animation:"fade", reverse:true});
- *    }, this);
- * })
- *    page2.add(button);
- *  },this);
- *
- *  page1.show();
- * </pre>
- *
- * This example creates two pages with one button each. Tapping on the button
- * will show the page respectively.
  */
 qx.Class.define("qx.ui.mobile.page.Page",
 {
   extend : qx.ui.mobile.container.Composite,
-
+  include : qx.ui.mobile.core.MResize,
 
  /*
   *****************************************************************************
@@ -110,24 +67,61 @@ qx.Class.define("qx.ui.mobile.page.Page",
 
   construct : function(layout)
   {
-    this.base(arguments, layout);
-    if (!layout) {
-      this.setLayout(new qx.ui.mobile.layout.VBox());
-    }
-    qx.ui.mobile.page.Page.getManager().add(this);
-    this._resize();
-    qx.event.Registration.addListener(window, "orientationchange", this._resize, this);
-    qx.event.Registration.addListener(window, "resize", this._resize, this);
+    this.base(arguments, layout || new qx.ui.mobile.layout.VBox());
   },
-
 
 
 
  /*
   *****************************************************************************
-     EVENTS
+     STATICS
   *****************************************************************************
   */
+
+  statics : {
+    _currentPage : null,
+
+    /**
+     * Event handler. Called when the device is ready.
+     */
+    _onDeviceReady : function() {
+      qx.bom.Event.addNativeListener(document, "backbutton", qx.ui.mobile.page.Page._onBackButton);
+      qx.bom.Event.addNativeListener(document, "menubutton", qx.ui.mobile.page.Page._onMenuButton);
+    },
+
+
+    /**
+     * Event handler. Called when the back button of the device was pressed.
+     */
+    _onBackButton : function()
+    {
+      if (qx.core.Environment.get("phonegap") && qx.core.Environment.get("os.name") == "android")
+      {
+        var exit = true;
+        if (qx.ui.mobile.page.Page._currentPage) {
+          exit = qx.ui.mobile.page.Page._currentPage.back(true);
+        }
+        if (exit) {
+          navigator.app.exitApp();
+        }
+      }
+    },
+
+
+    /**
+     * Event handler. Called when the menu button of the device was pressed.
+     */
+    _onMenuButton : function()
+    {
+      if (qx.core.Environment.get("phonegap") && qx.core.Environment.get("os.name") == "android")
+      {
+        if (qx.ui.mobile.page.Page._currentPage) {
+          qx.ui.mobile.page.Page._currentPage.menu();
+        }
+      }
+    }
+  },
+
 
   events :
   {
@@ -146,21 +140,18 @@ qx.Class.define("qx.ui.mobile.page.Page",
     /** Fired when the lifecycle method {@link #resume} is called */
     "resume" : "qx.event.type.Event",
 
-    /** Fired when the method {@link #back} is called */
-    "back" : "qx.event.type.Event",
+    /** Fired when the method {@link #back} is called. Data indicating
+     *  whether the action was triggered by a key event or not.
+     */
+    "back" : "qx.event.type.Data",
 
     /** Fired when the method {@link #menu} is called */
-    "menu" : "qx.event.type.Event"
+    "menu" : "qx.event.type.Event",
+
+    /** Fired when the method {@link #wait} is called */
+    "wait" : "qx.event.type.Event"
   },
 
-
-
-
- /*
-  *****************************************************************************
-     PROPERTIES
-  *****************************************************************************
-  */
 
   properties :
   {
@@ -169,45 +160,18 @@ qx.Class.define("qx.ui.mobile.page.Page",
     {
       refine : true,
       init : "page"
-    }
-  },
-
-
-
-
- /*
-  *****************************************************************************
-     STATICS
-  *****************************************************************************
-  */
-
-  statics :
-  {
-    __manager : null,
-
-    /**
-     * Returns the used page manager. The page manager is responsible for the
-     * page transition and calling the lifecycle methods of a page.
-     *
-     * @return {var} The used page manager.
-     */
-    getManager : function() {
-      return qx.ui.mobile.page.Page.__manager;
     },
 
 
     /**
-     * Sets the used page manager. The page manager is responsible for the
-     * page transition and calling the lifecycle methods of a page.
-     *
-     * @param manager {var} The manager to use.
+     * The current active life cycle state of this page.
      */
-    setManager : function(manager) {
-      qx.ui.mobile.page.Page.__manager = manager;
+    lifeCycleState: {
+      init: null,
+      check: ["initialize", "start", "stop", "resume", "wait", "pause"],
+      apply: "_applyLifeCycleState"
     }
   },
-
-
 
 
  /*
@@ -220,32 +184,25 @@ qx.Class.define("qx.ui.mobile.page.Page",
   {
     __initialized : false,
 
-
-    /**
-     * Resizes the page to the innerHeight of the window.
-     */
-    _resize : function()
+    // overridden
+    show : function(properties)
     {
-      if (qx.core.Environment.get("qx.mobile.nativescroll"))
-      {
-        this._setStyle("minHeight", window.innerHeight + "px");
-      } else {
-        this._setStyle("height", window.innerHeight + "px");
+      if (qx.ui.mobile.page.Page._currentPage) {
+        qx.ui.mobile.page.Page._currentPage.stop();
       }
+      qx.ui.mobile.page.Page._currentPage = this;
+      this.initialize();
+      this.start();
+      this.base(arguments, properties);
     },
 
 
     // overridden
-    _applyId : function(value, old)
+    exclude : function(properties)
     {
-      this.base(arguments, value, old);
-      if (old != null) {
-        qx.ui.mobile.page.Page.getManager().remove(old);
-      }
-
-      qx.ui.mobile.page.Page.getManager().add(this);
+      this.stop();
+      this.base(arguments, properties);
     },
-
 
 
     /**
@@ -254,13 +211,15 @@ qx.Class.define("qx.ui.mobile.page.Page",
      * by the used page manager when the back button was pressed. Return <code>true</code>
      * to exit the application.
      *
+     * @param triggeredByKeyEvent {Boolean} Whether the back action was triggered by a key event.
      * @return {Boolean} Whether the exit should be exit or not. Return <code>true</code
      *     to exit the application. Only needed for Android PhoneGap applications.
      */
-    back : function()
+    back : function(triggeredByKeyEvent)
     {
-      this.fireEvent("back");
-      var value = this._back();
+      qx.core.Init.getApplication().fireDataEvent("back", triggeredByKeyEvent);
+      this.fireDataEvent("back", triggeredByKeyEvent);
+      var value = this._back(triggeredByKeyEvent);
       return value || false;
     },
 
@@ -269,11 +228,13 @@ qx.Class.define("qx.ui.mobile.page.Page",
      * Override this method if you want to perform a certain action when back
      * is called.
      *
+     * @param triggeredByKeyEvent {Boolean} Whether the back action was triggered by a key event.
      * @return {Boolean} Whether the exit should be exit or not. Return <code>true</code
      *     to exit the application. Only needed for Android PhoneGap applications.
      * @see #back
+     * @abstract
      */
-    _back : function()
+    _back : function(triggeredByKeyEvent)
     {
 
     },
@@ -287,20 +248,6 @@ qx.Class.define("qx.ui.mobile.page.Page",
       this.fireEvent("menu");
     },
 
-
-    /**
-     * The show method displays the page. Depending on the used page manager,
-     * the transition is animated or not.
-     * The method calls the <code>show</code> method of
-     * the used page manager. See {@link qx.ui.mobile.page.manager.Simple#show}
-     * or {@link qx.ui.mobile.page.manager.Animation#show} for more information.
-     *
-     * @param data {var?null} The data that is used by the set page manager.
-     */
-    show : function(data)
-    {
-      qx.ui.mobile.page.Page.getManager().show(this, data);
-    },
 
     /*
     ---------------------------------------------------------------------------
@@ -323,7 +270,7 @@ qx.Class.define("qx.ui.mobile.page.Page",
       {
         this._initialize();
         this.__initialized = true;
-        this.fireEvent("initialize");
+        this.setLifeCycleState("initialize");
       }
     },
 
@@ -355,11 +302,11 @@ qx.Class.define("qx.ui.mobile.page.Page",
      * Lifecycle method. Called by the page manager after the {@link #initialize}
      * method when the page is shown. Fires the <code>start</code> event. You should
      * register all your event listener when this event occurs, so that no page
-     * updates are down when page is not shown.
+     * updates are done when page is not shown.
      */
     start : function() {
       this._start();
-      this.fireEvent("start");
+      this.setLifeCycleState("start");
     },
 
 
@@ -382,8 +329,11 @@ qx.Class.define("qx.ui.mobile.page.Page",
      */
     stop : function()
     {
+      if(!this.isInitialized()) {
+        return;
+      }
       this._stop();
-      this.fireEvent("stop");
+      this.setLifeCycleState("stop");
     },
 
 
@@ -406,7 +356,7 @@ qx.Class.define("qx.ui.mobile.page.Page",
      */
     pause : function() {
       this._pause();
-      this.fireEvent("pause");
+      this.setLifeCycleState("pause");
     },
 
 
@@ -430,7 +380,7 @@ qx.Class.define("qx.ui.mobile.page.Page",
      */
     resume : function() {
       this._resume();
-      this.fireEvent("resume");
+      this.setLifeCycleState("resume");
     },
 
 
@@ -443,46 +393,54 @@ qx.Class.define("qx.ui.mobile.page.Page",
     _resume : function()
     {
 
-    }
-  },
+    },
 
 
+    /**
+     * Lifecycle method. Not used right now. Should be called when the current page
+     * waits for data request etc.
+     * Fires the <code>wait</code> event.
+     */
+    wait : function() {
+      this._wait();
+      this.setLifeCycleState("wait");
+    },
 
 
- /*
-  *****************************************************************************
-     DESTRUCTOR
-  *****************************************************************************
-  */
-
-  destruct : function()
-  {
-    qx.event.Registration.removeListener(window, "orientationchange", this._resize, this);
-    qx.event.Registration.removeListener(window, "resize", this._resize, this);
-    this.__initialized = null;
-    if (!qx.core.ObjectRegistry.inShutDown)
+    /**
+     * Override this method if you would like to perform a certain action when wait
+     * is called.
+     *
+     * @see #wait
+     */
+    _wait : function()
     {
-      if (this.getId()) {
-        qx.ui.mobile.page.Page.getManager().remove(this.getId());
+
+    },
+
+
+    // property apply
+    _applyLifeCycleState : function(value, old) {
+      if(value == "start" || value == "stop") {
+        qx.core.Init.getApplication().fireEvent(value);
       }
+
+      this.fireEvent(value);
     }
   },
 
 
 
-
  /*
   *****************************************************************************
-     DEFER
+      DEFER
   *****************************************************************************
   */
 
-  defer : function(statics)
-  {
-    if (qx.core.Environment.get("css.translate3d")) {
-      statics.setManager(new qx.ui.mobile.page.manager.Animation());
-    } else {
-      statics.setManager(new qx.ui.mobile.page.manager.Simple());
+  defer : function(statics) {
+    if (qx.core.Environment.get("phonegap") && qx.core.Environment.get("os.name") == "android")
+    {
+      qx.bom.Event.addNativeListener(document, "deviceready", statics._onDeviceReady);
     }
   }
 });

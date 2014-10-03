@@ -19,26 +19,25 @@
 
 /* ************************************************************************
 
-#asset(widgetbrowser/loading66.gif)
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#use(widgetbrowser.pages.Tree)
-#use(widgetbrowser.pages.List)
-#use(widgetbrowser.pages.Table)
-#use(widgetbrowser.pages.Form)
-#use(widgetbrowser.pages.ToolBar)
-#use(widgetbrowser.pages.Window)
-#use(widgetbrowser.pages.Tab)
-#use(widgetbrowser.pages.Control)
-#use(widgetbrowser.pages.Embed)
-#use(widgetbrowser.pages.EmbedFrame)
-#use(widgetbrowser.pages.Basic)
-#use(widgetbrowser.pages.Misc)
-
-************************************************************************ */
+/**
+ *
+ * @asset(widgetbrowser/loading66.gif)
+ * @use(widgetbrowser.pages.Tree)
+ * @use(widgetbrowser.pages.List)
+ * @use(widgetbrowser.pages.Table)
+ * @use(widgetbrowser.pages.Form)
+ * @use(widgetbrowser.pages.ToolBar)
+ * @use(widgetbrowser.pages.Window)
+ * @use(widgetbrowser.pages.Tab)
+ * @use(widgetbrowser.pages.Control)
+ * @use(widgetbrowser.pages.Embed)
+ * @use(widgetbrowser.pages.EmbedFrame)
+ * @use(widgetbrowser.pages.Basic)
+ * @use(widgetbrowser.pages.Misc)
+ */
 
 qx.Class.define("widgetbrowser.view.TabPage",
 {
@@ -59,7 +58,7 @@ qx.Class.define("widgetbrowser.view.TabPage",
       // Require part
       var part = classname.split(".").pop().toLowerCase();
 
-      qx.Part.require(part, function() {
+      qx.io.PartLoader.require([part], function() {
 
         // Finally, instantiate class
         var clazz = qx.Class.getByName(classname);
@@ -67,18 +66,6 @@ qx.Class.define("widgetbrowser.view.TabPage",
 
         // Add to page
         this.add(pageContent, {top: 40, edge: 0});
-
-        // Hotfix for browser bug [#BUG #4666]
-        if (qx.core.Environment.get("browser.name") == "opera" &&
-            qx.core.Environment.get("browser.version") == "11.0") {
-          var scroll = qx.core.Init.getApplication().getScroll().getChildControl("pane").
-                   getContentElement().getDomElement();
-          pageContent.addListenerOnce("appear", function() {
-            if (scroll) {
-              scroll.scrollTop = 0;
-            }
-          });
-        }
 
         // Init controls for widgets of page
         this.initControls(pageContent.getWidgets(), controls);

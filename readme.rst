@@ -14,7 +14,7 @@ state-of-the-art GUI toolkit. qooxdoo is open source under liberal
 licenses, led by the world's largest web host 1&1, with a vibrant 
 community.
 
-For more information please see http://qooxdoo.org/about
+For more information please see http://qooxdoo.org .
 
 
 License
@@ -29,18 +29,18 @@ Please make sure you understand the dual license of qooxdoo and the
 rights and obligations that come with it. See the top-level license.txt
 file for more details.
 
-For more information please see http://qooxdoo.org/license
+For more information please see http://qooxdoo.org/license .
 
 
 Quick start
 ===========
 
 It is easy to get started with qooxdoo. For detailed information please
-see http://manual.qooxdoo.org/1.6/pages/getting_started.html
+see http://manual.qooxdoo.org/4.1/pages/getting_started.html .
 
 For the impatient, here is a short version:
 
-Use the 'tool/bin/create-application.py' script to setup a new application.
+Use the './create-application.py' script to setup a new application.
 This will create a minimal directory structure of an application, which is ready to
 be built and run. Within the newly created application folder run the command
 'generate.py source-all' to generate a development version of your app.
@@ -50,27 +50,39 @@ then go on and extend it into an application of your liking by changing the
 
 
 API Reference
-=============
+==============
 
 You might also want to open the API viewer in a separate browser window,
 which offers the qooxdoo framework API in a convenient way (See the
 top-level 'index.html' file next to this readme).
 
 
+Contributing
+=============
+
+There are many ways you can contribute to qooxdoo, ranging from providing
+feedback, making translations, providing a custom library to full-blown patches
+to the code. Please check our web site for details. Mind that for every patch to
+the repository we require an open bug in our issue tracker, and that commits to
+the repository will fall under qooxdoo's license terms.
+
+For more information see http://qooxdoo.org/community/contribution .
+
+
 Learn more
-==========
+===========
 
 * About qooxdoo
-  http://qooxdoo.org/about
+  http://qooxdoo.org
 
 * Online Demos
   http://demo.qooxdoo.org
 
-* Release notes
-  http://qooxdoo.org/about/release_notes
+* Release Notes
+  http://qooxdoo.org/project/release_notes/4.1
 
-* User manual
-  http://manual.qooxdoo.org/1.6
+* User Manual
+  http://manual.qooxdoo.org/4.1
 
-* API documentation
-  http://api.qooxdoo.org
+* API Documentation
+  http://api.qooxdoo.org/4.1

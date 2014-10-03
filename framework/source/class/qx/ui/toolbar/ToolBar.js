@@ -89,6 +89,7 @@ qx.Class.define("qx.ui.toolbar.ToolBar",
       init : "both",
       check : [ "both", "label", "icon" ],
       inheritable : true,
+      apply : "_applyShow",
       event : "changeShow"
     },
 
@@ -252,8 +253,9 @@ qx.Class.define("qx.ui.toolbar.ToolBar",
 
       // if we can possibly show something
       } else if (this.__removedItems.length > 0) {
+        var removedChild = this.__removedItems[0];
+        var removedItems = this.__removedItems;
         do {
-          var removedChild = this.__removedItems[0];
           // if we have something we can show
           if (removedChild) {
             // get the margins or spacing
@@ -261,7 +263,7 @@ qx.Class.define("qx.ui.toolbar.ToolBar",
             margins = Math.max(margins, this.getSpacing());
 
             // check if the element has been rendered before [BUG #4542]
-            if (removedChild.getDecoratorElement() == null) {
+            if (removedChild.getContentElement().getDomElement() == null) {
               // if not, apply the decorator element because it can change the
               // width of the child with padding e.g.
               removedChild.syncAppearance();
@@ -274,7 +276,7 @@ qx.Class.define("qx.ui.toolbar.ToolBar",
             // check if it fits in in case its the last child to replace
             var fits = false;
             // if we can remove the overflow widget if its available
-            if (this.__removedItems.length == 1 && overflowWidgetWidth > 0) {
+            if (removedItems.length == 1 && overflowWidgetWidth > 0) {
               var addedMargin = margins - this.getSpacing();
               var wouldRequiredWidth =
                 requiredWidth -
@@ -289,14 +291,14 @@ qx.Class.define("qx.ui.toolbar.ToolBar",
               this.__showChild(removedChild);
               requiredWidth += removedChildWidth;
               // check if we need to remove the overflow widget
-              if (overflowWidget && this.__removedItems.length == 0) {
+              if (overflowWidget && removedItems.length == 0) {
                 overflowWidget.setVisibility("excluded");
               }
             } else {
               return;
             }
           }
-        } while (width >= requiredWidth && this.__removedItems.length > 0);
+        } while (width >= requiredWidth && removedItems.length > 0);
       }
     },
 
@@ -491,6 +493,17 @@ qx.Class.define("qx.ui.toolbar.ToolBar",
     },
 
 
+    // property apply
+    _applyShow : function(value) {
+      var children = this._getChildren();
+      for (var i=0; i < children.length; i++) {
+        if (children[i].setShow) {
+          children[i].setShow(value);
+        }
+      };
+    },
+
+
     /*
     ---------------------------------------------------------------------------
       CHILD HANDLING
@@ -499,6 +512,11 @@ qx.Class.define("qx.ui.toolbar.ToolBar",
     // overridden
     _add : function(child, options) {
       this.base(arguments, child, options);
+      // sync the show property (bug #6743) - but only if show wasn't explicitly set for the child (bug #6823)
+      if (child.setShow && !qx.util.PropertyUtil.getUserValue(child, "show")) {
+        child.setShow(this.getShow());
+      }
+
       var newWidth =
         this.getSizeHint().width +
         child.getSizeHint().width +
@@ -509,6 +527,11 @@ qx.Class.define("qx.ui.toolbar.ToolBar",
     // overridden
     _addAt : function(child, index, options) {
       this.base(arguments, child, index, options);
+      // sync the show property (bug #6743) - but only if show wasn't explicitly set for the child (bug #6823)
+      if (child.setShow && !qx.util.PropertyUtil.getUserValue(child, "show")) {
+        child.setShow(this.getShow());
+      }
+
       var newWidth =
         this.getSizeHint().width +
         child.getSizeHint().width +
@@ -519,6 +542,11 @@ qx.Class.define("qx.ui.toolbar.ToolBar",
     // overridden
     _addBefore : function(child, before, options) {
       this.base(arguments, child, before, options);
+      // sync the show property (bug #6743) - but only if show wasn't explicitly set for the child (bug #6823)
+      if (child.setShow && !qx.util.PropertyUtil.getUserValue(child, "show")) {
+        child.setShow(this.getShow());
+      }
+
       var newWidth =
         this.getSizeHint().width +
         child.getSizeHint().width +
@@ -529,6 +557,11 @@ qx.Class.define("qx.ui.toolbar.ToolBar",
     // overridden
     _addAfter : function(child, after, options) {
       this.base(arguments, child, after, options);
+      // sync the show property (bug #6743) - but only if show wasn't explicitly set for the child (bug #6823)
+      if (child.setShow && !qx.util.PropertyUtil.getUserValue(child, "show")) {
+        child.setShow(this.getShow());
+      }
+
       var newWidth =
         this.getSizeHint().width +
         child.getSizeHint().width +

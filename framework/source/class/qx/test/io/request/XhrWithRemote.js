@@ -119,7 +119,12 @@ qx.Class.define("qx.test.io.request.XhrWithRemote",
     },
 
     "test: progress phases when abort after loading": function() {
-      this.require(["noSelenium"]);
+      // Note:
+      //   * Breaks in Selenium and IE because no intermediate loading event
+      //     is fired while requesting "loading.php"
+      //   * Breaks on Windows 7 in every browser because the loading phase
+      //     is never entered
+      this.require(["noSelenium", "noIe", "noWin7"]);
 
       var req = this.req,
           phases = [],
@@ -155,6 +160,25 @@ qx.Class.define("qx.test.io.request.XhrWithRemote",
       req.addListener("timeout", function() {
         this.resume(function() {
           this.assertEquals("timeout", req.getPhase());
+        });
+      }, this);
+
+      req.setUrl(url);
+      req.setTimeout(1/1000);
+      req.send();
+      this.wait();
+    },
+
+    "test: timeout with header call": function() {
+      var req = this.req,
+          url = this.noCache(this.getUrl("qx/test/xmlhttp/loading.php")) + "&duration=100";
+
+      req.addListener("timeout", function() {
+        this.resume(function() {
+          try {
+            req.getResponseHeader("X-UI-My-Header");
+            throw new Error("DOM exception expected!");
+          } catch (ex) {}
         });
       }, this);
 
@@ -201,6 +225,10 @@ qx.Class.define("qx.test.io.request.XhrWithRemote",
 
     noCache: function(url) {
       return qx.util.Uri.appendParamsToUrl(url, "nocache=" + (new Date).valueOf());
+    },
+
+    hasNoIe: function() {
+      return !(qx.core.Environment.get("engine.name") == "mshtml");
     }
 
   }

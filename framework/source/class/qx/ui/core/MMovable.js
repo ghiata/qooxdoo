@@ -22,7 +22,7 @@
  * Provides move behavior to any widget.
  *
  * The widget using the mixin must register a widget as move handle so that
- * the mouse events needed for moving it are attached to this widget).
+ * the pointer events needed for moving it are attached to this widget).
  * <pre class='javascript'>this._activateMoveHandle(widget);</pre>
  */
 qx.Mixin.define("qx.ui.core.MMovable",
@@ -91,9 +91,9 @@ qx.Mixin.define("qx.ui.core.MMovable",
       }
 
       this.__moveHandle = widget;
-      widget.addListener("mousedown", this._onMoveMouseDown, this);
-      widget.addListener("mouseup", this._onMoveMouseUp, this);
-      widget.addListener("mousemove", this._onMoveMouseMove, this);
+      widget.addListener("pointerdown", this._onMovePointerDown, this);
+      widget.addListener("pointerup", this._onMovePointerUp, this);
+      widget.addListener("pointermove", this._onMovePointerMove, this);
       widget.addListener("losecapture", this.__onMoveLoseCapture, this);
     },
 
@@ -124,7 +124,7 @@ qx.Mixin.define("qx.ui.core.MMovable",
      */
     __showMoveFrame : function()
     {
-      var location = this.getContainerLocation();
+      var location = this.getContentLocation();
       var bounds = this.getBounds();
       var frame = this.__getMoveFrame();
       frame.setUserBounds(location.left, location.top, bounds.width, bounds.height);
@@ -144,23 +144,24 @@ qx.Mixin.define("qx.ui.core.MMovable",
     /**
      * Computes the new drag coordinates
      *
-     * @param e {qx.event.type.Mouse} Mouse event
+     * @param e {qx.event.type.Pointer} Pointer event
+     * @return {Map} A map with the computed drag coordinates
      */
     __computeMoveCoordinates : function(e)
     {
       var range = this.__dragRange;
-      var mouseLeft = Math.max(range.left, Math.min(range.right, e.getDocumentLeft()));
-      var mouseTop = Math.max(range.top, Math.min(range.bottom, e.getDocumentTop()));
+      var pointerLeft = Math.max(range.left, Math.min(range.right, e.getDocumentLeft()));
+      var pointerTop = Math.max(range.top, Math.min(range.bottom, e.getDocumentTop()));
 
-      var viewportLeft = this.__dragLeft + mouseLeft;
-      var viewportTop = this.__dragTop + mouseTop;
+      var viewportLeft = this.__dragLeft + pointerLeft;
+      var viewportTop = this.__dragTop + pointerTop;
 
       return {
-        viewportLeft : viewportLeft,
-        viewportTop : viewportTop,
+        viewportLeft : parseInt(viewportLeft, 10),
+        viewportTop : parseInt(viewportTop, 10),
 
-        parentLeft : viewportLeft - this.__parentLeft,
-        parentTop : viewportTop - this.__parentTop
+        parentLeft : parseInt(viewportLeft - this.__parentLeft, 10),
+        parentTop : parseInt(viewportTop - this.__parentTop, 10)
       };
     },
 
@@ -174,16 +175,28 @@ qx.Mixin.define("qx.ui.core.MMovable",
     */
 
     /**
+     * Roll handler which prevents the scrolling via tap & move on parent widgets
+     * during the move of the widget.
+     * @param e {qx.event.type.Roll} The roll event
+     */
+    _onMoveRoll : function(e) {
+      e.stop();
+    },
+
+
+    /**
      * Enables the capturing of the caption bar and prepares the drag session and the
      * appearance (translucent, frame or opaque) for the moving of the window.
      *
-     * @param e {qx.event.type.Mouse} mouse down event
+     * @param e {qx.event.type.Pointer} pointer down event
      */
-    _onMoveMouseDown : function(e)
+    _onMovePointerDown : function(e)
     {
       if (!this.getMovable() || this.hasState("maximized")) {
         return;
       }
+
+      this.addListener("roll", this._onMoveRoll, this);
 
       // Compute drag range
       var parent = this.getLayoutParent();
@@ -192,7 +205,7 @@ qx.Mixin.define("qx.ui.core.MMovable",
 
       // Added a blocker, this solves the issue described in [BUG #1462]
       if (qx.Class.implementsInterface(parent, qx.ui.window.IDesktop)) {
-        if (!parent.isContentBlocked()) {
+        if (!parent.isBlocked()) {
           this.__oldBlockerColor = parent.getBlockerColor();
           this.__oldBlockerOpacity = parent.getBlockerOpacity();
           parent.setBlockerColor(null);
@@ -213,7 +226,7 @@ qx.Mixin.define("qx.ui.core.MMovable",
       };
 
       // Compute drag positions
-      var widgetLocation = this.getContainerLocation();
+      var widgetLocation = this.getContentLocation();
       this.__parentLeft = parentLocation.left;
       this.__parentTop = parentLocation.top;
 
@@ -240,9 +253,9 @@ qx.Mixin.define("qx.ui.core.MMovable",
      * Does the moving of the window by rendering the position
      * of the window (or frame) at runtime using direct dom methods.
      *
-     * @param e {qx.event.type.Event} mouse move event
+     * @param e {qx.event.type.Pointer} pointer move event
      */
-    _onMoveMouseMove : function(e)
+    _onMovePointerMove : function(e)
     {
       // Only react when dragging is active
       if (!this.hasState("move")) {
@@ -254,7 +267,9 @@ qx.Mixin.define("qx.ui.core.MMovable",
       if (this.getUseMoveFrame()) {
         this.__getMoveFrame().setDomPosition(coords.viewportLeft, coords.viewportTop);
       } else {
-        this.setDomPosition(coords.parentLeft, coords.parentTop);
+        var insets = this.getLayoutParent().getInsets();
+        this.setDomPosition(coords.parentLeft - (insets.left || 0),
+          coords.parentTop - (insets.top || 0));
       }
 
       e.stopPropagation();
@@ -266,10 +281,14 @@ qx.Mixin.define("qx.ui.core.MMovable",
      * to the last position of the drag session. Also restores the appearance
      * of the window.
      *
-     * @param e {qx.event.type.Mouse} mouse up event
+     * @param e {qx.event.type.Pointer} pointer up event
      */
-    _onMoveMouseUp : function(e)
+    _onMovePointerUp : function(e)
     {
+      if (this.hasListener("roll", this._onMoveRoll, this)) {
+        this.removeListener("roll", this._onMoveRoll, this);
+      }
+
       // Only react when dragging is active
       if (!this.hasState("move")) {
         return;
@@ -282,7 +301,7 @@ qx.Mixin.define("qx.ui.core.MMovable",
       var parent = this.getLayoutParent();
       if (qx.Class.implementsInterface(parent, qx.ui.window.IDesktop)) {
         if (this.__blockerAdded) {
-          parent.unblockContent();
+          parent.unblock();
 
           parent.setBlockerColor(this.__oldBlockerColor);
           parent.setBlockerOpacity(this.__oldBlockerOpacity);
@@ -298,9 +317,10 @@ qx.Mixin.define("qx.ui.core.MMovable",
 
       // Apply them to the layout
       var coords = this.__computeMoveCoordinates(e);
+      var insets = this.getLayoutParent().getInsets();
       this.setLayoutProperties({
-        left: coords.parentLeft,
-        top: coords.parentTop
+        left: coords.parentLeft - (insets.left || 0),
+        top: coords.parentTop - (insets.top || 0)
       });
 
       // Hide frame afterwards

@@ -19,15 +19,12 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#ignore(qx.data)
-#ignore(qx.data.IListData)
-
-************************************************************************ */
-
 /**
  * Create namespace
+ *
+ * @ignore(qx.data)
+ * @ignore(qx.data.IListData)
+ * @ignore(qx.util.OOUtil)
  */
 if (!window.qx) {
   window.qx = {};
@@ -46,8 +43,8 @@ qx.Bootstrap = {
   createNamespace : function(name, object)
   {
     var splits = name.split(".");
-    var parent = window;
     var part = splits[0];
+    var parent = qx.$$namespaceRoot && qx.$$namespaceRoot[part] ? qx.$$namespaceRoot : window;
 
     for (var i=0, len=splits.length-1; i<len; i++, part=splits[i])
     {
@@ -84,10 +81,29 @@ qx.Bootstrap = {
   },
 
 
+  base : function(args, varargs)
+  {
+    if (qx.Bootstrap.DEBUG) {
+      if (!qx.Bootstrap.isFunction(args.callee.base)) {
+        throw new Error(
+          "Cannot call super class. Method is not derived: " +
+          args.callee.displayName
+        );
+      }
+    }
+
+    if (arguments.length === 1) {
+      return args.callee.base.call(this);
+    } else {
+      return args.callee.base.apply(this, Array.prototype.slice.call(arguments, 1));
+    }
+  },
+
+
   define : function(name, config)
   {
     if (!config) {
-      var config = { statics : {} };
+      config = { statics : {} };
     }
 
     var clazz;
@@ -106,31 +122,56 @@ qx.Bootstrap = {
       }
 
       var statics = config.statics || {};
-      // use getKeys to include the shadowed in IE
-      for (var i=0, keys=qx.Bootstrap.getKeys(statics), l=keys.length; i<l; i++) {
+      // use keys to include the shadowed in IE
+      for (var i=0, keys=qx.Bootstrap.keys(statics), l=keys.length; i<l; i++) {
         var key = keys[i];
         clazz[key] = statics[key];
       }
 
       proto = clazz.prototype;
+      // Enable basecalls within constructor
+      proto.base = qx.Bootstrap.base;
+      proto.name = proto.classname = name;
+
       var members = config.members || {};
-      // use getKeys to include the shadowed in IE
-      for (var i=0, keys=qx.Bootstrap.getKeys(members), l=keys.length; i<l; i++) {
-        var key = keys[i];
-        proto[key] = members[key];
+      var key, member;
+
+      // use keys to include the shadowed in IE
+      for (var i=0, keys=qx.Bootstrap.keys(members), l=keys.length; i<l; i++) {
+        key = keys[i];
+        member = members[key];
+
+        // Enable basecalls for methods
+        // Hint: proto[key] is not yet overwritten here
+        if (member instanceof Function && proto[key]) {
+          member.base = proto[key];
+        }
+
+        proto[key] = member;
       }
     }
     else
     {
       clazz = config.statics || {};
+
+      // Merge class into former class (needed for 'optimize: ["statics"]')
+      if (qx.Bootstrap.$$registry && qx.Bootstrap.$$registry[name]) {
+        var formerClass = qx.Bootstrap.$$registry[name];
+
+        // Add/overwrite properties and return early if necessary
+        if (this.keys(clazz).length !== 0) {
+          // Execute defer to prevent too early overrides
+          if (config.defer) {
+            config.defer(clazz, proto);
+          }
+
+          for (var curProp in clazz) {
+            formerClass[curProp] = clazz[curProp];
+          }
+          return formerClass;
+        }
+      }
     }
-
-    // Create namespace
-    var basename = this.createNamespace(name, clazz);
-
-    // Store names in constructor/object
-    clazz.name = clazz.classname = name;
-    clazz.basename = basename;
 
     // Store type info
     clazz.$$type = "Class";
@@ -140,13 +181,23 @@ qx.Bootstrap = {
       clazz.toString = this.genericToString;
     }
 
+    // Create namespace
+    var basename = name ? this.createNamespace(name, clazz) : "";
+
+    // Store names in constructor/object
+    clazz.name = clazz.classname = name;
+    clazz.basename = basename;
+    clazz.$$events = config.events;
+
     // Execute defer section
     if (config.defer) {
       config.defer(clazz, proto);
     }
 
     // Store class reference in global class registry
-    qx.Bootstrap.$$registry[name] = config.statics;
+    if (name != null) {
+      qx.Bootstrap.$$registry[name] = clazz;
+    }
 
     return clazz;
   }
@@ -156,22 +207,6 @@ qx.Bootstrap = {
 /**
  * Internal class that is responsible for bootstrapping the qooxdoo
  * framework at load time.
- *
- * Automatically loads JavaScript language fixes and enhancements to
- * bring all engines to at least JavaScript 1.6.
- *
- * Does support:
- *
- * * Construct
- * * Statics
- * * Members
- * * Extend
- * * Defer
- *
- * Does not support:
- *
- * * Super class calls
- * * Mixins, Interfaces, Properties, ...
  */
 qx.Bootstrap.define("qx.Bootstrap",
 {
@@ -182,7 +217,6 @@ qx.Bootstrap.define("qx.Bootstrap",
 
     /**
      * Mapping for early use of the qx.debug environment setting.
-     * @lint ignoreUndefined(qxvariants)
      */
      DEBUG : (function() {
        // make sure to reflect all changes here to the environment class!
@@ -201,7 +235,7 @@ qx.Bootstrap.define("qx.Bootstrap",
       * WARNING: This method only should be used if the
       * {@link qx.core.Environment} class is not loaded!
       *
-      * @param key {String} The ke to get the value from.
+      * @param key {String} The key to get the value from.
       * @return {var} The value of the setting or <code>undefined</code>.
       */
      getEnvironmentSetting : function(key) {
@@ -237,23 +271,54 @@ qx.Bootstrap.define("qx.Bootstrap",
      * Creates a namespace and assigns the given object to it.
      *
      * @internal
+     * @signature function(name, object)
      * @param name {String} The complete namespace to create. Typically, the last part is the class name itself
      * @param object {Object} The object to attach to the namespace
-     * @return {Object} last part of the namespace (typically the class name)
-     * @throws an exception when the given object already exists.
+     * @return {String} last part of the namespace (which object is assigned to)
+     * @throws {Error} when the given object already exists.
      */
     createNamespace : qx.Bootstrap.createNamespace,
 
 
     /**
-     * Define a new class using the qooxdoo class system.
-     * Lightweight version of {@link qx.Class#define} only used during bootstrap phase.
+     * Offers the ability to change the root for creating namespaces from window to
+     * whatever object is given.
      *
+     * @param root {Object} The root to use.
      * @internal
+     */
+    setRoot : function(root) {
+      qx.$$namespaceRoot = root;
+    },
+
+    /**
+     * Call the same method of the super class.
+     *
+     * @signature function(args, varargs)
+     * @param args {arguments} the arguments variable of the calling method
+     * @param varargs {var} variable number of arguments passed to the overwritten function
+     * @return {var} the return value of the method of the base class.
+     */
+    base : qx.Bootstrap.base,
+
+    /**
+     * Define a new class using the qooxdoo class system.
+     * Lightweight version of {@link qx.Class#define} with less features.
+     *
      * @signature function(name, config)
-     * @param name {String} Name of the class
-     * @param config {Map ? null} Class definition structure.
-     * @return {Class} The defined class
+     * @param name {String?} Name of the class. If null, the class will not be
+     *   attached to a namespace.
+     * @param config {Map ? null} Class definition structure. The configuration map has the following keys:
+     *     <table>
+     *       <tr><th>Name</th><th>Type</th><th>Description</th></tr>
+     *       <tr><th>extend</th><td>Class</td><td>The super class the current class inherits from.</td></tr>
+     *       <tr><th>construct</th><td>Function</td><td>The constructor of the class.</td></tr>
+     *       <tr><th>statics</th><td>Map</td><td>Map of static values / functions of the class.</td></tr>
+     *       <tr><th>members</th><td>Map</td><td>Map of instance members of the class.</td></tr>
+     *       <tr><th>defer</th><td>Function</td><td>Function that is called at the end of
+     *          processing the class declaration.</td></tr>
+     *     </table>
+     * @return {Class} The defined class.
      */
     define : qx.Bootstrap.define,
 
@@ -261,7 +326,7 @@ qx.Bootstrap.define("qx.Bootstrap",
     /**
      * Sets the display name of the given function
      *
-     * @signature (fcn, classname, name)
+     * @signature function(fcn, classname, name)
      * @param fcn {Function} the function to set the display name for
      * @param classname {String} the name of the class the function is defined in
      * @param name {String} the function name
@@ -310,9 +375,9 @@ qx.Bootstrap.define("qx.Bootstrap",
 
       // Use helper function/class to save the unnecessary constructor call while
       // setting up inheritance.
-      var helper = new Function;
+      var helper = new Function();
       helper.prototype = superproto;
-      var proto = new helper;
+      var proto = new helper();
 
       // Apply prototype to new helper instance
       clazz.prototype = proto;
@@ -325,7 +390,8 @@ qx.Bootstrap.define("qx.Bootstrap",
         - Store base constructor to constructor-
         - Store reference to extend class
       */
-      construct.base = clazz.superclass = superClass;
+      construct.base = superClass;
+      clazz.superclass = superClass;
 
       /*
         - Store statics/constructor onto constructor/prototype
@@ -347,7 +413,7 @@ qx.Bootstrap.define("qx.Bootstrap",
     },
 
 
-    /** {Map} Stores all defined classes */
+    /** @type {Map} Stores all defined classes */
     $$registry : {},
 
 
@@ -358,29 +424,15 @@ qx.Bootstrap.define("qx.Bootstrap",
     */
 
     /**
-     * Get the number of objects in the map
+     * Get the number of own properties in the object.
      *
-     * @signature function(map)
      * @param map {Object} the map
      * @return {Integer} number of objects in the map
+     * @lint ignoreUnused(key)
      */
-    objectGetLength :
-    ({
-      "count": function(map) {
-        return map.__count__;
-      },
-
-      "default": function(map)
-      {
-        var length = 0;
-
-        for (var key in map) {
-          length++;
-        }
-
-        return length;
-      }
-    })[(({}).__count__ == 0) ? "count" : "default"],
+    objectGetLength : function(map) {
+      return qx.Bootstrap.keys(map).length;
+    },
 
 
     /**
@@ -414,6 +466,7 @@ qx.Bootstrap.define("qx.Bootstrap",
      * in the object.
      *
      * @internal
+     * @type {String[]}
      */
     __shadowedKeys :
     [
@@ -422,6 +475,7 @@ qx.Bootstrap.define("qx.Bootstrap",
       "toLocaleString",
       "toString",
       "valueOf",
+      "propertyIsEnumerable",
       "constructor"
     ],
 
@@ -430,15 +484,20 @@ qx.Bootstrap.define("qx.Bootstrap",
      * Get the keys of a map as array as returned by a "for ... in" statement.
      *
      * @signature function(map)
+     * @internal
      * @param map {Object} the map
      * @return {Array} array of the keys of the map
      */
-    getKeys :
+    keys :
     ({
       "ES5" : Object.keys,
 
       "BROKEN_IE" : function(map)
       {
+        if (map === null || (typeof map != "object" && typeof map != "function")) {
+            throw new TypeError("Object.keys requires an object as argument.");
+        }
+
         var arr = [];
         var hasOwnProperty = Object.prototype.hasOwnProperty;
         for (var key in map) {
@@ -463,6 +522,10 @@ qx.Bootstrap.define("qx.Bootstrap",
 
       "default" : function(map)
       {
+        if (map === null || (typeof map != "object" && typeof map != "function")) {
+            throw new TypeError("Object.keys requires an object as argument.");
+        }
+
         var arr = [];
 
         var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -481,26 +544,9 @@ qx.Bootstrap.define("qx.Bootstrap",
 
 
     /**
-     * Get the keys of a map as string
-     *
-     * @param map {Object} the map
-     * @return {String} String of the keys of the map
-     *         The keys are separated by ", "
-     */
-    getKeysAsString : function(map)
-    {
-      var keys = qx.Bootstrap.getKeys(map);
-      if (keys.length == 0) {
-        return "";
-      }
-
-      return '"' + keys.join('\", "') + '"';
-    },
-
-
-    /**
      * Mapping from JavaScript string representation of objects to names
      * @internal
+     * @type {Map}
      */
     __classToTypeMap :
     {
@@ -528,7 +574,7 @@ qx.Bootstrap.define("qx.Bootstrap",
      *
      * *Syntax*
      *
-     * <pre class='javascript'>qx.lang.Function.self(myFunction, [self, [varargs...]]);</pre>
+     * <pre class='javascript'>qx.Bootstrap.bind(myFunction, [self, [varargs...]]);</pre>
      *
      * *Example*
      *
@@ -540,7 +586,7 @@ qx.Bootstrap.define("qx.Bootstrap",
      *   // we'll need to bind this function to the element we want to alter
      * };
      *
-     * var myBoundFunction = qx.lang.Function.bind(myFunction, myElement);
+     * var myBoundFunction = qx.Bootstrap.bind(myFunction, myElement);
      * myBoundFunction(); // this will make the element myElement red.
      * </pre>
      *
@@ -555,7 +601,7 @@ qx.Bootstrap.define("qx.Bootstrap",
       return function() {
         var args = Array.prototype.slice.call(arguments, 0, arguments.length);
         return func.apply(self, fixedArgs.concat(args));
-      }
+      };
     },
 
 
@@ -604,6 +650,12 @@ qx.Bootstrap.define("qx.Bootstrap",
      */
     getClass : function(value)
     {
+      // The typeof null and undefined is "object" under IE8
+      if(value === undefined) {
+        return "Undefined"
+      }else if(value === null) {
+        return "Null";
+      }
       var classString = Object.prototype.toString.call(value);
       return (
         qx.Bootstrap.__classToTypeMap[classString] ||
@@ -622,7 +674,7 @@ qx.Bootstrap.define("qx.Bootstrap",
     {
       // Added "value !== null" because IE throws an exception "Object expected"
       // by executing "value instanceof String" if value is a DOM element that
-      // doesn't exist. It seems that there is an internal different between a
+      // doesn't exist. It seems that there is an internal difference between a
       // JavaScript null and a null returned from calling DOM.
       // e.q. by document.getElementById("ReturnedNull").
       return (
@@ -645,13 +697,13 @@ qx.Bootstrap.define("qx.Bootstrap",
     {
       // Added "value !== null" because IE throws an exception "Object expected"
       // by executing "value instanceof Array" if value is a DOM element that
-      // doesn't exist. It seems that there is an internal different between a
+      // doesn't exist. It seems that there is an internal difference between a
       // JavaScript null and a null returned from calling DOM.
       // e.q. by document.getElementById("ReturnedNull").
       return (
         value !== null && (
         value instanceof Array ||
-        (value && qx.data && qx.data.IListData && qx.Bootstrap.hasInterface(value.constructor, qx.data.IListData) ) ||
+        (value && qx.data && qx.data.IListData && qx.util.OOUtil.hasInterface(value.constructor, qx.data.IListData) ) ||
         qx.Bootstrap.getClass(value) == "Array" ||
         (!!value && !!value.$$isArray))
       );
@@ -687,171 +739,6 @@ qx.Bootstrap.define("qx.Bootstrap",
 
     /*
     ---------------------------------------------------------------------------
-      CLASS UTILITY FUNCTIONS
-    ---------------------------------------------------------------------------
-    */
-
-
-    /**
-     * Whether the given class exists
-     *
-     * @param name {String} class name to check
-     * @return {Boolean} true if class exists
-     */
-    classIsDefined : function(name) {
-      return qx.Bootstrap.getByName(name) !== undefined;
-    },
-
-    /**
-     * Returns the definition of the given property. Returns null
-     * if the property does not exist.
-     *
-     * TODO: Correctly support refined properties?
-     *
-     * @param clazz {Class} class to check
-     * @param name {String} name of the event to check for
-     * @return {Map|null} whether the object support the given event.
-     */
-    getPropertyDefinition : function(clazz, name)
-    {
-      while (clazz)
-      {
-        if (clazz.$$properties && clazz.$$properties[name]) {
-          return clazz.$$properties[name];
-        }
-
-        clazz = clazz.superclass;
-      }
-
-      return null;
-    },
-
-
-    /**
-     * Whether a class has the given property
-     *
-     * @param clazz {Class} class to check
-     * @param name {String} name of the property to check for
-     * @return {Boolean} whether the class includes the given property.
-     */
-    hasProperty : function(clazz, name) {
-      return !!qx.Bootstrap.getPropertyDefinition(clazz, name);
-    },
-
-
-    /**
-     * Returns the event type of the given event. Returns null if
-     * the event does not exist.
-     *
-     * @param clazz {Class} class to check
-     * @param name {String} name of the event
-     * @return {Map|null} Event type of the given event.
-     */
-    getEventType : function(clazz, name)
-    {
-      var clazz = clazz.constructor;
-
-      while (clazz.superclass)
-      {
-        if (clazz.$$events && clazz.$$events[name] !== undefined) {
-          return clazz.$$events[name];
-        }
-
-        clazz = clazz.superclass;
-      }
-
-      return null;
-    },
-
-
-    /**
-     * Whether a class supports the given event type
-     *
-     * @param clazz {Class} class to check
-     * @param name {String} name of the event to check for
-     * @return {Boolean} whether the class supports the given event.
-     */
-    supportsEvent : function(clazz, name) {
-      return !!qx.Bootstrap.getEventType(clazz, name);
-    },
-
-
-    /**
-     * Returns the class or one of its super classes which contains the
-     * declaration of the given interface. Returns null if the interface is not
-     * specified anywhere.
-     *
-     * @param clazz {Class} class to look for the interface
-     * @param iface {Interface} interface to look for
-     * @return {Class | null} the class which directly implements the given interface
-     */
-    getByInterface : function(clazz, iface)
-    {
-      var list, i, l;
-
-      while (clazz)
-      {
-        if (clazz.$$implements)
-        {
-          list = clazz.$$flatImplements;
-
-          for (i=0, l=list.length; i<l; i++)
-          {
-            if (list[i] === iface) {
-              return clazz;
-            }
-          }
-        }
-
-        clazz = clazz.superclass;
-      }
-
-      return null;
-    },
-
-
-    /**
-     * Whether a given class or any of its super classes includes a given interface.
-     *
-     * This function will return "true" if the interface was defined
-     * in the class declaration ({@link qx.Class#define}) of the class
-     * or any of its super classes using the "implement"
-     * key.
-     *
-     * @param clazz {Class} class to check
-     * @param iface {Interface} the interface to check for
-     * @return {Boolean} whether the class includes the interface.
-     */
-    hasInterface : function(clazz, iface) {
-      return !!qx.Bootstrap.getByInterface(clazz, iface);
-    },
-
-
-    /**
-     * Returns a list of all mixins available in a given class.
-     *
-     * @param clazz {Class} class which should be inspected
-     * @return {Mixin[]} array of mixins this class uses
-     */
-    getMixins : function(clazz)
-    {
-      var list = [];
-
-      while (clazz)
-      {
-        if (clazz.$$includes) {
-          list.push.apply(list, clazz.$$flatIncludes);
-        }
-
-        clazz = clazz.superclass;
-      }
-
-      return list;
-    },
-
-
-    /*
-    ---------------------------------------------------------------------------
       LOGGING UTILITY FUNCTIONS
     ---------------------------------------------------------------------------
     */
@@ -866,7 +753,6 @@ qx.Bootstrap.define("qx.Bootstrap",
      * @param message {var} Any number of arguments supported. An argument may
      *   have any JavaScript data type. All data is serialized immediately and
      *   does not keep references to other objects.
-     * @return {void}
      */
     debug : function(object, message) {
       qx.Bootstrap.$$logs.push(["debug", arguments]);
@@ -880,7 +766,6 @@ qx.Bootstrap.define("qx.Bootstrap",
      * @param message {var} Any number of arguments supported. An argument may
      *   have any JavaScript data type. All data is serialized immediately and
      *   does not keep references to other objects.
-     * @return {void}
      */
     info : function(object, message) {
       qx.Bootstrap.$$logs.push(["info", arguments]);
@@ -894,7 +779,6 @@ qx.Bootstrap.define("qx.Bootstrap",
      * @param message {var} Any number of arguments supported. An argument may
      *   have any JavaScript data type. All data is serialized immediately and
      *   does not keep references to other objects.
-     * @return {void}
      */
     warn : function(object, message) {
       qx.Bootstrap.$$logs.push(["warn", arguments]);
@@ -908,7 +792,6 @@ qx.Bootstrap.define("qx.Bootstrap",
      * @param message {var} Any number of arguments supported. An argument may
      *   have any JavaScript data type. All data is serialized immediately and
      *   does not keep references to other objects.
-     * @return {void}
      */
     error : function(object, message) {
       qx.Bootstrap.$$logs.push(["error", arguments]);

@@ -14,12 +14,11 @@
 
    Authors:
      * Tristan Koch (tristankoch)
+     * Richard Sternagel (rsternagel)
 
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * Client-side wrapper of a REST resource.
  *
  * Each instance represents a resource in terms of REST. A number of actions
@@ -36,8 +35,8 @@
  * route must be satisfied.
  *
  * When an action is invoked, a request is configured according to the associated
- * route, is passed the parameters and finally send. What kind of request is send
- * can be configured by overwriting {@link #_getRequest}.
+ * route, is passed the URL parameters, request body data, and finally send.
+ * What kind of request is send can be configured by overwriting {@link #_getRequest}.
  *
  * No contraints on the action's name or the scope of the URLs are imposed. However,
  * if you want to follow RESTful design patterns it is recommended to name actions
@@ -46,11 +45,38 @@
  * <pre class="javascript">
  * var description = {
  *  "get": { method: "GET", url: "/photo/{id}" },
- *  "put": { method: "POST", url: "/photo"}
+ *  "put": { method: "PUT", url: "/photo/{id}"},
+ *  "post": { method: "POST", url: "/photos/"}
  * };
  * var photo = new qx.io.rest.Resource(description);
+ * // Can also be written: photo.invoke("get", {id: 1});
  * photo.get({id: 1});
- * photo.put();
+ *
+ * // Additionally sets request data (provide it as string or set the content type)
+ * // In a RESTful environment this creates a new resource with the given 'id'
+ * photo.configureRequest(function(req) {
+ *  req.setRequestHeader("Content-Type", "application/json");
+ * });
+ * photo.put({id: 1}, {title: "Monkey"});
+ *
+ * // Additionally sets request data (provide it as string or set the content type)
+ * // In a RESTful environment this adds a new resource to the resource collection 'photos'
+ * photo.configureRequest(function(req) {
+ *  req.setRequestHeader("Content-Type", "application/json");
+ * });
+ * photo.post(null, {title: "Monkey"});
+ * </pre>
+ *
+ * To check for existence of URL parameters or constrain them to a certain format, you
+ * can add a <code>check</code> property to the description. See {@link #map} for details.
+ *
+ * <pre class="javascript">
+ * var description = {
+ *  "get": { method: "GET", url: "/photo/{id}", check: { id: /\d+/ } }
+ * };
+ * var photo = new qx.io.rest.Resource(description);
+ * // photo.get({id: "FAIL"});
+ * // -- Error: "Parameter 'id' is invalid"
  * </pre>
  *
  * If your description happens to use the same action more than once, consider
@@ -88,8 +114,8 @@
  * In order to respond to successful (or erroneous) invocations of actions,
  * either listen to the generic "success" or "error" event and get the action
  * from the event data, or listen to action specific events defined at runtime.
- * Action specific events follow the pattern "<action>Success" and
- * "<action>Error", e.g. "indexSuccess".
+ * Action specific events follow the pattern "&lt;action&gt;Success" and
+ * "&lt;action&gt;Error", e.g. "indexSuccess".
  */
 qx.Class.define("qx.io.rest.Resource",
 {
@@ -104,17 +130,21 @@ qx.Class.define("qx.io.rest.Resource",
    * For example:
    *
    * <pre class="javascript">
-   * { get: {method: "GET", url: "/photos/{id}", check: /\d+/} }
+   * { get: {method: "GET", url: "/photos/{id}", check: { id: /\d+/ }} }
    * </pre>
+   *
+   * @see qx.bom.rest
+   * @see qx.io.rest
    */
   construct: function(description)
   {
     this.base(arguments);
 
-    this.__requests = {};
-    this.__routes = {};
-    this.__pollTimers = {};
     this.__longPollHandlers = {};
+    this.__pollTimers = {};
+    this.__routes = {};
+
+    this._resource = this._tailorResource(this._getResource());
 
     try {
       if (typeof description !== "undefined") {
@@ -147,7 +177,7 @@ qx.Class.define("qx.io.rest.Resource",
      * For example, "indexSuccess" is fired when <code>index()</code> was
      * successful.
      */
-     "actionSuccess": "qx.event.type.Rest",
+    "actionSuccess": "qx.event.type.Rest",
 
     /**
      * Fired when any request fails.
@@ -164,7 +194,7 @@ qx.Class.define("qx.io.rest.Resource",
      *
      * For example, "indexError" is fired when <code>index()</code> failed.
      */
-     "actionError": "qx.event.type.Rest"
+    "actionError": "qx.event.type.Rest"
   },
 
   statics:
@@ -183,16 +213,81 @@ qx.Class.define("qx.io.rest.Resource",
     /**
      * A symbol used in checks to declare required parameter.
      */
-    REQUIRED: true
+    REQUIRED: true,
+
+    /**
+     * Get placeholders from URL.
+     *
+     * @param url {String} The URL to parse for placeholders.
+     * @return {Array} Array of placeholders without the placeholder prefix.
+     */
+    placeholdersFromUrl: function(url) {
+      return qx.bom.rest.Resource.placeholdersFromUrl(url);
+    }
   },
 
   members:
   {
-    __requests: null,
-    __routes: null,
-    __pollTimers: null,
+    _resource: null,
     __longPollHandlers: null,
-    __configureRequestCallback: null,
+    __pollTimers: null,
+    __routes: null,
+
+    /**
+     * Get resource.
+     *
+     * May be overriden to change type of resource.
+     * @param description {Map?} See construct.
+     * @return {qx.bom.rest.Resource} Resource implementation which does the heavy lifting.
+     */
+    _getResource: function(description) {
+      return new qx.bom.rest.Resource(description);
+    },
+
+    /**
+     * Tailors (apply dependency injection) the given resource to fit our needs.
+     *
+     * @param resource {qx.bom.rest.Resource} Resource.
+     * @return {qx.bom.rest.Resource} Tailored resource.
+     */
+    _tailorResource: function(resource) {
+      // inject different request implementation
+      resource.setRequestFactory(this._getRequest);
+
+      // inject different request handling
+      resource.setRequestHandler({
+          onsuccess: {
+            callback: function(req, action) {
+              return function() {
+                var props = [req.getResponse(), null, false, req, action, req.getPhase()];
+                this.fireEvent(action + "Success", qx.event.type.Rest, props);
+                this.fireEvent("success", qx.event.type.Rest, props);
+              };
+            },
+            context: this
+          },
+          onfail: {
+            callback: function(req, action) {
+              return function() {
+                var props = [req.getResponse(), null, false, req, action, req.getPhase()];
+                this.fireEvent(action + "Error", qx.event.type.Rest, props);
+                this.fireEvent("error", qx.event.type.Rest, props);
+              };
+            },
+            context: this
+          },
+          onloadend: {
+            callback: function(req, action) {
+              return function() {
+                req.dispose();
+              };
+            },
+            context: this
+          }
+      });
+
+      return resource;
+    },
 
     //
     // Request
@@ -202,10 +297,10 @@ qx.Class.define("qx.io.rest.Resource",
      * Configure request.
      *
      * @param callback {Function} Function called before request is send.
-     *   Receives pre-configured request and action.
+     *   Receives request, action, params and data.
      *
      * <pre class="javascript">
-     * res.configureRequest(function(req, action) {
+     * res.configureRequest(function(req, action, params, data) {
      *   if (action === "index") {
      *     req.setAccept("application/json");
      *   }
@@ -213,34 +308,17 @@ qx.Class.define("qx.io.rest.Resource",
      * </pre>
      */
     configureRequest: function(callback) {
-      this.__configureRequestCallback = callback;
+      this._resource.configureRequest(callback);
     },
 
     /**
      * Get request.
      *
      * May be overriden to change type of request.
+     * @return {qx.io.request.Xhr} Xhr object
      */
     _getRequest: function() {
       return new qx.io.request.Xhr();
-    },
-
-    /**
-     * Create request.
-     *
-     * @param action {String} The action the created request is associated to.
-     */
-    __createRequest: function(action) {
-      var req = this._getRequest();
-
-      if (this.__requests[action]) {
-        this.__requests[action].abort();
-        this.__requests[action] = req;
-      } else {
-        this.__requests[action] = req;
-      }
-
-      return req;
     },
 
     //
@@ -264,10 +342,30 @@ qx.Class.define("qx.io.rest.Resource",
      *   is invoked. Parameters are optional, unless a check is defined. A default
      *   value can be provided (<code>{param=default}</code>).
      * @param check {Map?} Map defining parameter constraints, where the key is
-     *   the parameter and the value a regular expression (to match string) or
+     *   the URL parameter and the value a regular expression (to match string) or
      *   <code>qx.io.rest.Resource.REQUIRED</code> (to verify existence).
      */
     map: function(action, method, url, check) {
+      // add dynamic methods also on ourself to allow 'invoke()' delegation
+      this.__addAction(action, method, url, check);
+
+      this._resource.map(action, method, url, check);
+    },
+
+    /**
+     * Map actions to members.
+     *
+     * @param action {String} Action to associate to request.
+     * @param method {String} Method to configure request with.
+     * @param url {String} URL to configure request with. May contain positional
+     *   parameters (<code>{param}</code>) that are replaced by values given when the action
+     *   is invoked. Parameters are optional, unless a check is defined. A default
+     *   value can be provided (<code>{param=default}</code>).
+     * @param check {Map?} Map defining parameter constraints, where the key is
+     *   the URL parameter and the value a regular expression (to match string) or
+     *   <code>qx.io.rest.Resource.REQUIRED</code> (to verify existence).
+     */
+    __addAction: function(action, method, url, check) {
       this.__routes[action] = [method, url, check];
 
       // Undefine generic getter when action is named "get"
@@ -275,15 +373,12 @@ qx.Class.define("qx.io.rest.Resource",
         this[action] = undefined;
       }
 
-      // Not overwrite existing "non-action" methods
-      if (typeof this[action] !== "undefined" && this[action].action !== true) {
-
-        // Unless the method is an empty function
-        if (this[action] !== qx.lang.Function.empty) {
-          throw new Error("Method with name of action (" +
-            action + ") already exists");
-        }
-
+      // Do not overwrite existing "non-action" methods unless the method is
+      // null (i.e. because it exists as a stub for documentation)
+      if (typeof this[action] !== "undefined" && this[action] !== null &&
+          this[action].action !== true)
+      {
+        throw new Error("Method with name of action ("+action+") already exists");
       }
 
       this.__declareEvent(action + "Success");
@@ -291,12 +386,12 @@ qx.Class.define("qx.io.rest.Resource",
 
       this[action] = qx.lang.Function.bind(function() {
         Array.prototype.unshift.call(arguments, action);
-        this.invoke.apply(this, arguments);
-        return this;
+        return this.invoke.apply(this, arguments);
       }, this);
 
       // Method is safe to overwrite
       this[action].action = true;
+
     },
 
     /**
@@ -309,124 +404,54 @@ qx.Class.define("qx.io.rest.Resource",
      * @lint ignoreUnused(successHandler, failHandler, loadEndHandler)
      *
      * @param action {String} Action to invoke.
-     * @param params {Map} Map of parameters to be send as part of the request,
-     *  where the key is the parameter to match and the value a string. Inserted
-     *  into URL when a matching positional parameter is found.
+     * @param params {Map} Map of parameters inserted into URL when a matching
+     *  positional parameter is found.
+     * @param data {Map|String} Data to be send as part of the request.
+     *  See {@link qx.io.request.AbstractRequest#requestData}.
+     * @return {Number} Id of the action's invocation.
      */
-    invoke: function(action, params) {
-      var req = this.__createRequest(action),
-          config = this._getRequestConfig(action, params),
-          params = typeof params === "undefined" ? {} : params,
-          data = qx.lang.Object.clone(params);
+    invoke: function(action, params, data) {
+      var params = (params == null) ? {} : params;
 
       // Cache parameters
       this.__routes[action].params = params;
 
-      // Remove positional parameters from request data (already in URL)
-      if (params) {
-        this.__placeholdersFromUrl(this.__routes[action][1]).forEach(function(placeholder) {
-          delete data[placeholder];
-        });
-      }
-
-      this.__checkParameters(params, config.check);
-
-      this.__configureRequest(req, data, action, config);
-      if (this.__configureRequestCallback) {
-        this.__configureRequestCallback.call(this, req, action, params);
-      }
-
-      // Handle successful request
-      req.addListenerOnce("success", function successHandler() {
-        var props = [req.getResponse(), null, false, req, action, req.getPhase()];
-        this.fireEvent(action + "Success", qx.event.type.Rest, props);
-        this.fireEvent("success", qx.event.type.Rest, props);
-      }, this);
-
-      // Handle erroneous request
-      req.addListenerOnce("fail", function failHandler() {
-        var props = [req.getResponse(), null, false, req, action, req.getPhase()];
-        this.fireEvent(action + "Error", qx.event.type.Rest, props);
-        this.fireEvent("error", qx.event.type.Rest, props);
-      }, this);
-
-      // Dispose request on loadEnd
-      // (Note that loadEnd is fired after "success")
-      req.addListenerOnce("loadEnd", function loadEndHandler() {
-        req.dispose();
-      }, this);
-
-      req.send();
+      return this._resource.invoke(action, params, data);
     },
 
     /**
-     * Check parameters.
+     * Set base URL.
      *
-     * @param params {Map} Parameters.
-     * @param check {Map} Checks.
+     * The base URL is prepended to the URLs given in the description.
+     * Changes affect all future invocations.
+     *
+     * @param baseUrl {String} Base URL.
      */
-    __checkParameters: function(params, check) {
-      if(typeof check !== "undefined") {
-
-        if (qx.core.Environment.get("qx.debug")) {
-          qx.core.Assert.assertObject(check, "Check must be object with params as keys");
-        }
-
-        qx.lang.Object.getKeys(check).forEach(function(key) {
-
-          // Warn about invalid check
-          if (qx.core.Environment.get("qx.debug")) {
-            if (check[key] !== true) {
-              if (qx.core.Environment.get("qx.debug")) {
-                qx.core.Assert.assertRegExp(check[key]);
-              }
-            }
-          }
-
-          // Missing parameter
-          if (check[key] === qx.io.rest.Resource.REQUIRED && typeof params[key] === "undefined") {
-            throw new Error("Missing parameter '" + key + "'");
-          }
-
-          // Ignore invalid checks
-          if (!(check[key] && typeof check[key].test == "function")) {
-            return;
-          }
-
-          // Invalid parameter
-          if (!check[key].test(params[key])) {
-            throw new Error("Parameter '" + key + "' is invalid");
-          }
-        });
-      }
+    setBaseUrl: function(baseUrl) {
+      this._resource.setBaseUrl(baseUrl);
     },
 
     /**
-     * Configure request.
+     * Abort action.
      *
-     * @param req {qx.io.request.AbstractRequest} Request.
-     * @param data {Map} Data.
-     * @param action {String} Action.
-     * @param config {Map} Configuration.
-     */
-    __configureRequest: function(req, data, action, config) {
-      req.set({method: config.method, url: config.url});
-
-      if (data) {
-        req.setRequestData(data);
-      }
-    },
-
-    /**
-     * Abort action
+     * Example:
      *
-     * @param action {String} Action to abort.
+     * <pre class="javascript">
+     *   // Abort all invocations of action
+     *   res.get({id: 1});
+     *   res.get({id: 2});
+     *   res.abort("get");
+     *
+     *   // Abort specific invocation of action (by id)
+     *   var actionId = res.get({id: 1});
+     *   res.abort(actionId);
+     * </pre>
+     *
+     * @param varargs {String|Number} Action of which all invocations to abort
+     *  (when string), or a single invocation of an action to abort (when number)
      */
-    abort: function(action) {
-      var req = this.__requests[action];
-      if (req) {
-        req.abort();
-      }
+    abort: function(varargs) {
+      this._resource.abort(varargs);
     },
 
     /**
@@ -437,7 +462,7 @@ qx.Class.define("qx.io.rest.Resource",
      * @param action {String} Action to refresh.
      */
     refresh: function(action) {
-      this.invoke(action, this.__routes[action].params);
+      this._resource.refresh(action);
     },
 
     /**
@@ -461,10 +486,12 @@ qx.Class.define("qx.io.rest.Resource",
      * @param action {String} Action to poll.
      * @param interval {Number} Interval in ms.
      * @param params {Map?} Map of parameters. See {@link #invoke}.
+     * @param immediately {Boolean?false} <code>true</code>, if the poll should
+     *   invoke a call immediately.
      * @return {qx.event.Timer} Timer that periodically invokes action. Use to
-     *  stop or resume. Is automatically disposed on disposal of object.
+     *   stop or resume. Is automatically disposed on disposal of object.
      */
-    poll: function(action, interval, params) {
+    poll: function(action, interval, params, immediately) {
       // Dispose timer previously created for action
       if (this.__pollTimers[action]) {
         this.__pollTimers[action].dispose();
@@ -476,17 +503,26 @@ qx.Class.define("qx.io.rest.Resource",
       }
 
       // Invoke immediately
-      this.invoke(action, params);
+      if (immediately) {
+        this.invoke(action, params);
+      }
 
-      var timer = this.__pollTimers[action] = new qx.event.Timer(interval);
-      timer.addListener("interval", function intervalListener() {
-        var req = this.__requests[action];
-        if (req.isDone() || req.isDisposed()) {
+      var intervalListener = function() {
+        var reqs = this.getRequestsByAction(action),
+            req = (reqs) ? reqs[0] : null;
+
+        if (!immediately && !req) {
+          this.invoke(action, params);
+          return;
+        }
+        if (req && (req.isDone() || req.isDisposed())) {
           this.refresh(action);
         }
-      }, this);
-      timer.start();
+      };
 
+      var timer = this.__pollTimers[action] = new qx.event.Timer(interval);
+      timer.addListener("interval", intervalListener, this._resource);
+      timer.start();
       return timer;
     },
 
@@ -514,7 +550,6 @@ qx.Class.define("qx.io.rest.Resource",
      */
     longPoll: function(action) {
       var res = this,
-          context = true,             // Work-around disposed context warning
           lastResponse,               // Keep track of last response
           immediateResponseCount = 0; // Count immediate responses
 
@@ -554,8 +589,7 @@ qx.Class.define("qx.io.rest.Resource",
             lastResponse = new Date();
             res.refresh(action);
           }
-        },
-      context);
+        });
 
       this.invoke(action);
       return handlerId;
@@ -572,41 +606,12 @@ qx.Class.define("qx.io.rest.Resource",
      *   <code>method</code>, <code>url</code> and <code>check</code>.
      */
     _getRequestConfig: function(action, params) {
-      var route = this.__routes[action];
-
-      if (!qx.lang.Type.isArray(route)) {
-        throw new Error("No route for action " + action);
-      }
-
-      var method = route[0],
-          url = route[1],
-          check = route[2],
-          placeholders = this.__placeholdersFromUrl(url);
-
-      params = params || {};
-
-      placeholders.forEach(function(placeholder) {
-        // Placeholder part of template and default value
-        var re = new RegExp("{" + placeholder + "=?(\\w+)?}"),
-            defaultValue = url.match(re)[1];
-
-        // Fill in default or empty string when missing
-        if (typeof params[placeholder] === "undefined") {
-          if (defaultValue) {
-            params[placeholder] = defaultValue;
-          } else {
-            params[placeholder] = "";
-          }
-        }
-
-        url = url.replace(re, params[placeholder]);
-      });
-
-      return {method: method, url: url, check: check};
+      return this._resource._getRequestConfig(action, params);
     },
 
     /**
      * Override to adjust the throttle limit.
+     * @return {Integer} Throttle limit in milliseconds
      */
     _getThrottleLimit: function() {
       return qx.io.rest.Resource.POLL_THROTTLE_LIMIT;
@@ -614,29 +619,10 @@ qx.Class.define("qx.io.rest.Resource",
 
     /**
      * Override to adjust the throttle count.
+     * @return {Integer} Throttle count
      */
     _getThrottleCount: function() {
       return qx.io.rest.Resource.POLL_THROTTLE_COUNT;
-    },
-
-    /**
-     * Get placeholders from URL.
-     *
-     * @param url {String} The URL to parse for placeholders.
-     * @return {Array} Array of placeholders without the placeholder prefix.
-     */
-    __placeholdersFromUrl: function(url) {
-      var placeholderRe = /\{(\w+)(=\w+)?\}/g,
-          match,
-          placeholders = [];
-
-      // With g flag set, searching begins at the regex object's
-      // lastIndex, which is zero initially and increments with each match.
-      while ((match = placeholderRe.exec(url))) {
-        placeholders.push(match[1]);
-      }
-
-      return placeholders;
     },
 
     /**
@@ -647,7 +633,7 @@ qx.Class.define("qx.io.rest.Resource",
      * @param description {Map} Map that defines the routes.
      */
     __mapFromDescription: function(description) {
-      qx.lang.Object.getKeys(description).forEach(function(action) {
+      Object.keys(description).forEach(function(action) {
         var route = description[action],
             method = route.method,
             url = route.url,
@@ -678,12 +664,13 @@ qx.Class.define("qx.io.rest.Resource",
     }
   },
 
+  /**
+   * Desctructs the Resource.
+   *
+   * All created requests, routes and pollTimers will be disposed.
+   */
   destruct: function() {
     var action;
-
-    for (action in this.__requests) {
-      this.__requests[action].dispose();
-    }
 
     if (this.__pollTimers) {
       for (action in this.__pollTimers) {
@@ -700,6 +687,7 @@ qx.Class.define("qx.io.rest.Resource",
       }
     }
 
-    this.__requests = this.__routes = this.__pollTimers = null;
+    this._resource.destruct();
+    this._resource = this.__routes = this.__pollTimers = this.__longPollHandlers = null;
   }
 });

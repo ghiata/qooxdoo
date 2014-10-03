@@ -54,7 +54,7 @@ qx.Class.define("qx.ui.virtual.selection.CellRectangle",
     */
 
     // overridden
-    _getSelectableFromMouseEvent : function(event)
+    _getSelectableFromPointerEvent : function(event)
     {
       var cell = this._pane.getCellAtPosition(
         event.getDocumentLeft(),
@@ -246,7 +246,9 @@ qx.Class.define("qx.ui.virtual.selection.CellRectangle",
 
     // overridden
     _scrollItemIntoView : function(item) {
-      this._pane.scrollCellIntoView(item.column, item.row);
+      if (this._autoScrollIntoView) {
+        this._pane.scrollCellIntoView(item.column, item.row);
+      }
     },
 
 

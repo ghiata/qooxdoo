@@ -121,12 +121,13 @@ qx.Class.define("qx.html.Input",
      *
      * @param value {Boolean} true, if the inpout element should be enabled.
      */
-    setEnabled : qx.core.Environment.select("engine.name",
+    setEnabled : function(value)
     {
-      "webkit" : function(value)
-      {
-        this.__enabled = value;
+      this.__enabled = value;
 
+      this.setAttribute("disabled", value===false);
+
+      if (qx.core.Environment.get("engine.name") == "webkit") {
         if (!value) {
           this.setStyles({
             "userModify": "read-only",
@@ -138,13 +139,8 @@ qx.Class.define("qx.html.Input",
             "userSelect": this.__selectable ? null : "none"
           });
         }
-      },
-
-      "default" : function(value)
-      {
-        this.setAttribute("disabled", value===false);
       }
-    }),
+    },
 
 
     /**
@@ -196,9 +192,7 @@ qx.Class.define("qx.html.Input",
         if (element.value != value) {
           qx.bom.Input.setValue(element, value);
         }
-      }
-      else
-      {
+      } else {
         this._setProperty("value", value);
       }
 

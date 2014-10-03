@@ -184,7 +184,6 @@ def demoCategoryFromFile(file):
     parts = file.split(os.sep)
     return parts[2], parts[3].split(".")[0]
 
-
 ##
 # generator to copy demo source .js files to script dir
 
@@ -227,7 +226,7 @@ def CreateDemoData(destdir):
         resCatDemos.append(resDemo)
 
         # get the tags
-        jsitem = demo[0:demo.find("html")] + "js"
+        jsitem = os.path.splitext(demo)[0] + ".js"
         jsfile = os.path.join(demosSourcePath, category, jsitem)
         tags = getTagsFromJsFile(jsfile)
 
@@ -286,7 +285,7 @@ def main(dest, scan):
             if item == ".svn":
               continue
 
-            if os.path.splitext(item)[1] != ".html":
+            if not os.path.splitext(item)[1] == ".html":
               continue
 
             htmlfile = os.path.join(scan, category, item)

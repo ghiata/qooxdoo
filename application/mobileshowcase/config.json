@@ -21,119 +21,191 @@
     "migration",
     "pretty",
     "profiling",
-    "simulation-build",
-    "simulation-run",
     "source",
     "source-all",
-    "test",
-    "test-source",
+    "source-hybrid",
     "translation",
-    "minify-css"
+    "validate-config",
+    "validate-manifest",
+    "watch",
+    "watch-scss"
   ],
-  
-  "default-job" : "source",
+
+  "default-job" : "source-hybrid",
 
   "let" :
   {
     "APPLICATION"  : "mobileshowcase",
-    "QOOXDOO_PATH" : "../..",
+    "QOOXDOO_PATH" : "../../",
     "LOCALES"      : [ "en" ],
     "CACHE"        : "${TMPDIR}/qx${QOOXDOO_VERSION}/cache",
-    "ROOT"         : "."
+    "THEME"        : "indigo",  // possible values: "indigo","flat"
+    "ROOT"         : ".",
+    "QXTHEME"      : ""
   },
 
-  "config-warnings" : 
+  "config-warnings" :
   {
-    "job-shadowing" : ["source-all-script", "build-files", "common", "simulation-run"]
+    "job-shadowing" : [
+      "source",
+      "build",
+      "source-all-script",
+      "build-files",
+      "build-script",
+      "source-script"
+    ],
+
+    "environment" : [ "non-literal-keys" ]
   },
+
+  // You only need to edit the remainder of this file, if you want to customize
+  // specific jobs, or add own job definitions.
 
   "jobs" :
   {
-    "common" :
+    // Uncomment the following entry to add a contrib or library to your
+    // project; make sure to adapt the path to the Manifest.json; if you are
+    // using a contrib: library, it will be downloaded into the path specified
+    // by the 'cache/downloads' config key
+    /*
+    , "libraries" :
+    {
+      "library" :
+      [
+        {
+          "manifest" : "contrib://SkeletonApplication/trunk/Manifest.json"
+        }
+      ]
+    },
+    */
+
+    "mobile-common" :
     {
       "=include" :
       [
         "${APPLICATION}.Application"
       ],
-      
+
       "environment" :
       {
-        "qx.version"     : "${QOOXDOO_VERSION}",
+        "qx.version"     : "${APPLICATION}",
         "qx.application" : "${APPLICATION}.Application",
-        "qx.mobile.emulatetouch" : true,
-        "qx.mobile.nativescroll" : false,
-        "engine.name" : "webkit"
+        "qx.theme" : "${THEME}"
+      },
+
+      "compile-options" :
+      {
+        "paths" :
+        {
+          "loader-template" : "${QOOXDOO_PATH}/tool/data/generator/mobile.loader.tmpl.js"
+        }
       }
     },
 
 
+    "source" :
+    {
+      "let" : {
+        "BUILD_PATH" : "${ROOT}/source"
+      },
+      "compile-options" :
+      {
+        "uris" :
+        {
+          "add-nocache-param" : true
+        }
+      }
+    },
+
+
+    "build" :
+    {
+      "let" : {
+        "BUILD_PATH" : "${ROOT}/build-${THEME}"
+      },
+      "=run" : ["compile-scss", "build-resources", "build-files", "build-script"]
+    },
+
+
+    "source-script" :
+    {
+      "extend" : ["mobile-common"],
+      "add-css" : [
+        { "uri" : "./resource/${APPLICATION}/css/${THEME}.css" }
+      ],
+      "run": ["compile-scss"]
+    },
+
+    "build-script" :
+    {
+      "extend" : ["mobile-common"],
+      "add-css" : [
+        { "uri" : "./resource/${APPLICATION}/css/${THEME}.css" }
+      ]
+    },
+
     "build-files" :
     {
-      "run" : ["minify-css"],
-      
       "copy-files" :
       {
         "files" :
         [
-          "index-ios.html",
           "index.html"
         ],
 
         "source" : "${ROOT}/source/resource",
         "target" : "${BUILD_PATH}"
       }
-      },
+    },
 
 
     "source-all-script" :
     {
-      "=exclude" : 
+      "extend" : ["mobile-common"],
+      "=exclude" :
       [
         "qx.test.*",
         "${APPLICATION}.test.*"
-      ]
+      ],
+      "add-css" : [
+        { "uri" : "./resource/${APPLICATION}/css/${THEME}.css" }
+      ],
+      "run": ["compile-scss"]
     },
 
-    "minify-css" :
+
+    "compile-scss" :
     {
+      "desc"   : "Compile the theme scss once",
+      "extend" : ["cache"],
       "let" :
       {
-        "BUILD_PATH"  : "${ROOT}/build",
-        "CATCMD" : "cat"
+        "QX_MOBILE_THEME_PATH" : "${QOOXDOO_PATH}/framework/source/resource/qx/mobile/scss",
+        "QX_SHARED_THEME_PATH" : "${QOOXDOO_PATH}/framework/source/resource/qx/scss",
+        "MOBILE_RESOURCE_PATH" : "source/resource/${APPLICATION}"
       },
-
       "shell" :
       {
-        "command" :
-        [
-          "${CATCMD} ${QOOXDOO_PATH}/framework/source/resource/qx/mobile/css/common/main.css ${QOOXDOO_PATH}/framework/source/resource/qx/mobile/css/android/android.css | ${QOOXDOO_PATH}/tool/bin/cssmin.py > ${BUILD_PATH}/resource/qx/mobile/css/android/android-styles-min.css",
-          "${CATCMD} ${QOOXDOO_PATH}/framework/source/resource/qx/mobile/css/common/main.css ${QOOXDOO_PATH}/framework/source/resource/qx/mobile/css/ios/ios.css | ${QOOXDOO_PATH}/tool/bin/cssmin.py > ${BUILD_PATH}/resource/qx/mobile/css/ios/ios-styles-min.css"
-        ]
+        "command" : "sass -C -t compressed -I ${QX_MOBILE_THEME_PATH} -I ${QX_SHARED_THEME_PATH} --update ${MOBILE_RESOURCE_PATH}/scss:${MOBILE_RESOURCE_PATH}/css",
+        "command-not-found" : "It seems that Sass (http://sass-lang.com/) is not installed and/or executable, which is needed for the SCSS-compilation."
       }
-
     },
 
-    "simulation-run" :
+
+    "watch-scss" :
     {
-      "let" : 
+      "desc"   : "Watch and compile the theme scss",
+      "extend" : ["cache"],
+      "let" :
       {
-        "SIMULATOR_CLASSPATH" : ["../../../js.jar", "../../../selenium-java-client-driver.jar"],
-        "SELENIUM_SERVER" : "172.17.13.186",
-        "SELENIUM_PORT" : 4444,
-        "SELENIUM_BROWSER" : "*googlechrome",
-        "AUT_HOST" : "http://localhost",
-        "AUT_PATH" : "/~dwagner/workspace/qooxdoo.trunk/application/mobileshowcase/source/index.html"
+        "QX_MOBILE_THEME_PATH" : "${QOOXDOO_PATH}/framework/source/resource/qx/mobile/scss",
+        "QX_SHARED_THEME_PATH" : "${QOOXDOO_PATH}/framework/source/resource/qx/scss",
+        "MOBILE_RESOURCE_PATH" : "source/resource/${APPLICATION}"
       },
-      
-      "environment" :
+      "shell" :
       {
-        "simulator.selServer"   : "${SELENIUM_SERVER}",
-        "simulator.selPort"     : "${SELENIUM_PORT}",
-        "simulator.testBrowser" : "${SELENIUM_BROWSER}",
-        "simulator.autHost"     : "${AUT_HOST}",
-        "simulator.autPath"     : "${AUT_PATH}",
-        "simulator.applicationLog" : true,
-        "simulator.globalErrorLogging" : true
+        "command" : "sass -C -t compressed -I ${QX_MOBILE_THEME_PATH} -I ${QX_SHARED_THEME_PATH} --watch ${MOBILE_RESOURCE_PATH}/scss:${MOBILE_RESOURCE_PATH}/css",
+        "command-not-found" : "It seems that Sass (http://sass-lang.com/) is not installed and/or executable, which is needed for the SCSS-compilation."
       }
     }
   }

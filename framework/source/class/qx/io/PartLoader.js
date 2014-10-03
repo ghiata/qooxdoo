@@ -97,7 +97,7 @@ qx.Class.define("qx.io.PartLoader",
      * @param self {Object?window} Context to execute the given function in
      */
     require : function(partNames, callback, self) {
-      return this._loader.require(partNames, callback, self);
+      this._loader.require(partNames, callback, self);
     },
 
 
@@ -106,7 +106,7 @@ qx.Class.define("qx.io.PartLoader",
      *
      * @param name {String} Name of the part as defined in the config file at
      *    compile time.
-     * @return {Part} The corresponding part instance
+     * @return {qx.io.part.Part} The corresponding part instance
      */
     getPart : function(name) {
       return this.getParts()[name];
@@ -126,7 +126,7 @@ qx.Class.define("qx.io.PartLoader",
 
     /**
      * Returns a map of all known parts.
-     * @return {Map} Map containig all parts.
+     * @return {Map} Map containing all parts.
      */
     getParts : function() {
       return this._loader.getParts();

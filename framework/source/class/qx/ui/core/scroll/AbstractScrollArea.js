@@ -32,9 +32,27 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
   extend : qx.ui.core.Widget,
   include : [
     qx.ui.core.scroll.MScrollBarFactory,
-    qx.ui.core.scroll.MWheelHandling
+    qx.ui.core.scroll.MRoll,
+    qx.ui.core.MDragDropScrolling
   ],
   type : "abstract",
+
+
+  /*
+  *****************************************************************************
+     STATICS
+  *****************************************************************************
+  */
+
+  statics :
+  {
+    /**
+     * The default width which is used for the width of the scroll bar if
+     * overlaid.
+     */
+    DEFAULT_SCROLLBAR_WIDTH : 14
+  },
+
 
 
   /*
@@ -58,25 +76,18 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
       this._setLayout(grid);
     }
 
-    // Mousewheel listener to scroll vertically
-    this.addListener("mousewheel", this._onMouseWheel, this);
-
-    // touch support
-    if (qx.core.Environment.get("event.touch")) {
-      // touch move listener for touch scrolling
-      this.addListener("touchmove", this._onTouchMove, this);
-
-      // reset the delta on every touch session
-      this.addListener("touchstart", function() {
-        this.__old = {"x": 0, "y": 0};
-      }, this);
-
-      this.__old = {};
-      this.__impulseTimerId = {};
-    }
+    // Roll listener for scrolling
+    this._addRollHandling();
   },
 
 
+  events : {
+    /** Fired as soon as the scroll animation in X direction ends. */
+    scrollAnimationXEnd: 'qx.event.type.Event',
+
+    /** Fired as soon as the scroll animation in X direction ends. */
+    scrollAnimationYEnd: 'qx.event.type.Event'
+  },
 
 
 
@@ -167,10 +178,6 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
 
   members :
   {
-    __old : null,
-    __impulseTimerId : null,
-
-
     /*
     ---------------------------------------------------------------------------
       CHILD CONTROL SUPPORT
@@ -206,9 +213,10 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
           control.exclude();
           control.addListener("scroll", this._onScrollBarX, this);
           control.addListener("changeVisibility", this._onChangeScrollbarXVisibility, this);
+          control.addListener("scrollAnimationEnd", this._onScrollAnimationEnd.bind(this, "X"));
 
           if (qx.core.Environment.get("os.scrollBarOverlayed")) {
-            control.setMinHeight(qx.bom.element.Overflow.DEFAULT_SCROLLBAR_WIDTH);
+            control.setMinHeight(qx.ui.core.scroll.AbstractScrollArea.DEFAULT_SCROLLBAR_WIDTH);
             this._add(control, {bottom: 0, right: 0, left: 0});
           } else {
             this._add(control, {row: 1, column: 0});
@@ -223,10 +231,10 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
           control.exclude();
           control.addListener("scroll", this._onScrollBarY, this);
           control.addListener("changeVisibility", this._onChangeScrollbarYVisibility, this);
-
+          control.addListener("scrollAnimationEnd", this._onScrollAnimationEnd.bind(this, "Y"));
 
           if (qx.core.Environment.get("os.scrollBarOverlayed")) {
-            control.setMinWidth(qx.bom.element.Overflow.DEFAULT_SCROLLBAR_WIDTH);
+            control.setMinWidth(qx.ui.core.scroll.AbstractScrollArea.DEFAULT_SCROLLBAR_WIDTH);
             this._add(control, {right: 0, bottom: 0, top: 0});
           } else {
             this._add(control, {row: 0, column: 1});
@@ -340,12 +348,13 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
      * Scrolls the element's content to the given left coordinate
      *
      * @param value {Integer} The vertical position to scroll to.
+     * @param duration {Number?} The time in milliseconds the scroll to should take.
      */
-    scrollToX : function(value) {
+    scrollToX : function(value, duration) {
       // First flush queue before scroll
       qx.ui.core.queue.Manager.flush();
 
-      this.getChildControl("scrollbar-x").scrollTo(value);
+      this.getChildControl("scrollbar-x").scrollTo(value, duration);
     },
 
 
@@ -353,12 +362,13 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
      * Scrolls the element's content by the given left offset
      *
      * @param value {Integer} The vertical position to scroll to.
+     * @param duration {Number?} The time in milliseconds the scroll to should take.
      */
-    scrollByX : function(value) {
+    scrollByX : function(value, duration) {
       // First flush queue before scroll
       qx.ui.core.queue.Manager.flush();
 
-      this.getChildControl("scrollbar-x").scrollBy(value);
+      this.getChildControl("scrollbar-x").scrollBy(value, duration);
     },
 
 
@@ -378,12 +388,13 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
      * Scrolls the element's content to the given top coordinate
      *
      * @param value {Integer} The horizontal position to scroll to.
+     * @param duration {Number?} The time in milliseconds the scroll to should take.
      */
-    scrollToY : function(value) {
+    scrollToY : function(value, duration) {
       // First flush queue before scroll
       qx.ui.core.queue.Manager.flush();
 
-      this.getChildControl("scrollbar-y").scrollTo(value);
+      this.getChildControl("scrollbar-y").scrollTo(value, duration);
     },
 
 
@@ -391,13 +402,13 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
      * Scrolls the element's content by the given top offset
      *
      * @param value {Integer} The horizontal position to scroll to.
-     * @return {void}
+     * @param duration {Number?} The time in milliseconds the scroll to should take.
      */
-    scrollByY : function(value) {
+    scrollByY : function(value, duration) {
       // First flush queue before scroll
       qx.ui.core.queue.Manager.flush();
 
-      this.getChildControl("scrollbar-y").scrollBy(value);
+      this.getChildControl("scrollbar-y").scrollBy(value, duration);
     },
 
 
@@ -413,6 +424,28 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
     },
 
 
+    /**
+     * In case a scroll animation is currently running in X direction,
+     * it will be stopped. If not, the method does nothing.
+     */
+    stopScrollAnimationX : function() {
+      var scrollbar = this.getChildControl("scrollbar-x", true);
+      if (scrollbar) {
+        scrollbar.stopScrollAnimation();
+      }
+    },
+
+
+    /**
+     * In case a scroll animation is currently running in X direction,
+     * it will be stopped. If not, the method does nothing.
+     */
+    stopScrollAnimationY : function() {
+      var scrollbar = this.getChildControl("scrollbar-y", true);
+      if (scrollbar) {
+        scrollbar.stopScrollAnimation();
+      }
+    },
 
 
 
@@ -421,12 +454,19 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
       EVENT LISTENERS
     ---------------------------------------------------------------------------
     */
+    /**
+     * Event handler for the scroll animation end event for both scroll bars.
+     *
+     * @param direction {String} Either "X" or "Y".
+     */
+    _onScrollAnimationEnd : function(direction) {
+      this.fireEvent("scrollAnimation" + direction + "End");
+    },
 
     /**
      * Event handler for the scroll event of the horizontal scrollbar
      *
      * @param e {qx.event.type.Data} The scroll event object
-     * @return {void}
      */
     _onScrollBarX : function(e) {
       this.getChildControl("pane").scrollToX(e.getData());
@@ -437,7 +477,6 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
      * Event handler for the scroll event of the vertical scrollbar
      *
      * @param e {qx.event.type.Data} The scroll event object
-     * @return {void}
      */
     _onScrollBarY : function(e) {
       this.getChildControl("pane").scrollToY(e.getData());
@@ -448,10 +487,12 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
      * Event handler for the horizontal scroll event of the pane
      *
      * @param e {qx.event.type.Data} The scroll event object
-     * @return {void}
      */
     _onScrollPaneX : function(e) {
-      this.scrollToX(e.getData());
+      var scrollbar = this.getChildControl("scrollbar-x");
+      if (scrollbar) {
+        scrollbar.updatePosition(e.getData());
+      }
     },
 
 
@@ -459,100 +500,12 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
      * Event handler for the vertical scroll event of the pane
      *
      * @param e {qx.event.type.Data} The scroll event object
-     * @return {void}
      */
     _onScrollPaneY : function(e) {
-      this.scrollToY(e.getData());
-    },
-
-
-    /**
-     * Event handler for the touch move.
-     *
-     * @param e {qx.event.type.Touch} The touch event
-     */
-    _onTouchMove : function(e)
-    {
-      this._onTouchMoveDirectional("x", e);
-      this._onTouchMoveDirectional("y", e);
-
-      // Stop bubbling and native event
-      e.stop();
-    },
-
-
-    /**
-     * Touch move handler for one direction.
-     *
-     * @param dir {String} Either 'x' or 'y'
-     * @param e {qx.event.type.Touch} The touch event
-     */
-    _onTouchMoveDirectional : function(dir, e)
-    {
-      var docDir = (dir == "x" ? "Left" : "Top");
-
-      // current scrollbar
-      var scrollbar = this.getChildControl("scrollbar-" + dir, true);
-      var show = this._isChildControlVisible("scrollbar-" + dir);
-
-      if (show && scrollbar) {
-        // get the delta for the current direction
-        if(this.__old[dir] == 0) {
-          var delta = 0;
-        } else {
-          var delta = -(e["getDocument" + docDir]() - this.__old[dir]);
-        };
-        // save the old value for the current direction
-        this.__old[dir] = e["getDocument" + docDir]();
-
-        scrollbar.scrollBy(delta);
-
-        // if we have an old timeout for the current direction, clear it
-        if (this.__impulseTimerId[dir]) {
-          clearTimeout(this.__impulseTimerId[dir]);
-          this.__impulseTimerId[dir] = null;
-        }
-
-        // set up a new timer for the current direction
-        this.__impulseTimerId[dir] =
-          setTimeout(qx.lang.Function.bind(function(delta) {
-            this.__handleScrollImpulse(delta, dir);
-          }, this, delta), 100);
+      var scrollbar = this.getChildControl("scrollbar-y");
+      if (scrollbar) {
+        scrollbar.updatePosition(e.getData());
       }
-    },
-
-
-    /**
-     * Helper for momentum scrolling.
-     * @param delta {Number} The delta from the last scrolling.
-     * @param dir {String} Direction of the scrollbar ('x' or 'y').
-     */
-    __handleScrollImpulse : function(delta, dir) {
-      // delete the old timer id
-      this.__impulseTimerId[dir] = null;
-
-      // do nothing if the scrollbar is not visible or we don't need to scroll
-      var show = this._isChildControlVisible("scrollbar-" + dir);
-      if (delta == 0 || !show) {
-        return;
-      }
-
-      // linear momentum calculation
-      if (delta > 0) {
-        delta = Math.max(0, delta - 3);
-      } else {
-        delta = Math.min(0, delta + 3);
-      }
-
-      // set up a new timer with the new delta
-      this.__impulseTimerId[dir] =
-        setTimeout(qx.lang.Function.bind(function(delta, dir) {
-          this.__handleScrollImpulse(delta, dir);
-        }, this, delta, dir), 20);
-
-      // scroll the desired new delta
-      var scrollbar = this.getChildControl("scrollbar-" + dir, true);
-      scrollbar.scrollBy(delta);
     },
 
 
@@ -560,7 +513,6 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
      * Event handler for visibility changes of horizontal scrollbar.
      *
      * @param e {qx.event.type.Event} Property change event
-     * @return {void}
      */
     _onChangeScrollbarXVisibility : function(e)
     {
@@ -579,7 +531,6 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
      * Event handler for visibility changes of horizontal scrollbar.
      *
      * @param e {qx.event.type.Event} Property change event
-     * @return {void}
      */
     _onChangeScrollbarYVisibility : function(e)
     {
@@ -605,7 +556,6 @@ qx.Class.define("qx.ui.core.scroll.AbstractScrollArea",
     /**
      * Computes the visibility state for scrollbars.
      *
-     * @return {void}
      */
     _computeScrollbars : function()
     {

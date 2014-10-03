@@ -71,7 +71,7 @@ qx.Class.define("qx.ui.embed.AbstractIframe",
     {
       check : "String",
       apply : "_applySource",
-      nullable : true
+      init : "about:blank"
     },
 
     /**
@@ -91,6 +91,7 @@ qx.Class.define("qx.ui.embed.AbstractIframe",
     /**
      * Get the Element wrapper for the iframe
      *
+     * @abstract
      * @return {qx.html.Iframe} the iframe element wrapper
      */
     _getIframeElement : function() {
@@ -163,7 +164,6 @@ qx.Class.define("qx.ui.embed.AbstractIframe",
     * Handle user navigation. Sync actual URL of iframe with source property.
     *
     * @param e {qx.event.type.Data} navigate event
-    * @return {void}
     */
     __onNavigate: function(e) {
       var actualUrl = e.getData();

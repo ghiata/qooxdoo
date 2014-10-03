@@ -19,9 +19,6 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/16/actions/*)
-#asset(qx/icon/${qx.icontheme}/16/apps/utilities-help.png)
-#asset(qx/icon/${qx.icontheme}/22/apps/preferences-users.png)
 
 ************************************************************************ */
 
@@ -45,6 +42,10 @@
  * toolbar.Separator
  * toolbar.SplitButton
  * toolbar.ToolBar
+ *
+ * @asset(qx/icon/${qx.icontheme}/16/actions/*)
+ * @asset(qx/icon/${qx.icontheme}/16/apps/utilities-help.png)
+ * @asset(qx/icon/${qx.icontheme}/22/apps/preferences-users.png)
  *
  */
 
@@ -78,6 +79,17 @@ qx.Class.define("widgetbrowser.pages.ToolBar",
       label = new qx.ui.basic.Label("MenuBar & Menu");
       this.add(label, {left: 0, top: 210});
       this.add(this.getMenuBar(), {left: 0, top: 230});
+
+      // Toolbar for exclude
+      label = new qx.ui.basic.Label("ToolBar Part (Button, CheckBox, RadioButton, MenuButton)");
+      this.add(label, {left: 0, top: 280});
+      this.add(this.getToolBarExclude(), {left: 0, top: 300});
+
+      // Context menu
+      label = new qx.ui.basic.Label("Context Menu (Right click the widget)");
+      this.add(label, {left: 0, top: 370});
+      this.add(this.getContextMenuWidget(), {left: 0, top: 390});
+
     },
 
     getToolBar : function()
@@ -219,6 +231,44 @@ qx.Class.define("widgetbrowser.pages.ToolBar",
       return frame;
     },
 
+
+    getToolBarExclude : function()
+    {
+      var frame = new qx.ui.container.Composite(new qx.ui.layout.Grow);
+      frame.setDecorator("main");
+
+      var toolbar = new qx.ui.toolbar.ToolBar;
+      frame.add(toolbar);
+
+      var classes = [
+        qx.ui.toolbar.Button,
+        qx.ui.toolbar.CheckBox,
+        qx.ui.toolbar.RadioButton,
+        qx.ui.toolbar.MenuButton
+      ];
+      for (var j=0; j < classes.length; j++) {
+        var part = new qx.ui.toolbar.Part();
+        for (var i=0; i < 5; i++) {
+          var button = new classes[j](i + "");
+          this._widgets.push(button);
+          button.canHide = i % 2 == 0;
+          part.add(button);
+        };
+        toolbar.add(part);
+      };
+
+      var radioGroup = new qx.ui.form.RadioGroup();
+      radioGroup.setAllowEmptySelection(true);
+
+      var radioButtons = toolbar.getChildren()[2].getChildren();
+      for (var i=0; i < radioButtons.length; i++) {
+        radioGroup.add(radioButtons[i]);
+      };
+
+      return frame;
+    },
+
+
     // Menu (with slidebar)
     //
     // (Evil hacks below)
@@ -240,6 +290,29 @@ qx.Class.define("widgetbrowser.pages.ToolBar",
       buttonMenu.hide = buttonMenu.exclude = function() {};
 
       return subContainer;
+    },
+
+
+    /**
+     * @lint ignoreDeprecated(alert)
+     */
+    getContextMenuWidget : function() {
+      var w = new qx.ui.core.Widget();
+      w.setBackgroundColor("text-disabled");
+      w.setMinHeight(100);
+      w.setWidth(200);
+      this._widgets.push(w);
+
+      var menu = new qx.ui.menu.Menu();
+      w.setContextMenu(menu);
+
+      var helpButton = new qx.ui.menu.Button("Help");
+      helpButton.addListener("execute", function() {
+        alert("Help!");
+      });
+      menu.add(helpButton);
+
+      return w;
     }
   }
 });

@@ -17,11 +17,9 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-#ignore(qx.demo.Parent)
-#ignore(qx.demo.Kid)
-#ignore(qx.test.ListWithObject)
-************************************************************************ */
+/**
+ * @ignore(qx.test.ListWithObject, qx.demo.Parent, qx.demo.Kid)
+ */
 
 qx.Class.define("qx.test.data.controller.ListWithObjects",
 {
@@ -412,7 +410,7 @@ qx.Class.define("qx.test.data.controller.ListWithObjects",
 
       this.assertEquals("parentC", this.__list.getChildren()[1].getLabel(), "Wrong name of the parent.");
       this.assertEquals(parentC, this.__list.getChildren()[1].getModel(), "Wrong model stored after the splice.");
-      
+
       // clean up
       for (var i=0; i<parents.length; i++) {
         parents.getItem(i).getKid().dispose();

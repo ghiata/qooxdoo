@@ -17,9 +17,9 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-#ignore(qx.Event)
-************************************************************************ */
+/**
+ * @ignore(qx.Event)
+ */
 
 qx.Class.define("qx.test.core.Target",
 {
@@ -27,11 +27,6 @@ qx.Class.define("qx.test.core.Target",
 
   members :
   {
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
     testEvents : function()
     {
       qx.Class.define("qx.Event",

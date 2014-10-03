@@ -17,14 +17,10 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.core.Init)
-
-************************************************************************ */
-
 /**
  * Abstract base class for GUI applications using qooxdoo widgets.
+ *
+ * @require(qx.core.Init)
  */
 qx.Class.define("qx.application.AbstractGui",
 {
@@ -43,7 +39,7 @@ qx.Class.define("qx.application.AbstractGui",
 
   members :
   {
-    /** {qx.ui.core.Widget} The root widget */
+    /** @type {qx.ui.core.Widget} The root widget */
     __root : null,
 
 
@@ -84,7 +80,16 @@ qx.Class.define("qx.application.AbstractGui",
       // Initialize tooltip manager
       qx.ui.tooltip.Manager.getInstance();
 
+      var rule = ["-webkit-touch-callout: none;",
+      "-ms-touch-select: none;",
+      "-webkit-tap-highlight-color: rgba(0,0,0,0);",
+      "-webkit-tap-highlight-color: transparent;"].join("");
+      qx.ui.style.Stylesheet.getInstance().addRule("*", rule);
+
       this.__root = this._createRootWidget();
+
+      // make sure we start with a good scroll position
+      window.scrollTo(0, 0);
     },
 
 
@@ -97,7 +102,6 @@ qx.Class.define("qx.application.AbstractGui",
     /**
      * Updates the GUI rendering
      *
-     * @return {void}
      */
     render : function() {
       qx.ui.core.queue.Manager.flush();

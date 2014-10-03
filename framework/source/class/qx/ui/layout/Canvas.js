@@ -44,6 +44,7 @@
  * <li><strong>top</strong> <em>(Integer|String)</em>: The top coordinate in pixel or as a percent string e.g. <code>20</code> or <code>30%</code>.</li>
  * <li><strong>right</strong> <em>(Integer|String)</em>: The right coordinate in pixel or as a percent string e.g. <code>20</code> or <code>30%</code>.</li>
  * <li><strong>bottom</strong> <em>(Integer|String)</em>: The bottom coordinate in pixel or as a percent string e.g. <code>20</code> or <code>30%</code>.</li>
+ * <li><strong>edge</strong> <em>(Integer|String)</em>: The coordinate in pixels or as a percent string to be used for all four edges.
  * <li><strong>width</strong> <em>(String)</em>: A percent width e.g. <code>40%</code>.</li>
  * <li><strong>height</strong> <em>(String)</em>: A percent height e.g. <code>60%</code>.</li>
  * </ul>
@@ -77,13 +78,35 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/layout/canvas.html'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/layout/canvas.html'>
  * Extended documentation</a> and links to demos of this layout in the qooxdoo manual.
  */
 qx.Class.define("qx.ui.layout.Canvas",
 {
   extend : qx.ui.layout.Abstract,
 
+
+
+
+  /*
+  *****************************************************************************
+     PROPERTIES
+  *****************************************************************************
+  */
+
+  properties : {
+
+    /**
+     * If desktop mode is active, the children's minimum sizes are ignored
+     * by the layout calculation. This is necessary to prevent the desktop
+     * from growing if e.g. a window is moved beyond the edge of the desktop
+     */
+    desktop :
+    {
+      check : "Boolean",
+      init: false
+    }
+  },
 
 
 
@@ -143,7 +166,7 @@ qx.Class.define("qx.ui.layout.Canvas",
 
 
     // overridden
-    renderLayout : function(availWidth, availHeight)
+    renderLayout : function(availWidth, availHeight, padding)
     {
       var children = this._getLayoutChildren();
 
@@ -285,6 +308,9 @@ qx.Class.define("qx.ui.layout.Canvas",
           }
         }
 
+        left += padding.left;
+        top += padding.top;
+
         // Apply layout
         child.renderLayout(left, top, width, height);
       }
@@ -302,6 +328,7 @@ qx.Class.define("qx.ui.layout.Canvas",
 
       var children = this._getLayoutChildren();
       var child, props, hint;
+      var desktop = this.isDesktop();
 
       var left, top, right, bottom;
 
@@ -336,7 +363,7 @@ qx.Class.define("qx.ui.layout.Canvas",
         }
 
         neededWidth = Math.max(neededWidth, width);
-        neededMinWidth = Math.max(neededMinWidth, minWidth);
+        neededMinWidth = desktop ? 0 : Math.max(neededMinWidth, minWidth);
 
 
         // Compute height
@@ -358,7 +385,7 @@ qx.Class.define("qx.ui.layout.Canvas",
         }
 
         neededHeight = Math.max(neededHeight, height);
-        neededMinHeight = Math.max(neededMinHeight, minHeight);
+        neededMinHeight = desktop ? 0 : Math.max(neededMinHeight, minHeight);
       }
 
       return {

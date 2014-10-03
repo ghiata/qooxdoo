@@ -61,7 +61,7 @@
  *
  * *Example*
  *
- * Here is a little example of how to use the grid layout.
+ * Here is a little example of how to use the vertical box layout.
  *
  * <pre class="javascript">
  * var layout = new qx.ui.layout.VBox();
@@ -76,7 +76,7 @@
  *
  * *External Documentation*
  *
- * See <a href='http://manual.qooxdoo.org/1.4/pages/layout/box.html'>extended documentation</a>
+ * See <a href='http://manual.qooxdoo.org/${qxversion}/pages/layout/box.html'>extended documentation</a>
  * and links to demos for this layout.
  *
  */
@@ -97,7 +97,7 @@ qx.Class.define("qx.ui.layout.VBox",
    * @param spacing {Integer?0} The spacing between child widgets {@link #spacing}.
    * @param alignY {String?"top"} Vertical alignment of the whole children
    *     block {@link #alignY}.
-   * @param separator {Decorator} A separator to render between the items
+   * @param separator {String|qx.ui.decoration.IDecorator} A separator to render between the items
    */
   construct : function(spacing, alignY, separator)
   {
@@ -302,7 +302,7 @@ qx.Class.define("qx.ui.layout.VBox",
 
 
     // overridden
-    renderLayout : function(availWidth, availHeight)
+    renderLayout : function(availWidth, availHeight, padding)
     {
       // Rebuild flex/height caches
       if (this._invalidChildrenCache) {
@@ -433,8 +433,8 @@ qx.Class.define("qx.ui.layout.VBox",
 
             // then render the separator at this position
             this._renderSeparator(separator, {
-              top : top,
-              left : 0,
+              top : top + padding.top,
+              left : padding.left,
               height : separatorHeight,
               width : availWidth
             });
@@ -450,7 +450,7 @@ qx.Class.define("qx.ui.layout.VBox",
         }
 
         // Layout child
-        child.renderLayout(left, top, width, height);
+        child.renderLayout(left + padding.left, top + padding.top, width, height);
 
         // Add height
         top += height;

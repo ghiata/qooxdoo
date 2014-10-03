@@ -78,7 +78,6 @@ qx.Class.define("qx.event.handler.Input",
     if ((qx.core.Environment.get("engine.name") == "opera")) {
       this._onKeyDownWrapper = qx.lang.Function.listener(this._onKeyDown, this);
       this._onKeyUpWrapper = qx.lang.Function.listener(this._onKeyUp, this);
-      this._onBlurWrapper = qx.lang.Function.listener(this._onBlur, this);
     }
   },
 
@@ -95,20 +94,20 @@ qx.Class.define("qx.event.handler.Input",
 
   statics :
   {
-    /** {Integer} Priority of this handler */
+    /** @type {Integer} Priority of this handler */
     PRIORITY : qx.event.Registration.PRIORITY_NORMAL,
 
-    /** {Map} Supported event types */
+    /** @type {Map} Supported event types */
     SUPPORTED_TYPES :
     {
       input : 1,
       change : 1
     },
 
-    /** {Integer} Which target check to use */
+    /** @type {Integer} Which target check to use */
     TARGET_CHECK : qx.event.IEventHandler.TARGET_DOMNODE,
 
-    /** {Integer} Whether the method "canHandleEvent" must be called */
+    /** @type {Integer} Whether the method "canHandleEvent" must be called */
     IGNORE_CAN_HANDLE : false
   },
 
@@ -234,7 +233,6 @@ qx.Class.define("qx.event.handler.Input",
 
       "webkit" : function(target)
       {
-        // TODO: remove listener
         var tag = target.tagName.toLowerCase();
 
         // the change event is not fired while typing
@@ -250,7 +248,6 @@ qx.Class.define("qx.event.handler.Input",
         qx.bom.Event.addNativeListener(target, "keyup", this._onKeyUpWrapper);
         qx.bom.Event.addNativeListener(target, "keydown", this._onKeyDownWrapper);
         // register an blur event for preventing the input event on blur
-        qx.bom.Event.addNativeListener(target, "blur", this._onBlurWrapper);
 
         qx.bom.Event.addNativeListener(target, "input", this._onInputWrapper);
       },
@@ -340,7 +337,6 @@ qx.Class.define("qx.event.handler.Input",
 
       "webkit" : function(target)
       {
-        // TODO: remove listener
         var tag = target.tagName.toLowerCase();
 
         // the change event is not fired while typing
@@ -355,10 +351,6 @@ qx.Class.define("qx.event.handler.Input",
         // unregister key events for filtering "enter" on input events
         qx.bom.Event.removeNativeListener(target, "keyup", this._onKeyUpWrapper);
         qx.bom.Event.removeNativeListener(target, "keydown", this._onKeyDownWrapper);
-        // unregister the blur event (needed for preventing input event on blur)
-        qx.bom.Event.removeNativeListener(target, "blur", this._onBlurWrapper);
-
-
         qx.bom.Event.removeNativeListener(target, "input", this._onInputWrapper);
       },
 
@@ -385,7 +377,17 @@ qx.Class.define("qx.event.handler.Input",
      */
     _onKeyPress : qx.core.Environment.select("engine.name",
     {
-      "mshtml|opera" : function(e, target)
+      "mshtml" : function(e, target)
+      {
+        if (e.keyCode === 13) {
+          if (target.value !== this.__oldValue) {
+            this.__oldValue = target.value;
+            qx.event.Registration.fireEvent(target, "change", qx.event.type.Data, [target.value]);
+          }
+        }
+      },
+
+      "opera" : function(e, target)
       {
         if (e.keyCode === 13) {
           if (target.value !== this.__oldValue) {
@@ -474,25 +476,6 @@ qx.Class.define("qx.event.handler.Input",
         // enter is pressed
         if (e.keyCode === 13) {
           this.__enter = false;
-        }
-      },
-
-      "default" : null
-    }),
-
-
-    /**
-     * Blur event listener for opera cancels the timeout of the input event.
-     *
-     * @signature function(e)
-     * @param e {Event} DOM event object
-     */
-    _onBlur : qx.core.Environment.select("engine.name",
-    {
-      "opera" : function(e)
-      {
-        if (this.__onInputTimeoutId && qx.core.Environment.get("browser.version") < 10.6) {
-          window.clearTimeout(this.__onInputTimeoutId);
         }
       },
 

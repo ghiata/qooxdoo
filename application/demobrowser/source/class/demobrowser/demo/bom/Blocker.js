@@ -17,6 +17,9 @@
 
 ************************************************************************ */
 
+/**
+ * @tag noPlayground
+ */
 qx.Class.define("demobrowser.demo.bom.Blocker",
 {
   extend : qx.application.Native,
@@ -37,7 +40,7 @@ qx.Class.define("demobrowser.demo.bom.Blocker",
       blocker.setBlockerOpacity(0.5);
       blocker.setBlockerColor("red");
 
-      qx.event.Registration.addListener(input, "click", function(e){
+      qx.event.Registration.addListener(input, "tap", function(e){
         blocker.block();
 
         qx.event.Timer.once(function(e){
@@ -54,7 +57,7 @@ qx.Class.define("demobrowser.demo.bom.Blocker",
                                               top: "100px",
                                               width: "200px" });
 
-      var elementToBlock = qx.bom.Element.create("div");
+      var elementToBlock = qx.dom.Element.create("div");
       qx.bom.element.Style.setStyles(elementToBlock, { position: "absolute",
                                                        left: "300px",
                                                        top: "150px",
@@ -68,7 +71,7 @@ qx.Class.define("demobrowser.demo.bom.Blocker",
       blocker2.setBlockerOpacity(0.5);
       blocker2.setBlockerColor("green");
 
-      qx.event.Registration.addListener(input2, "click", function(e){
+      qx.event.Registration.addListener(input2, "tap", function(e){
         blocker2.block(elementToBlock);
 
         qx.event.Timer.once(function(e){

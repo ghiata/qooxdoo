@@ -34,7 +34,6 @@
 #  - DependencyLoader.__init__()
 #  - DependencyLoader.getClassList()
 #  - DependencyLoader.classlistFromInclude()
-#  - DependencyLoader.getCombinedDeps()
 #  - DependencyLoader.sortClasses()
 #
 ##
@@ -44,15 +43,16 @@ from operator import attrgetter
 import graph
 
 from misc.ExtMap                import ExtMap
-from misc                       import util
 from ecmascript.frontend        import lang
-from generator.code.Class       import Class, DependencyError, CompileOptions
+from ecmascript.transform.check import global_symbols as gs
+from generator.code.Class       import DependencyError
 from generator.code.DependencyItem  import DependencyItem
+from generator.action           import CodeMaintenance
 
 class DependencyLoader(object):
 
     def __init__(self, classesObj, cache, console, require, use, context):
-        self._classesObj = classesObj
+        self._classesObj = classesObj  # _libClassesObj
         self._cache   = cache
         self._console = console
         self._context = context
@@ -62,53 +62,58 @@ class DependencyLoader(object):
         self.counter  = 0
 
 
+    def expand_hard_excludes(self, excludeWithDepsHard, script, verifyDeps=False):
+        excludes_hard = []
+        if excludeWithDepsHard:
+            excludes_hard = self.classlistFromInclude(excludeWithDepsHard, [], script.variants, verifyDeps, script)
+        return excludes_hard
+
+
     ##
     # Return a class list for the current script
-    def getClassList(self, includeWithDeps, excludeWithDeps, includeNoDeps, excludeNoDeps, variants, verifyDeps=False, script=None):
-        
+    def getClassList(self, includeWithDeps, excludeWithDeps, includeNoDeps, excludeWithDepsHard, script, verifyDeps=False):
+
         ##
         # Resolve intelli include/exclude depdendencies
-        def resolveDepsSmartCludes():
+        def resolveDepsSmartCludes(includeWithDeps, excludeWithDeps):
             if len(includeWithDeps) == 0 and len(includeNoDeps) > 0:
                 if len(excludeWithDeps) > 0:
                     #raise ValueError("Blocking is not supported when only explicit includes are defined!");
                     pass
                 result = []
             else:
-                result = self.classlistFromInclude(includeWithDeps, excludeWithDeps, variants, verifyDeps, script)
+                result = self.classlistFromInclude(includeWithDeps, excludeWithDeps, script.variants, verifyDeps, script)
 
             return result
 
 
         ##
         # Explicit include/exclude
-        def processExplicitCludes(result, includeNoDeps, excludeNoDeps):
-            if len(includeNoDeps) > 0 or len(excludeNoDeps) > 0:
+        def processExplicitCludes(result, includeList, excludeList):
+            if len(includeList) > 0 or len(excludeList) > 0:
                 self._console.info("Processing explicitly configured includes/excludes...")
-                for entry in includeNoDeps:
+                for entry in includeList:
                     if not entry in result:
                         result.append(entry)
 
-                for entry in excludeNoDeps:
+                for entry in excludeList:
                     if entry in result:
                         result.remove(entry)
             return result
 
         # ---------------------------------------------------
 
-        if script:
-            buildType = script.buildType  # source/build, for sortClasses
+        if excludeWithDepsHard:
+            exclude_hard_list = resolveDepsSmartCludes(excludeWithDepsHard, [])
         else:
-            buildType = ""
+            exclude_hard_list = []
+        excludeList = excludeWithDeps + exclude_hard_list
+        result = resolveDepsSmartCludes(includeWithDeps, excludeList)
+        result = processExplicitCludes(result, includeNoDeps, excludeList) # resolveDepsSmartCludes not necessarily removes elems of exlcudeList, hence repeated here
 
-        result = resolveDepsSmartCludes()
-        result = processExplicitCludes(result, includeNoDeps, excludeWithDeps) # using excludeWithDeps here as well
         # Sort classes
         self._console.info("Sorting %s classes  " % len(result), False)
-        #if  self._jobconf.get("dependencies/sort-topological", False):
-        #    result = self.sortClassesTopological(result, variants)
-        #else:
-        result = self.sortClasses(result, variants, buildType)
+        result = self.sortClasses(result, script.variants, script.buildType)
         self._console.dotclear()
         #self._console.nl()
 
@@ -126,7 +131,7 @@ class DependencyLoader(object):
 
 
 
-    def classlistFromInclude(self, includeWithDeps, excludeWithDeps, variants, 
+    def classlistFromInclude(self, includeWithDeps, excludeWithDeps, variants,
                              verifyDeps=False, script=None, allowBlockLoaddeps=True):
 
         def classlistFromClassRecursive(depsItem, excludeWithDeps, variants, result, warn_deps, loadDepsChain, allowBlockLoaddeps=True):
@@ -140,21 +145,30 @@ class DependencyLoader(object):
             if depsItem.name in resultNames:  # string compares are perceivably faster than object compares (as DependencyItem defines __eq__)
                 return
 
-            # reading dependencies
+            # Reading dependencies
+
             self._console.debug("Gathering dependencies: %s" % depsItem.name)
             self._console.indent()
-            #deps, cached = self.getCombinedDeps(depsItem.name, variants, buildType, genProxy=genProxyIter.next())
-            deps, cached = self._classesObj[depsItem.name].getCombinedDeps(variants, self._jobconf, genProxy=genProxyIter.next())
+            classObj = self._classesObj[depsItem.name] # get class from depsItem - throws KeyError
+            deps, cached = classObj.getCombinedDeps(self._classesObj, variants, self._jobconf)
+            # lint-check - sans globals check (s.further)
+            if lint_check and is_app_code(classObj): # opt: and not cached
+                warns = classObj.lint_warnings(lint_opts)
+                for warn in warns:
+                    self._console.warn("%s (%d, %d): %s" % (classObj.id, warn.line, warn.column,
+                        warn.msg % tuple(warn.args)))
             self._console.outdent()
             if logInfos: self._console.dot("%s" % "." if cached else "*")
 
-            # and evaluate them
+            # And evaluate them
+
+            # check for unknown globals
             deps["warn"] = self._checkDepsAreKnown(deps)  # add 'warn' key to deps
             ignore_names = [x.name for x in deps["ignore"]]
             if verifyDeps:
                 for dep in deps["warn"]:
                     if dep.name not in ignore_names:
-                        warn_deps.append(dep)
+                        warn_deps.append(dep) # add it to warnings accumulator
 
             # process lists
             try:
@@ -163,7 +177,7 @@ class DependencyLoader(object):
                 # cycle detection
                 assert depsItem.name not in loadDepsChain
                 loadDepsChain.append(depsItem.name)
-  
+
                 for subitem in deps["load"]:
                     # cycle check
                     if subitem.name in loadDepsChain:
@@ -181,7 +195,7 @@ class DependencyLoader(object):
                 if depsItem.name not in resultNames:
                     result.append(depsItem)
                     resultNames.append(depsItem.name)
-                
+
                 # cycle check
                 loadDepsChain.remove(depsItem.name)
 
@@ -192,8 +206,8 @@ class DependencyLoader(object):
             except DependencyError, detail:
                 raise ValueError("Attempt to block load-time dependency of class %s to %s" % (depsItem.name, subitem.name))
 
-            except NameError, detail:
-                raise NameError("Could not resolve dependencies of class: %s \n%s" % (depsItem.name, detail))
+            except KeyError, detail:
+                raise NameError("Could not resolve dependencies of class '%s': %s" % (depsItem.name, detail))
 
             return
 
@@ -210,8 +224,7 @@ class DependencyLoader(object):
                 return node
 
             def getNodeChildren(depsItem):
-                #deps, cached = self.getCombinedDeps(depsItem.name, variants, buildType=buildType, genProxy=genProxyIter.next())
-                deps, cached = self._classesObj[depsItem.name].getCombinedDeps(variants, self._jobconf, genProxy=genProxyIter.next())
+                deps, cached = self._classesObj[depsItem.name].getCombinedDeps(self._classesObj, variants, self._jobconf)
 
                 # and evaluate them
                 deps["warn"] = self._checkDepsAreKnown(deps)  # add 'warn' key to deps
@@ -236,29 +249,19 @@ class DependencyLoader(object):
 
             return
 
+        def is_app_code(classObj):
+            return classObj.library.namespace == app_namespace
         # -------------------------------------------
 
-        buildType = script.buildType  # source/build, for classlistFromClassRecursive
         result = []
         warn_deps = []
         logInfos = self._console.getLevel() == "info"
-        ignored_names = set()
-        firstTime = [True]
+        app_namespace = self._jobconf.get("let/APPLICATION", u'')
 
-        # Pyro servers
-        #import Pyro.core
-        #genProxies = [
-        #    Pyro.core.getProxyForURI("PYRONAME://genworker0"),
-        #    Pyro.core.getProxyForURI("PYRONAME://genworker1"),
-        #    Pyro.core.getProxyForURI("PYRONAME://genworker2"),
-        #    Pyro.core.getProxyForURI("PYRONAME://genworker3"),
-        #    Pyro.core.getProxyForURI("PYRONAME://genworker4"),
-        #    Pyro.core.getProxyForURI("PYRONAME://genworker5"),
-        #]
-        import itertools
-        #genProxyIter = itertools.cycle(genProxies)
-        genProxyIter = itertools.repeat(None)
-
+        # Lint stuff
+        lint_check, lint_opts = CodeMaintenance.lint_comptime_opts()
+        if lint_check:
+            lint_opts.library_classes = self._classesObj.keys() # for globals shadowing check
 
         # No dependency calculation
         if len(includeWithDeps) == 0:
@@ -270,117 +273,40 @@ class DependencyLoader(object):
             for classId in excludeWithDeps:
                 result.remove(classId)
 
+            # TODO: use lint_check
+
         # Calculate dependencies
         else:
-            #self._console.info(" ", feed=False)
-
-            # Multiple loop over class list calculation
-            processedEnvironment = False
-            result      = []          # reset any previous results for this iteration
+            result = []  # reset any previous results for this iteration
             resultNames = []
 
             # calculate class list recursively
             for item in includeWithDeps:
                 depsItem = DependencyItem(item, '', '|config|')
-                # calculate dependencies and add required classes
                 classlistFromClassRecursive(depsItem, excludeWithDeps, variants, result, warn_deps, [], allowBlockLoaddeps)
-                #classlistFromClassIterative(depsItem, excludeWithDeps, variants, result, warn_deps, [], allowBlockLoaddeps)
 
             self._console.dotclear()
-                    
-            if self._console.getLevel() is "info":
-                #self._console.nl()
-                pass
 
             # extract names of depsItems
             result = [x.name for x in result]
 
-        # warn about unknown references
-        # add the list of name spaces of the selected classes
+        # Unknown globals warnings
+        # - late, because adding the list of name spaces of the selected classes
+        known_namespaces = set()
         for classid in result:
             nsindex = classid.rfind(".")
             if nsindex == -1:
                 continue # not interested in bare class names
             classnamespace = classid[:nsindex]
-            ignored_names.add(classnamespace)
+            known_namespaces.add(classnamespace)
+        # honor lint-check/allowed-globals config
+        callowed_globals = self._jobconf.get("lint-check/allowed-globals", [])
+        #known_namespaces.update(callowed_globals)
         for dep in warn_deps:
-            if dep.name not in ignored_names:
-                self._console.warn("Hint: Unknown global symbol referenced: %s (%s:%s)" % (dep.name, dep.requestor, dep.line))
-
+            if not gs.test_for_libsymbol(dep.name, callowed_globals, known_namespaces):
+                self._console.warn("%s (%s): Unknown global symbol used: %s" % (dep.requestor, dep.line, dep.assembled()))
 
         return result
-
-
-    ##
-    # return dependencies of class named <fileId>, both found in its code and
-    # expressed in config options
-    # - interface method
-
-    def getCombinedDeps_NOTUSED(self, fileId, variants, buildType="", stripSelfReferences=True, projectClassNames=True, genProxy=None):
-
-        # init lists
-        loadFinal = []
-        runFinal  = []
-
-        # add static dependencies
-        classObj = self._classesObj[fileId]
-
-        if genProxy == None:
-            static, cached = classObj.dependencies (variants)
-        else:
-            static, cached = genProxy.dependencies(classObj.id, classObj.path, variants)
-
-        loadFinal.extend(static["load"])
-        runFinal.extend(static["run"])
-
-        # fix self-references
-        if stripSelfReferences:
-            loadFinal = [x for x in loadFinal if x.name != fileId]
-            runFinal  = [x for x in runFinal  if x.name != fileId]
-
-        # collapse multiple occurrences of the same class
-        if projectClassNames:
-            loads = loadFinal
-            loadFinal = []
-            for dep in loads:
-                if dep.name not in (x.name for x in loadFinal):
-                    loadFinal.append(dep)
-            runs = runFinal
-            runFinal = []
-            for dep in runs:
-                if dep.name not in (x.name for x in runFinal):
-                    runFinal.append(dep)
-
-        # TODO: this should be removed, as it cannot happen anymore (source is not variant-optimized)
-        # fix dependency to classes that get removed with variant optimization
-        #variantSelectClasses = ("qx.core.Environment",)
-        #if len(variants) and (classObj.id not in variantSelectClasses):
-        #    depsUnOpt, _ = classObj.dependencies({})  # get unopt deps
-        #    # this might incur extra generation if unoptimized deps
-        #    # haven't computed before for this fileId
-        #    for depItem in depsUnOpt["load"]:
-        #        if depItem.name in variantSelectClasses and depItem.name not in [x.name for x in loadFinal]:
-        #            loadFinal.append(depItem)
-        #    for depItem in depsUnOpt["run"]:
-        #        if depItem.name in variantSelectClasses and depItem.name not in [x.name for x in runFinal]:
-        #            runFinal.append(depItem)
-
-        # add config dependencies
-        if fileId in self._require:
-            loadFinal.extend(DependencyItem(x, '', "|config|") for x in self._require[fileId])
-
-        if fileId in self._use:
-            runFinal.extend(DependencyItem(x, '', "|config|") for x in self._use[fileId])
-
-        # result dict
-        deps = {
-            "load"   : loadFinal,
-            "run"    : runFinal,
-            "ignore" : static['ignore'],
-        }
-
-        return deps, cached
-
 
 
     def _checkDepsAreKnown(self, deps,):
@@ -402,29 +328,55 @@ class DependencyLoader(object):
             return True
         return False
 
-    
+
+    def agendaSearch(self, agenda, processNode, getNodeChildren, mode="df"):
+        while agenda:
+            node = agenda.pop(0)
+            node = processNode(node)
+            if node:
+                children = getNodeChildren(node)
+                if mode == "df":
+                    agenda[0:0] = children  # prepend
+                else:
+                    agenda.extend(children) # append
+        return
+
+
+    def agendaSearchMP(self, agenda, processNode, getNodeChildren, mode="df"):
+        while agenda:
+            node = agenda.pop(0)
+            node = processNode(node)
+            if node:
+                children = getNodeChildren(node)
+                if mode == "df":
+                    agenda[0:0] = children  # prepend
+                else:
+                    agenda.extend(children) # append
+        return
+
+
 
 
     ######################################################################
     #  CLASS SORT SUPPORT
     ######################################################################
 
-    def sortClasses(self, classList, variants, buildType=""):
+    ##
+    # Method chooser
+    def sortClasses(self, *args, **kwargs):
+        #if  self._jobconf.get("dependencies/sort-topological", False):
+        return self.sortClassesRec(*args, **kwargs)
+        #return self.sortClassesTopological(*args, **kwargs)
+
+
+    def sortClassesRec(self, classList, variants, buildType=""):
 
         def sortClassesRecurser(classId, classListSorted, path):
             if classId in classListSorted:
                 return
 
             # reading dependencies
-            #if classId == "qx.core.Environment":
-            #    #envObj = self._classesObj["qx.core.Environment"]
-            #    #envTreeId = "tree1-%s-%s" % (envObj.path, util.toString({})) # TODO: {} is a temp. hack
-            #    #self._cache.remove(envTreeId)  # clear pot. memcache, so already (string) optimized tree is not optimized again (e.g. with Demobrowser)
-            #    #print envTreeId
-            #    self._classesObj["qx.core.Environment"].clearTreeCache(variants)
-
-            #deps, cached = self.getCombinedDeps(classId, variants, buildType)
-            deps, cached = self._classesObj[classId].getCombinedDeps(variants, self._jobconf)
+            deps, cached = self._classesObj[classId].getCombinedDeps(self._classesObj, variants, self._jobconf)
 
             if self._console.getLevel() is "info":
                 self._console.dot("%s" % "." if cached else "*")
@@ -466,83 +418,116 @@ class DependencyLoader(object):
         return classListSorted
 
 
-    def sortClassesTopological(self, includeWithDeps, variants):
-        
+    def sortClassesTopological(self, classList, variants, buildType=''):
+
         # create graph object
         gr = graph.digraph()
 
         # add classes as nodes
-        gr.add_nodes(includeWithDeps)
+        gr.add_nodes(classList)
 
         # for each load dependency add a directed edge
-        for classId in includeWithDeps:
-            #deps, _ = self.getCombinedDeps(classId, variants)
+        for classId in classList:
             deps, _ = self._classesObj[classId].getCombinedDeps(variants, self._jobconf)
-            for depClassId in deps["load"]:
-                if depClassId in includeWithDeps:
+            for dep in deps["load"]:
+                depClassId = dep.name
+                if depClassId in classList:
                     gr.add_edge(depClassId, classId)
 
         # cycle check?
         cycle_nodes = gr.find_cycle()
         if cycle_nodes:
-            raise RuntimeError("Detected circular dependencies between nodes: %r" % cycle_nodes)
+            #raise RuntimeError("Detected circular dependencies between nodes: %r" % cycle_nodes)
+            pass
 
         classList = gr.topological_sorting()
 
         return classList
 
-    
+
+    ######################################################################
+    #  FEATURE SUPPORT
+    ######################################################################
+
     ##
     # Returns featureMap =
     # { 'qx.core.Object' : {'myFeature': ('r',)} }  -- ('r',) is currently a way to say 'True'
     def registerDependeeFeatures(self, classList, variants, buildType=""):
         featureMap = {}
+        self._console.info("Registering used class features  ", False)
 
         for clazz in classList:
             # make sure every class is at least listed
             if clazz.id not in featureMap:
                 featureMap[clazz.id] = {}
-            #deps, _ = self.getCombinedDeps(clazz.id, variants, buildType, stripSelfReferences=False, projectClassNames=False)
-            deps, _ = clazz.getCombinedDeps(variants, self._jobconf, stripSelfReferences=False, projectClassNames=False)
+            deps, _ = clazz.getCombinedDeps(self._classesObj, variants, self._jobconf, stripSelfReferences=False, projectClassNames=False, force=0)
             ignored_names = map(attrgetter("name"), deps['ignore'])
             for dep in deps['load'] + deps['run']:
                 if dep.name in ignored_names:
                     continue
                 if dep.name not in featureMap:
                     featureMap[dep.name] = {}
-                featureMap[dep.name][dep.attribute] = ("r",)  # use 'r' for all currently
-        
-        self._console.indent()
-        for clazz in featureMap:
-            self._console.debug("'%s': used features: %r" % (clazz, featureMap[clazz].keys()))
-        self._console.outdent()
+                if dep.attribute in featureMap[dep.name]:
+                    # increment
+                    featureMap[dep.name][dep.attribute].addref(dep)
+                else:
+                    # create
+                    featureMap[dep.name][dep.attribute] = UsedFeature(dep)
 
+        self._console.nl()
         return featureMap
 
 
-    def agendaSearch(self, agenda, processNode, getNodeChildren, mode="df"):
-        while agenda:
-            node = agenda.pop(0)
-            node = processNode(node)
-            if node:
-                children = getNodeChildren(node)
-                if mode == "df":
-                    agenda[0:0] = children  # prepend
-                else:
-                    agenda.extend(children) # append
-        return
+##
+# Helper class, to represent reference counts in the FeatureMap
+#
+class UsedFeature(object):
 
+    def __init__(s, dep):
+        s._ref_cnt = 1
+        s._refs = [dep]
 
-    def agendaSearchMP(self, agenda, processNode, getNodeChildren, mode="df"):
-        while agenda:
-            node = agenda.pop(0)
-            node = processNode(node)
-            if node:
-                children = getNodeChildren(node)
-                if mode == "df":
-                    agenda[0:0] = children  # prepend
-                else:
-                    agenda.extend(children) # append
-        return
+    def __str__(s):
+        return "<UsedFeature:%d:%r>" % (s._ref_cnt, [("%s:%s" % (x.requestor, x.line)) for x in s._refs])
+
+    def __repr__(s):
+        return str(s)
+
+    def addref(s, dep):
+        s._refs.append(dep)
+        s._ref_cnt += 1
+
+    #def incref(s):
+    #    s._ref_cnt += 1
+
+    def decref(s, req_name='', req_line=''):
+        if s._ref_cnt > 0:
+            s._ref_cnt -= 1
+        ref_removed = False
+        if req_name:
+            for ref in s._refs[:]:
+                if ((ref.requestor == req_name and not req_line) or
+                    (ref.requestor == req_name and ref.line == req_line)):
+                    ref_removed = True
+                    s._refs.remove(ref) # TODO: this is very delicate, as [].remove uses __eq__ of the elements!
+        return ref_removed
+
+    def hasref(s):
+        return s._ref_cnt > 0
+
+    def __len__(s):
+        return len(s._refs)
+
+    # this is more specific than DependencyItem.__eq__
+    # compare name, attribute, requestor and line
+    _depattribs = 'name attribute requestor line'.split()
+    def _depmatches(s, dep, odep):
+        return all([(getattr(dep,f)==getattr(odep,f)) for f in s._depattribs])
+
+    def __contains__(s, odep):
+        for dep in s._refs:
+            if s._depmatches(dep, odep):
+                return True
+        return False
 
 

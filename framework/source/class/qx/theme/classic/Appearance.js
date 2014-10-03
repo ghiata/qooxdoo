@@ -23,21 +23,22 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/Oxygen/16/apps/office-calendar.png)
-#asset(qx/icon/Oxygen/16/places/folder-open.png)
-#asset(qx/icon/Oxygen/16/places/folder.png)
-#asset(qx/icon/Oxygen/16/mimetypes/text-plain.png)
-#asset(qx/icon/Oxygen/16/actions/view-refresh.png)
-#asset(qx/icon/Oxygen/16/actions/window-close.png)
-#asset(qx/icon/Oxygen/16/actions/dialog-cancel.png)
-#asset(qx/icon/Oxygen/16/actions/dialog-ok.png)
-
-#asset(qx/decoration/Classic/*)
 
 ************************************************************************* */
 
 /**
  * The classic qooxdoo appearance theme.
+ *
+ * @asset(qx/icon/Oxygen/16/apps/office-calendar.png)
+ * @asset(qx/icon/Oxygen/16/places/folder-open.png)
+ * @asset(qx/icon/Oxygen/16/places/folder.png)
+ * @asset(qx/icon/Oxygen/16/mimetypes/text-plain.png)
+ * @asset(qx/icon/Oxygen/16/actions/view-refresh.png)
+ * @asset(qx/icon/Oxygen/16/actions/window-close.png)
+ * @asset(qx/icon/Oxygen/16/actions/dialog-cancel.png)
+ * @asset(qx/icon/Oxygen/16/actions/dialog-ok.png)
+ *
+ * @asset(qx/decoration/Classic/*)
  */
 qx.Theme.define("qx.theme.classic.Appearance",
 {
@@ -92,9 +93,8 @@ qx.Theme.define("qx.theme.classic.Appearance",
       style : function(states)
       {
         return {
-          decorator : "main",
-          backgroundColor : "background-pane",
-          shadow : "shadow-small"
+          decorator : "popup",
+          backgroundColor : "background-pane"
         }
       }
     },
@@ -109,7 +109,6 @@ qx.Theme.define("qx.theme.classic.Appearance",
           backgroundColor : "tooltip",
           textColor : "tooltip-text",
           decorator : "tooltip",
-          shadow : "shadow-small",
           padding : [ 1, 3, 2, 3 ],
           offset : [ 15, 5, 5, 5 ]
         };
@@ -241,6 +240,18 @@ qx.Theme.define("qx.theme.classic.Appearance",
       }
     },
 
+    "menubutton" : {
+      include : "button",
+      alias : "button",
+
+      style : function(states) {
+        return {
+          icon : "decoration/arrows/down.gif",
+          iconPosition : "right"
+        };
+      }
+    },
+
     "splitbutton" : {},
     "splitbutton/button" : "button",
     "splitbutton/arrow" :
@@ -332,7 +343,8 @@ qx.Theme.define("qx.theme.classic.Appearance",
           padding         : states.lead ? [ 2, 4 ] : [ 3, 5 ],
           backgroundColor : states.selected ? "background-selected" : undefined,
           textColor       : states.selected ? "text-selected" : undefined,
-          decorator       : states.lead ? "lead-item" : undefined
+          decorator       : states.lead ? "lead-item" : undefined,
+          opacity : states.drag ? 0.5 : undefined
         };
       }
     },
@@ -492,8 +504,7 @@ qx.Theme.define("qx.theme.classic.Appearance",
         var invalid = states.invalid && !states.disabled ? "-invalid" : "";
 
         return {
-          icon: "decoration/form/" + icon + invalid + ".png",
-          shadow: undefined
+          icon: "decoration/form/" + icon + invalid + ".png"
         }
       }
     },
@@ -1048,8 +1059,7 @@ qx.Theme.define("qx.theme.classic.Appearance",
       style : function(states)
       {
         return {
-          padding : [0, 1, 0, 1],
-          margin : states.focused ? 0 : 1,
+          padding : states.focused ? [0, 1, 0, 1] : [1, 2, 1, 2],
           decorator : states.focused ? "keyboard-focus" : undefined
         };
       }
@@ -1224,7 +1234,8 @@ qx.Theme.define("qx.theme.classic.Appearance",
         return {
           padding : [2, 3, 2, 0],
           icon : states.opened ? "icon/16/places/folder-open.png" : "icon/16/places/folder.png",
-          iconOpened : "icon/16/places/folder-open.png"
+          iconOpened : "icon/16/places/folder-open.png",
+          opacity : states.drag ? 0.5 : undefined
         };
       }
     },
@@ -1259,7 +1270,8 @@ qx.Theme.define("qx.theme.classic.Appearance",
       style : function(states)
       {
         return {
-          icon : "icon/16/mimetypes/text-plain.png"
+          icon : "icon/16/mimetypes/text-plain.png",
+          opacity : states.drag ? 0.5 : undefined
         };
       }
     },
@@ -1304,7 +1316,8 @@ qx.Theme.define("qx.theme.classic.Appearance",
         return {
           icon : (states.opened
                   ? "icon/16/places/folder-open.png"
-                  : "icon/16/places/folder.png")
+                  : "icon/16/places/folder.png"),
+          opacity : states.drag ? 0.5 : undefined
         }
       }
     },
@@ -1317,7 +1330,8 @@ qx.Theme.define("qx.theme.classic.Appearance",
       style : function(states)
       {
         return {
-          icon : "icon/16/mimetypes/text-plain.png"
+          icon : "icon/16/mimetypes/text-plain.png",
+          opacity : states.drag ? 0.5 : undefined
         }
       }
     },
@@ -1469,8 +1483,7 @@ qx.Theme.define("qx.theme.classic.Appearance",
         return {
           contentPadding : [ 10, 10, 10, 10 ],
           backgroundColor : "background",
-          decorator : states.maximized ? undefined : "outset",
-          shadow : states.maximized ? undefined : "shadow-small"
+          decorator : states.maximized ? undefined : "window"
         };
       }
     },
@@ -1858,7 +1871,7 @@ qx.Theme.define("qx.theme.classic.Appearance",
         } else if (states.invalid) {
           backgroundColor = "background-invalid";
         } else if (states.focused) {
-          backgroundColor = "background-light";
+          backgroundColor = "background-focused";
         } else {
           backgroundColor = "background-field";
         }
@@ -1918,8 +1931,7 @@ qx.Theme.define("qx.theme.classic.Appearance",
         var result =
         {
           backgroundColor : "background",
-          shadow : "shadow-small",
-          decorator : "outset",
+          decorator : "menu",
           spacingX : 6,
           spacingY : 1,
           iconColumnWidth : 16,
@@ -2121,7 +2133,7 @@ qx.Theme.define("qx.theme.classic.Appearance",
       {
         return {
           padding : [ 2, 6 ],
-          backgroundColor : states.pressed || states.hovered ? "background-selected" : undefined,
+          backgroundColor : states.pressed || states.hovered && !states.disabled ? "background-selected" : undefined,
           textColor : states.pressed || states.hovered ? "text-selected" : undefined
         };
       }
@@ -2155,8 +2167,25 @@ qx.Theme.define("qx.theme.classic.Appearance",
     },
 
     "colorselector/preset-field-set" : "groupbox",
-    "colorselector/input-field-set" : "groupbox",
-    "colorselector/preview-field-set" : "groupbox",
+    "colorselector/input-field-set" : {
+      include : "groupbox",
+      alias : "groupbox",
+      style : function() {
+        return {
+          paddingTop: 12
+        }
+      }
+    },
+
+    "colorselector/preview-field-set" : {
+      include : "groupbox",
+      alias : "groupbox",
+      style : function() {
+        return {
+          paddingTop: 12
+        }
+      }
+    },
 
     "colorselector/hex-field-composite" : "widget",
     "colorselector/hex-field" : "textfield",
@@ -2364,7 +2393,8 @@ qx.Theme.define("qx.theme.classic.Appearance",
       style : function(states)
       {
         return {
-          marginRight: 4
+          marginRight: 4,
+          opacity : states.disabled ? 0.3 : 1
         }
       }
     },
@@ -2373,7 +2403,8 @@ qx.Theme.define("qx.theme.classic.Appearance",
       style : function(states)
       {
         return {
-          alignY : "middle"
+          alignY : "middle",
+          opacity : states.disabled ? 0.3 : 1
         }
       }
     },
@@ -2413,6 +2444,20 @@ qx.Theme.define("qx.theme.classic.Appearance",
       {
         return {
           decorator : undefined
+        };
+      }
+    },
+
+    "progressive-table-header" : {
+      alias: "table-scroller/header"
+    },
+
+    "progressive-table-header-cell" : {
+      style : function(states) {
+        return {
+          decorator: "table-header-cell",
+          backgroundColor: "table-header-cell",
+          padding: [0, 6, 0, 6]
         };
       }
     },
@@ -2602,24 +2647,6 @@ qx.Theme.define("qx.theme.classic.Appearance",
 
     /*
     ---------------------------------------------------------------------------
-      HTMLAREA
-    ---------------------------------------------------------------------------
-    */
-
-    "htmlarea" :
-    {
-      "include" : "widget",
-
-      style : function(states)
-      {
-        return {
-          backgroundColor : "white"
-        }
-      }
-    },
-
-    /*
-    ---------------------------------------------------------------------------
       PROGRESSBAR
     ---------------------------------------------------------------------------
     */
@@ -2665,6 +2692,16 @@ qx.Theme.define("qx.theme.classic.Appearance",
       }
     },
 
-    "app-header-label": "label"
+    "app-header-label": "label",
+
+    "app-splitpane" : {
+      alias : "splitpane",
+      style : function(states) {
+        return {
+          padding: [0, 10, 10, 10],
+          backgroundColor: "light-background"
+        }
+      }
+    }
   }
 });

@@ -17,6 +17,11 @@
 
 ************************************************************************ */
 
+/**
+ * @tag noPlayground
+ * @require(qx.bom.Element) // mark as load-time dependency so that the required
+ * event dispatcher is loaded before listeners are registered
+ */
 qx.Class.define("demobrowser.demo.mobile.Fingers",
 {
   extend : qx.application.Native,
@@ -58,18 +63,18 @@ qx.Class.define("demobrowser.demo.mobile.Fingers",
         "width" : "100%",
         "height" : "100%",
         "backgroundColor" : "black",
-        "margin" : "0px"
+        "margin" : "0px",
+        "touchAction" : "none",
+        "msTouchAction" : "none"
       };
 
       var root = new qx.html.Element("div", backgroundStyles);
       root.useElement(document.body);
       root.setRoot(true);
 
-
-
-      if (qx.core.Environment.get("engine.name") != "webkit" ||
-        (!qx.core.Environment.get("event.touch") &&
-        qx.core.Environment.get("qx.mobile.emulatetouch") == false))
+      var engine = qx.core.Environment.get("engine.name");
+      var modernIe = engine == "mshtml" && qx.core.Environment.get("browser.documentmode") > 10;
+      if (engine != "webkit" && !modernIe)
       {
         var warningLabelStyle = {
           "color" : "green",
@@ -81,19 +86,19 @@ qx.Class.define("demobrowser.demo.mobile.Fingers",
         };
         var label = new qx.html.Element("div", warningLabelStyle);
         root.add(label);
-        label.setAttribute("innerHTML", "<b>This demo is supposed to be run in a WebKit-based browser on a touch-enabled device.</b>");
+        label.setAttribute("innerHTML", "<b>This demo is intended for WebKit-based browsers and IE11+.</b>");
         return;
       }
 
 
       // description label
-      var lableStyles = {
+      var labelStyles = {
         "color" : "white",
         "position" : "absolute",
         "left" : "30px",
         "top" : "20px"
       };
-      var label = new qx.html.Element("div", lableStyles);
+      var label = new qx.html.Element("div", labelStyles);
       root.add(label);
       label.setAttribute("innerHTML", "<b>Use your fingers to move the dots</b>");
 
@@ -113,44 +118,34 @@ qx.Class.define("demobrowser.demo.mobile.Fingers",
         };
         var div = new qx.html.Element("div", styles);
         root.add(div);
-      };
+      }
 
       this.__startDivX = [];
       this.__startDivY = [];
 
       // attach the listeners
-      root.addListener("touchstart", this._onTouchStart, this);
-      root.addListener("touchmove", this._onTouchMove, this);
+      root.addListener("pointerdown", this._onPointerDown, this);
+      root.addListener("pointermove", this._onPointerMove, this);
     },
 
 
-    _onTouchStart : function(e) {
-      var touches = e.getAllTouches();
-      for (var i = 0; i < touches.length; i++) {
-        var touch = touches[i];
-        this.__startDivX[i] = parseInt(touch.target.style.left) - touch.pageX;
-        this.__startDivY[i] = parseInt(touch.target.style.top) - touch.pageY;
-      };
+    _onPointerDown : function(e) {
+      this.__startDivX[e.getPointerId()] = parseInt(e.getTarget().style.left) - e.getDocumentLeft();
+      this.__startDivY[e.getPointerId()] = parseInt(e.getTarget().style.top) - e.getDocumentTop();
     },
 
 
-    _onTouchMove : function(e) {
-      var touches = e.getAllTouches();
-      for (var i = 0; i < touches.length; i++) {
-        var touch = touches[i];
+    _onPointerMove : function(e) {
+      if (e.getTarget() == document.body) {
+        return;
+      }
 
-        if (touches.target == document.body) {
-          continue;
-        }
+      qx.bom.element.Style.setStyles(e.getTarget(), {
+        "left" : (e.getDocumentLeft() + this.__startDivX[e.getPointerId()]) + "px",
+        "top" : (e.getDocumentTop() + this.__startDivY[e.getPointerId()]) + "px"
+      });
 
-        // apply new position
-        qx.bom.element.Style.setStyles(touch.target, {
-          "left" : (touch.pageX + this.__startDivX[i]) + "px",
-          "top" : (touch.pageY + this.__startDivY[i]) + "px"
-        });
-      };
-
-      e.stop();
+      e.preventDefault();
     }
   }
 });

@@ -16,7 +16,7 @@
   *
   * popup.add(new qx.ui.basic.Atom("Hello World #1", "icon/32/apps/media-photo-album.png"));
   *
-  * button.addListener("click", function(e)
+  * button.addListener("execute", function(e)
   * {
   *   popup.placeToMouse(e);
   *   popup.show();
@@ -28,6 +28,6 @@
   *
   * *External Documentation*
   *
-  * <a href='http://manual.qooxdoo.org/1.4/pages/widget/popup.html' target='_blank'>
+  * <a href='http://manual.qooxdoo.org/${qxversion}/pages/widget/popup.html' target='_blank'>
   * Documentation of this widget in the qooxdoo manual.</a>
   */

@@ -18,11 +18,6 @@
 
 ************************************************************************ */
 /* ************************************************************************
-#asset(inspector/images/close.png)
-#asset(inspector/images/open.png)
-#asset(inspector/images/null.png)
-#asset(inspector/images/shell/errorIcon.png)
-#asset(qx/icon/Tango/16/actions/go-next.png)
 ************************************************************************ */
 /**
  * The class is a implementation of the abstract {@link inspector.propertyEditor.PropertyList}
@@ -31,6 +26,12 @@
  * It implements all functions and makes the displayed properties accessible to the user.
  * This includes an easy to use interface for all types of properties like boolean, colors
  * or strings
+ *
+ * @asset(inspector/images/close.png)
+ * @asset(inspector/images/open.png)
+ * @asset(inspector/images/null.png)
+ * @asset(inspector/images/shell/errorIcon.png)
+ * @asset(qx/icon/Tango/16/actions/go-next.png)
  */
 qx.Class.define("inspector.property.PropertyList", {
 
@@ -262,7 +263,7 @@ qx.Class.define("inspector.property.PropertyList", {
           }
 
           // register the handler to open and collapse the groups
-          groupNameAtom.addListener("click", function(e) {
+          groupNameAtom.addListener("tap", function(e) {
             if(this.isVisible()) {
                 this.setVisibility("excluded");
                 e.getTarget().setIcon("inspector/images/open.png");
@@ -314,11 +315,11 @@ qx.Class.define("inspector.property.PropertyList", {
               groupLayout.getLayout().setRowAlign(row, "left", "middle");
               groupLayout.getLayout().setRowMinHeight(row, 20);
 
-               // handle the clicks
-              labelName.addListener("click", this.__onPropertyClick, this);
-              propertyValue.addListener("click", this.__onPropertyClick, this);
-              propertyValue.addListener("activate", this.__onPropertyClick, this);
-              nullImage.addListener("click", this.__onPropertyClick, this);
+               // handle the taps
+              labelName.addListener("tap", this.__onPropertyTap, this);
+              propertyValue.addListener("tap", this.__onPropertyTap, this);
+              propertyValue.addListener("activate", this.__onPropertyTap, this);
+              nullImage.addListener("tap", this.__onPropertyTap, this);
 
               row++;
             }
@@ -425,7 +426,7 @@ qx.Class.define("inspector.property.PropertyList", {
      * a checkbox for a boolean value.<br>
      * The handler for changing the values of the property will also be added
      * after the creation process.
-     * 
+     *
      * @lint ignoreDeprecated(alert)
      * @param propertySet {Map} The array containing the property values.
      * @param key {String} The name of the property.
@@ -598,7 +599,11 @@ qx.Class.define("inspector.property.PropertyList", {
           layout.getLayout().setAlignY("middle");
           // create the color field and set the initial color
           var colorField = new qx.ui.core.Widget();
-          colorField.setDecorator(new qx.ui.decoration.Single(1, "solid", "#969696"));
+          colorField.setDecorator(new qx.ui.decoration.Decorator().set({
+            width: 1,
+            style: "solid",
+            color: "#969696"
+          }));
           colorField.setBackgroundColor("white");
           colorField.setHeight(20);
           colorField.setWidth(20);
@@ -612,17 +617,17 @@ qx.Class.define("inspector.property.PropertyList", {
           layout.add(button);
 
           // handle the execution of the button (show the color popup
-          button.addListener("mousedown", function(e)
+          button.addListener("pointerdown", function(e)
           {
             this._colorPopup.setValue(colorField.getBackgroundColor());
 
             this._currentColorProperty = classname + "." + key;
 
-            this._colorPopup.placeToMouse(e)
+            this._colorPopup.placeToPointer(e)
             this._colorPopup.show();
           }, this);
-          button.addListener("execute", this.__onPropertyClick, this);
-          button.addListener("activate", this.__onPropertyClick, this);
+          button.addListener("execute", this.__onPropertyTap, this);
+          button.addListener("activate", this.__onPropertyTap, this);
 
           return layout;
 
@@ -786,10 +791,10 @@ qx.Class.define("inspector.property.PropertyList", {
             layout.getCellWidget(row, 2).setStyleProperty("cursor", "pointer");
 
             // add only a event listener the first time
-            if (layout.getCellWidget(row, 2).hasListeners("click") === undefined) {
+            if (layout.getCellWidget(row, 2).hasListeners("tap") === undefined) {
 
-              // register the click handler
-              layout.getCellWidget(row, 2).addListener("click", function(e) {
+              // register the tap handler
+              layout.getCellWidget(row, 2).addListener("tap", function(e) {
 
                 if (this._controller.getSelectedProperty() != null) {
                   // disable the selection of current selected property
@@ -867,7 +872,7 @@ qx.Class.define("inspector.property.PropertyList", {
     */
     /**
      * Creates the color popup which is needed to set colors.
-     * 
+     *
      * @lint ignoreDeprecated(alert)
      */
     _createColorPopup: function() {
@@ -905,14 +910,14 @@ qx.Class.define("inspector.property.PropertyList", {
       }, this);
     },
 
-    __onPropertyClick : function(e) {
+    __onPropertyTap : function(e) {
       var target = e.getTarget();
 
       while(target.getUserData("key") == null) {
         target = target.getLayoutParent();
       }
 
-      // get the currently clicked property name
+      // get the currently taped property name
       var classKey = target.getUserData("classname") + "." + target.getUserData("key");
       // reset the background color of the former selected property
       if (this._arrow.container != null) {

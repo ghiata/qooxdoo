@@ -95,7 +95,7 @@ qx.Class.define("qx.test.data.controller.Object",
       // test for the binding
       this.assertEquals("20", this.__label1.getValue(), "Binding1 does not work!");
       this.assertEquals("20", this.__label2.getValue(), "Binding2 does not work!");
-      
+
       newModel.dispose();
     },
 
@@ -234,7 +234,7 @@ qx.Class.define("qx.test.data.controller.Object",
       this.assertEquals("11", this.__label1.getValue(), "Binding1 does not work!");
       this.assertEquals(11, newModel.getZIndex(), "Reverse-Binding does not work!");
       this.assertEquals(10, this.__model.getZIndex(), "Binding has not been removed.");
-      
+
       newModel.dispose();
     },
 
@@ -332,7 +332,7 @@ qx.Class.define("qx.test.data.controller.Object",
       // test for the binding
       this.assertEquals("A", this.__label1.getValue(), "Binding1 does not work!");
       this.assertEquals("A", this.__label2.getValue(), "Binding2 does not work!");
-      
+
       newModel.dispose();
     },
 
@@ -360,8 +360,14 @@ qx.Class.define("qx.test.data.controller.Object",
       // Tie the label1s content to the zindex of the model
       this.__controller.addTarget(this.__label1, "value", "zIndex");
 
+      this.__label1.setValue("test");
+
       // set the model of the controller to null and back
       this.__controller.setModel(null);
+
+      // check if the values have been reseted
+      this.assertNull(this.__label1.getValue());
+
       this.__controller.setModel(this.__model);
 
       // set a new zIndex to the model

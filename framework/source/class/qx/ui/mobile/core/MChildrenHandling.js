@@ -18,8 +18,6 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * This mixin exposes all basic methods to manage widget children as public methods.
  * It can only be included into instances of {@link Widget}.
  *
@@ -41,7 +39,7 @@ qx.Mixin.define("qx.ui.mobile.core.MChildrenHandling",
      * Returns the children list
      *
      * @return {Widget[]} The children array (Arrays are
-     *   reference types, please to not modify them in-place)
+     *   reference types, please do not modify them in-place)
      */
     getChildren : function() {
       return this._getChildren();
@@ -79,6 +77,19 @@ qx.Mixin.define("qx.ui.mobile.core.MChildrenHandling",
      */
     add : function(child, layoutProperties) {
       this._add(child, layoutProperties);
+    },
+
+
+    /**
+     * Add a child widget at the specified index
+     *
+     * @param child {Widget} widget to add
+     * @param index {Integer} Index, at which the widget will be inserted
+     * @param options {Map?null} Optional layout data for widget.
+     */
+    addAt : function(child, index, options)
+    {
+      this._addAt(child, index, options);
     },
 
 
@@ -122,7 +133,7 @@ qx.Mixin.define("qx.ui.mobile.core.MChildrenHandling",
      * @param index {Integer} Index of the widget to remove.
      */
     removeAt : function(index) {
-      return this._removeAt(index);
+      this._removeAt(index);
     },
 
 
@@ -158,6 +169,7 @@ qx.Mixin.define("qx.ui.mobile.core.MChildrenHandling",
       members.indexOf = members._indexOf;
 
       members.add = members._add;
+      members.addAt = members._addAt;
       members.addBefore = members._addBefore;
       members.addAfter = members._addAfter;
 

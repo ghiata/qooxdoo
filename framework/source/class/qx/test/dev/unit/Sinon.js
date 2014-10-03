@@ -17,13 +17,9 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#ignore(qx.test.Animal)
-#ignore(qx.test.Affe)
-#ignore(qx.test.Gibbon)
-
-************************************************************************ */
+/**
+ * @ignore(qx.test.PROP, qx.test.Affe, qx.test.Gibbon)
+ */
 
 /**
  * Rudimentary tests to check that Sinon.JS is integrated correctly.
@@ -42,9 +38,9 @@ qx.Class.define("qx.test.dev.unit.Sinon",
     sinon: null,
 
     /**
-     * @lint ignoreUndefined(qx.test.Animal)
-     * @lint ignoreUndefined(qx.test.Affe)
-     * @lint ignoreUndefined(qx.test.Gibbon)
+     * @ignore(qx.test.Animal)
+     * @ignore(qx.test.Affe)
+     * @ignore(qx.test.Gibbon)
      */
     setUp : function()
     {
@@ -149,6 +145,35 @@ qx.Class.define("qx.test.dev.unit.Sinon",
       this.getSandbox().restore();
       this.assertEquals(name, qx.core.Environment.get("browser.name"));
       this.assertEquals(version, qx.core.Environment.get("browser.version"));
+    },
+
+    "test: mock": function() {
+      var obj = {method: function() {}};
+      var mock = this.sinon.mock(obj);
+      mock.expects("method").once();
+
+      obj.method();
+      mock.verify();
+    },
+
+    "test: mock verify throws": function() {
+      var obj = {method: function() {}};
+      var mock = this.sinon.mock(obj);
+      mock.expects("method").once();
+
+      this.assertException(function() {
+        mock.verify();
+      });
+    },
+
+    "test: mock unexpected use throws": function() {
+      var obj = {method: function() {}};
+      var mock = this.sinon.mock(obj);
+      mock.expects("method").never();
+
+      this.assertException(function() {
+        obj.method();
+      }, Error, /Unexpected call/);
     },
 
     "test: assert": function() {

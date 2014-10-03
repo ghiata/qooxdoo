@@ -46,7 +46,7 @@ qx.Class.define("qx.ui.form.core.AbstractVirtualBox",
 
     // Register listeners
     this.addListener("keypress", this._handleKeyboard, this);
-    this.addListener("click", this._handleMouse, this);
+    this.addListener("tap", this._handlePointer, this);
     this.addListener("blur", this._onBlur, this);
     this.addListener("resize", this._onResize, this);
 
@@ -182,7 +182,7 @@ qx.Class.define("qx.ui.form.core.AbstractVirtualBox",
   members :
   {
     __defaultModel : null,
-    
+
     /**
      * @lint ignoreReferenceField(_forwardStates)
      */
@@ -330,7 +330,7 @@ qx.Class.define("qx.ui.form.core.AbstractVirtualBox",
      * <code>Alt</code>.
      *
      * @param event {qx.event.type.KeySequence} The keyboard event.
-     * @return {Boolen} <code>True</code> when a modifier key is pressed,
+     * @return {Boolean} <code>True</code> when a modifier key is pressed,
      *   <code>false</code> otherwise.
      */
     _isModifierPressed : function(event)
@@ -394,11 +394,11 @@ qx.Class.define("qx.ui.form.core.AbstractVirtualBox",
 
 
     /**
-     * Handles all mouse events dispatched on the widget.
+     * Handles all pointer events dispatched on the widget.
      *
-     * @param event {qx.event.type.Mouse|qx.event.type.MouseWheel} The mouse event.
+     * @param event {qx.event.type.Pointer|qx.event.type.Roll} The pointer event.
      */
-    _handleMouse : function(event) {},
+    _handlePointer : function(event) {},
 
 
     /**
@@ -413,7 +413,7 @@ qx.Class.define("qx.ui.form.core.AbstractVirtualBox",
 
     /**
      * Adds/removes the state 'popupOpen' depending on the visibility of the popup
-     * 
+     *
      * @param event {qx.event.type.Data} Data event
      */
     _onPopupChangeVisibility : function(event)
@@ -486,7 +486,7 @@ qx.Class.define("qx.ui.form.core.AbstractVirtualBox",
       this.getChildControl("dropdown").getChildControl("list").setMaxHeight(value);
     }
   },
-  
+
   destruct : function()
   {
     if (this.__defaultModel) {

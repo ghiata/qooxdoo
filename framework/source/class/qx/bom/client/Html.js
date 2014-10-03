@@ -58,7 +58,7 @@ qx.Bootstrap.define("qx.bom.client.Html",
      * @return {Boolean} <code>true</code> if geolocation supported
      */
     getGeoLocation : function() {
-      return navigator.geolocation != null;
+      return "geolocation" in navigator;
     },
 
 
@@ -203,10 +203,13 @@ qx.Bootstrap.define("qx.bom.client.Html",
      */
     getLocalStorage : function() {
       try {
-        return window.localStorage != null;
+        // write once to make sure to catch safari's private mode [BUG #7718]
+        window.localStorage.setItem("$qx_check", "test");
+        window.localStorage.removeItem("$qx_check");
+        return true;
       } catch (exc) {
-        // Firefox Bug: Local execution of window.sessionStorage throws error
-        // see https://bugzilla.mozilla.org/show_bug.cgi?id=357323
+        // Firefox Bug: localStorage doesn't work in file:/// documents
+        // see https://bugzilla.mozilla.org/show_bug.cgi?id=507361
         return false;
       }
     },
@@ -220,7 +223,10 @@ qx.Bootstrap.define("qx.bom.client.Html",
      */
     getSessionStorage : function() {
       try {
-        return window.sessionStorage != null;
+        // write once to make sure to catch safari's private mode [BUG #7718]
+        window.sessionStorage.setItem("$qx_check", "test");
+        window.sessionStorage.removeItem("$qx_check");
+        return true;
       } catch (exc) {
         // Firefox Bug: Local execution of window.sessionStorage throws error
         // see https://bugzilla.mozilla.org/show_bug.cgi?id=357323
@@ -228,10 +234,33 @@ qx.Bootstrap.define("qx.bom.client.Html",
       }
     },
 
+    /**
+     * Whether the client supports user data to persist data. This is only
+     * relevant for IE < 8.
+     *
+     * @internal
+     * @return {Boolean} <code>true</code> if the user data is supported.
+     */
+    getUserDataStorage : function() {
+      var el = document.createElement("div");
+      el.style["display"] = "none";
+      document.getElementsByTagName("head")[0].appendChild(el);
+
+      var supported = false;
+      try {
+        el.addBehavior("#default#userdata");
+        el.load("qxtest");
+        supported = true;
+      } catch (e) {}
+
+      document.getElementsByTagName("head")[0].removeChild(el);
+      return supported;
+    },
+
 
     /**
      * Whether the browser supports CSS class lists.
-     * https://developer.mozilla.org/en/DOM/element.classList
+     * https://developer.mozilla.org/en-US/docs/DOM/element.classList
      *
      * @internal
      * @return {Boolean} <code>true</code> if class list is supported.
@@ -288,13 +317,19 @@ qx.Bootstrap.define("qx.bom.client.Html",
 
 
     /**
-     * Checks if VML could be used
+     * Checks if VML is supported
      *
      * @internal
      * @return {Boolean} <code>true</code> if VML is supported.
      */
     getVml : function() {
-      return qx.bom.client.Engine.getName() == "mshtml";
+      var el = document.createElement("div");
+      document.body.appendChild(el);
+      el.innerHTML = '<v:shape id="vml_flag1" adj="1" />';
+      el.firstChild.style.behavior = "url(#default#VML)";
+      var hasVml = typeof el.firstChild.adj == "object";
+      document.body.removeChild(el);
+      return hasVml;
     },
 
 
@@ -340,7 +375,7 @@ qx.Bootstrap.define("qx.bom.client.Html",
 
     /**
      * Check for element.contains
-     * 
+     *
      * @internal
      * @return {Boolean} <code>true</code> if element.contains is supported
      */
@@ -349,11 +384,11 @@ qx.Bootstrap.define("qx.bom.client.Html",
       // "object" in IE6/7/8, "function" in IE9
       return (typeof document.documentElement.contains !== "undefined");
     },
-    
-    
+
+
     /**
      * Check for element.compareDocumentPosition
-     * 
+     *
      * @internal
      * @return {Boolean} <code>true</code> if element.compareDocumentPosition is supported
      */
@@ -366,7 +401,7 @@ qx.Bootstrap.define("qx.bom.client.Html",
     /**
      * Check for element.textContent. Legacy IEs do not support this, use
      * innerText instead.
-     * 
+     *
      * @internal
      * @return {Boolean} <code>true</code> if textContent is supported
      */
@@ -379,43 +414,108 @@ qx.Bootstrap.define("qx.bom.client.Html",
 
     /**
      * Check for a console object.
-     * 
+     *
      * @internal
      * @return {Boolean} <code>true</code> if a console is available.
      */
     getConsole : function()
     {
       return typeof window.console !== "undefined";
+    },
+
+
+    /**
+     * Check for the <code>naturalHeight</code> and <code>naturalWidth</code>
+     * image element attributes.
+     *
+     * @internal
+     * @return {Boolean} <code>true</code> if both attributes are supported
+     */
+    getNaturalDimensions : function()
+    {
+      var img = document.createElement("img");
+      return typeof img.naturalHeight === "number" &&
+        typeof img.naturalWidth === "number";
+    },
+
+
+    /**
+     * Check for HTML5 history manipulation support.
+
+     * @internal
+     * @return {Boolean} <code>true</code> if the HTML5 history API is supported
+     */
+    getHistoryState : function()
+    {
+      return (typeof window.onpopstate !== "undefined" &&
+              typeof window.history.replaceState !== "undefined" &&
+              typeof window.history.pushState !== "undefined");
+    },
+
+
+    /**
+     * Returns the name of the native object/function used to access the
+     * document's text selection.
+     *
+     * @return {String|null} <code>getSelection</code> if the standard window.getSelection
+     * function is available; <code>selection</code> if the MS-proprietary
+     * document.selection object is available; <code>null</code> if no known
+     * text selection API is available.
+     */
+    getSelection : function()
+    {
+      if (typeof window.getSelection === "function") {
+        return "getSelection";
+      }
+      if (typeof document.selection === "object") {
+        return "selection";
+      }
+      return null;
+    },
+
+
+    /**
+     * Check for the isEqualNode DOM method.
+     *
+     * @return {Boolean} <code>true</code> if isEqualNode is supported by DOM nodes
+     */
+    getIsEqualNode : function() {
+      return typeof document.documentElement.isEqualNode === "function";
     }
   },
 
   defer : function (statics) {
-    qx.core.Environment.add("html.webworker", statics.getWebWorker),
-    qx.core.Environment.add("html.filereader", statics.getFileReader),
-    qx.core.Environment.add("html.geolocation", statics.getGeoLocation),
-    qx.core.Environment.add("html.audio", statics.getAudio),
-    qx.core.Environment.add("html.audio.ogg", statics.getAudioOgg),
-    qx.core.Environment.add("html.audio.mp3", statics.getAudioMp3),
-    qx.core.Environment.add("html.audio.wav", statics.getAudioWav),
-    qx.core.Environment.add("html.audio.au", statics.getAudioAu),
-    qx.core.Environment.add("html.audio.aif", statics.getAudioAif),
-    qx.core.Environment.add("html.video", statics.getVideo),
-    qx.core.Environment.add("html.video.ogg", statics.getVideoOgg),
-    qx.core.Environment.add("html.video.h264", statics.getVideoH264),
-    qx.core.Environment.add("html.video.webm", statics.getVideoWebm),
-    qx.core.Environment.add("html.storage.local", statics.getLocalStorage),
-    qx.core.Environment.add("html.storage.session", statics.getSessionStorage),
-    qx.core.Environment.add("html.classlist", statics.getClassList),
-    qx.core.Environment.add("html.xpath", statics.getXPath),
-    qx.core.Environment.add("html.xul", statics.getXul),
-    qx.core.Environment.add("html.canvas", statics.getCanvas),
-    qx.core.Environment.add("html.svg", statics.getSvg),
-    qx.core.Environment.add("html.vml", statics.getVml),
-    qx.core.Environment.add("html.dataset", statics.getDataset),
-    qx.core.Environment.addAsync("html.dataurl", statics.getDataUrl)
+    qx.core.Environment.add("html.webworker", statics.getWebWorker);
+    qx.core.Environment.add("html.filereader", statics.getFileReader);
+    qx.core.Environment.add("html.geolocation", statics.getGeoLocation);
+    qx.core.Environment.add("html.audio", statics.getAudio);
+    qx.core.Environment.add("html.audio.ogg", statics.getAudioOgg);
+    qx.core.Environment.add("html.audio.mp3", statics.getAudioMp3);
+    qx.core.Environment.add("html.audio.wav", statics.getAudioWav);
+    qx.core.Environment.add("html.audio.au", statics.getAudioAu);
+    qx.core.Environment.add("html.audio.aif", statics.getAudioAif);
+    qx.core.Environment.add("html.video", statics.getVideo);
+    qx.core.Environment.add("html.video.ogg", statics.getVideoOgg);
+    qx.core.Environment.add("html.video.h264", statics.getVideoH264);
+    qx.core.Environment.add("html.video.webm", statics.getVideoWebm);
+    qx.core.Environment.add("html.storage.local", statics.getLocalStorage);
+    qx.core.Environment.add("html.storage.session", statics.getSessionStorage);
+    qx.core.Environment.add("html.storage.userdata", statics.getUserDataStorage);
+    qx.core.Environment.add("html.classlist", statics.getClassList);
+    qx.core.Environment.add("html.xpath", statics.getXPath);
+    qx.core.Environment.add("html.xul", statics.getXul);
+    qx.core.Environment.add("html.canvas", statics.getCanvas);
+    qx.core.Environment.add("html.svg", statics.getSvg);
+    qx.core.Environment.add("html.vml", statics.getVml);
+    qx.core.Environment.add("html.dataset", statics.getDataset);
+    qx.core.Environment.addAsync("html.dataurl", statics.getDataUrl);
     qx.core.Environment.add("html.element.contains", statics.getContains);
     qx.core.Environment.add("html.element.compareDocumentPosition", statics.getCompareDocumentPosition);
     qx.core.Environment.add("html.element.textcontent", statics.getTextContent);
     qx.core.Environment.add("html.console", statics.getConsole);
+    qx.core.Environment.add("html.image.naturaldimensions", statics.getNaturalDimensions);
+    qx.core.Environment.add("html.history.state", statics.getHistoryState);
+    qx.core.Environment.add("html.selection", statics.getSelection);
+    qx.core.Environment.add("html.node.isequalnode", statics.getIsEqualNode);
   }
 });

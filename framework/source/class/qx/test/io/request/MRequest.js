@@ -18,12 +18,11 @@
 ************************************************************************ */
 
 /* ************************************************************************
-#ignore(Klass)
-#asset(qx/test/xmlhttp/*)
 ************************************************************************ */
 
 /**
- * @lint ignoreUndefined(Klass)
+ * @ignore(Klass)
+ * @asset(qx/test/xmlhttp/*)
  */
 
 /**
@@ -56,10 +55,13 @@ qx.Mixin.define("qx.test.io.request.MRequest",
     // General
     //
 
-    "test: dispose transport on destruct": function() {
+    "test: dispose transport on destruct": function()
+    {
       this.req.dispose();
 
-      this.assertCalled(this.transport.dispose);
+      this.wait(100, function() {
+        this.assertCalled(this.transport.dispose);
+      }, this);
     },
 
     "test: getTransport()": function() {
@@ -184,18 +186,6 @@ qx.Mixin.define("qx.test.io.request.MRequest",
       this.assertEquals("value", this.req._getAllRequestHeaders()["otherkey"]);
     },
 
-    // DEPRECATED
-    "test: set request headers": function() {
-      // Ignore expected deprecation warning
-      this.stub(qx.log.Logger, "deprecatedMethodWarning");
-
-      this.req.setRequestHeaders({key1: "value", key2: "value"});
-      this.req.send();
-
-      this.assertCalledWith(this.transport.setRequestHeader, "key1", "value");
-      this.assertCalledWith(this.transport.setRequestHeader, "key2", "value");
-    },
-
     "test: not append cache parameter to URL": function() {
       this.req.send();
 
@@ -280,13 +270,13 @@ qx.Mixin.define("qx.test.io.request.MRequest",
           transport = this.transport,
           timeout = this.spy();
 
-      req.setTimeout(1);
+      req.setTimeout(100);
       req.send();
 
       req.addListener("timeout", timeout);
       transport.ontimeout();
 
-      this.assertEquals(1000, transport.timeout);
+      this.assertEquals(100, transport.timeout);
       this.assertCalledOnce(timeout);
     },
 

@@ -252,7 +252,13 @@ qx.Class.define("qx.data.controller.Form",
 
     // apply method
     _applyModel : function(value, old) {
-      // first, get rid off all bindings (avoids whong data population)
+
+      // set the model to null to reset all items before removing them
+      if (this.__objectController != null && value == null) {
+        this.__objectController.setModel(null);
+      }
+
+      // first, get rid off all bindings (avoids wrong data population)
       if (this.__objectController != null) {
         var items = this.getTarget().getItems();
         for (var name in items) {
@@ -317,6 +323,8 @@ qx.Class.define("qx.data.controller.Form",
           }
         }
       }
+      // make sure the initial values of the model are taken for resetting [BUG #5874]
+      this.getTarget().redefineResetter();
     },
 
 
@@ -352,7 +360,7 @@ qx.Class.define("qx.data.controller.Form",
      *
      * @param item {qx.ui.form.IForm} The form item to check.
      *
-     * @return {true} true, if given item fits.
+     * @return {Boolean} true, if given item fits.
      */
     __isModelSelectable : function(item) {
       return qx.Class.hasInterface(item.constructor, qx.ui.core.ISingleSelection) &&

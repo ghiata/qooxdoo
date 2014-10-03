@@ -32,15 +32,14 @@ qx.Class.define("qx.ui.progressive.renderer.table.cell.Boolean",
   {
     this.base(arguments);
 
-    var aliasManager = qx.util.AliasManager.getInstance();
-    var resourceManager = qx.util.ResourceManager.getInstance();
-    var boolTrueImg =
-      aliasManager.resolve("decoration/table/boolean-true.png");
-    var boolFalseImg =
-      aliasManager.resolve("decoration/table/boolean-false.png");
+    this.__resolveImages();
 
-    this.__iconUrlTrue = resourceManager.toUri(boolTrueImg);
-    this.__iconUrlFalse = resourceManager.toUri(boolFalseImg);
+    // dynamic theme switch
+    if (qx.core.Environment.get("qx.dyntheme")) {
+      qx.theme.manager.Meta.getInstance().addListener(
+        "changeTheme", this.__resolveImages, this
+      );
+    }
   },
 
 
@@ -70,6 +69,23 @@ qx.Class.define("qx.ui.progressive.renderer.table.cell.Boolean",
     __defaultColor : null,
     __defaultFontStyle : null,
     __defaultFontWeight : null,
+
+
+    /**
+     * Resolve the boolean images using the alias and resource manager.
+     */
+    __resolveImages : function() {
+      var aliasManager = qx.util.AliasManager.getInstance();
+      var resourceManager = qx.util.ResourceManager.getInstance();
+      var boolTrueImg =
+        aliasManager.resolve("decoration/table/boolean-true.png");
+      var boolFalseImg =
+        aliasManager.resolve("decoration/table/boolean-false.png");
+
+      this.__iconUrlTrue = resourceManager.toUri(boolTrueImg);
+      this.__iconUrlFalse = resourceManager.toUri(boolFalseImg);
+    },
+
 
     // overridden
     _identifyImage : function(cellInfo)
@@ -108,7 +124,7 @@ qx.Class.define("qx.ui.progressive.renderer.table.cell.Boolean",
           "if (value == '0') " +
           "{";
 
-        if ((qx.core.Environment.get("engine.name") == "mshtml") &&
+        if (qx.core.Environment.get("css.alphaimageloaderneeded") &&
             /\.png$/i.test(this.__iconUrlTrue))
         {
           imageData.extras +=
@@ -130,7 +146,7 @@ qx.Class.define("qx.ui.progressive.renderer.table.cell.Boolean",
           "else " +
           "{";
 
-        if ((qx.core.Environment.get("engine.name") == "mshtml") &&
+        if (qx.core.Environment.get("css.alphaimageloaderneeded") &&
             /\.png$/i.test(this.__iconUrlFalse))
         {
           imageData.extras +=
@@ -175,5 +191,12 @@ qx.Class.define("qx.ui.progressive.renderer.table.cell.Boolean",
 
   destruct : function() {
     this.__iconUrlTrue = this.__iconUrlFalse = null;
+
+    // remove dynamic theme listener
+    if (qx.core.Environment.get("qx.dyntheme")) {
+      qx.theme.manager.Meta.getInstance().removeListener(
+        "changeTheme", this.__resolveImages, this
+      );
+    }
   }
 });

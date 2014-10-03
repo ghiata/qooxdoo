@@ -20,11 +20,11 @@
 /**
  * This mixin offers the basic logging features offered by {@link qx.log.Logger}.
  */
-qx.Mixin.define("qx.core.MLogging", 
+qx.Mixin.define("qx.core.MLogging",
 {
   members :
   {
-    /** {Class} Pointer to the regular logger class */
+    /** @type {Class} Pointer to the regular logger class */
     __Logger : qx.log.Logger,
 
 
@@ -79,7 +79,6 @@ qx.Mixin.define("qx.core.MLogging",
     /**
      * Prints the current stack trace
      *
-     * @return {void}
      */
     trace : function() {
       this.__Logger.trace(this);

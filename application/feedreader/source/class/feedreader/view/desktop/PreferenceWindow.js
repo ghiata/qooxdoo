@@ -19,17 +19,14 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#asset(qx/icon/Tango/16/actions/dialog-ok.png)
-#asset(qx/icon/Tango/16/actions/dialog-cancel.png)
-#asset(qx/icon/Tango/16/apps/preferences-theme.png)
-#asset(qx/icon/Tango/16/apps/preferences-locale.png)
-
-************************************************************************ */
-
 /**
  * The feed reader preference window
+ *
+ * @asset(qx/icon/${qx.icontheme}/16/actions/dialog-ok.png)
+ * @asset(qx/icon/${qx.icontheme}/16/actions/dialog-cancel.png)
+ * @asset(qx/icon/${qx.icontheme}/16/apps/preferences-theme.png)
+ * @asset(qx/icon/${qx.icontheme}/16/apps/preferences-display.png)
+ * @asset(qx/icon/${qx.icontheme}/16/apps/preferences-locale.png)
  */
 qx.Class.define("feedreader.view.desktop.PreferenceWindow",
 {
@@ -93,6 +90,7 @@ qx.Class.define("feedreader.view.desktop.PreferenceWindow",
 
       // Create the radio buttons for the languages
       var languages = { "en" : "English",
+                        "cs" : "Češka",
                         "de" : "Deutsch",
                         "es" : "Español",
                         "fr" : "Français",
@@ -107,7 +105,7 @@ qx.Class.define("feedreader.view.desktop.PreferenceWindow",
       if (qx.core.Environment.get("qx.debug"))
       {
         var availableLocales = localeManager.getAvailableLocales(true).sort().join(", ");
-        var usedLocales = qx.lang.Object.getKeys(languages).sort().join(", ");
+        var usedLocales = Object.keys(languages).sort().join(", ");
 
         if(availableLocales !== usedLocales)
         {
@@ -134,6 +132,32 @@ qx.Class.define("feedreader.view.desktop.PreferenceWindow",
         resetter.add(radioButton);
       }
 
+
+      // Theme switch
+      var groupBox = new qx.ui.groupbox.GroupBox(this.tr("Theme"), "icon/16/apps/preferences-display.png");
+      groupBox.setMinWidth(150);
+      groupBox.setLayout(new qx.ui.layout.VBox());
+      this.add(groupBox);
+
+      // Create radio manager
+      var themeRadioManager = new qx.ui.form.RadioGroup();
+      var themeResetter = new qx.ui.form.Resetter();
+
+      var themes = {
+        "Indigo" : qx.theme.Indigo,
+        "Simple" : qx.theme.Simple,
+        "Modern" : qx.theme.Modern,
+        "Classic" : qx.theme.Classic
+      };
+
+      for (var name in themes) {
+        radioButton = new qx.ui.form.RadioButton(name);
+        radioButton.setUserData("theme", themes[name]);
+        groupBox.add(radioButton);
+        themeRadioManager.add(radioButton);
+        themeResetter.add(radioButton);
+      }
+
       // add the button bar
       var buttonBarLayout = new qx.ui.layout.HBox(10, "right");
       var buttonBar = new qx.ui.container.Composite(buttonBarLayout);
@@ -141,6 +165,7 @@ qx.Class.define("feedreader.view.desktop.PreferenceWindow",
       var cancelButton = new qx.ui.form.Button(this.tr("Cancel"), "icon/16/actions/dialog-cancel.png");
       cancelButton.addListener("execute", function() {
         resetter.reset();
+        themeResetter.reset();
         this.close();
       }, this);
 
@@ -148,12 +173,18 @@ qx.Class.define("feedreader.view.desktop.PreferenceWindow",
       okButton.addListener("execute", function(e) {
         // set the current selected radio button as the new value to reset to
         resetter.redefine();
-        var selectedLanguage = radioManager.getSelection()[0].getUserData("language");
+        themeResetter.redefine();
 
+        // change language
+        var selectedLanguage = radioManager.getSelection()[0].getUserData("language");
         qx.io.PartLoader.require([selectedLanguage], function ()
         {
           qx.locale.Manager.getInstance().setLocale(selectedLanguage);
         }, this);
+
+        // change theme
+        var selectedThemeRadio = themeRadioManager.getSelection()[0];
+        qx.theme.manager.Meta.getInstance().setTheme(selectedThemeRadio.getUserData("theme"));
 
         this.close();
       }, this);

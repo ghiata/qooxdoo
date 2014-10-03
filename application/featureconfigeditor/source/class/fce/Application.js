@@ -19,13 +19,15 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/Tango/16/actions/help-contents.png)
-#use(feature-checks)
 
 ************************************************************************ */
 
 /**
  * Tool used to create configuration maps for feature-based builds
+ *
+ * @use(feature-checks)
+ *
+ * @asset(qx/icon/Tango/16/actions/help-contents.png)
  */
 qx.Class.define("fce.Application",
 {
@@ -125,6 +127,7 @@ qx.Class.define("fce.Application",
      * Creates the application header
      *
      * @return {qx.ui.container.Composite} Header widget
+     * @ignore(qxc)
      */
     _createHeader : function()
     {
@@ -134,6 +137,7 @@ qx.Class.define("fce.Application",
 
       var title = new qx.ui.basic.Label("Feature Configuration Editor");
       var version = new qxc.ui.versionlabel.VersionLabel();
+      version.setFont("default");
 
       header.add(title);
       header.add(new qx.ui.core.Spacer, {flex : 1});

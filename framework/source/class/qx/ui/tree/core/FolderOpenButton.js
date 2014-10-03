@@ -40,9 +40,9 @@ qx.Class.define("qx.ui.tree.core.FolderOpenButton",
 
     this.initOpen();
 
-    this.addListener("click", this._onClick);
-    this.addListener("mousedown", this._stopPropagation, this);
-    this.addListener("mouseup", this._stopPropagation, this);
+    this.addListener("tap", this._onTap);
+    this.addListener("pointerdown", this._stopPropagation, this);
+    this.addListener("pointerup", this._stopPropagation, this);
   },
 
 
@@ -89,24 +89,21 @@ qx.Class.define("qx.ui.tree.core.FolderOpenButton",
 
 
     /**
-     * Stop click event propagation
+     * Stop tap event propagation
      *
      * @param e {qx.event.type.Event} The event object
      */
-    // TODO: Could this be done somewhere else. The whole event
-    // connection stuff on this widget (used by AbstractTreeItem)
-    // needs optimization.
     _stopPropagation : function(e) {
       e.stopPropagation();
     },
 
 
     /**
-     * Mouse click event listener
+     * Pointer tap event listener
      *
-     * @param e {qx.event.type.Mouse} Mouse event
+     * @param e {qx.event.type.Pointer} Pointer event
      */
-    _onClick : function(e)
+    _onTap : function(e)
     {
       this.toggleOpen();
       e.stopPropagation();

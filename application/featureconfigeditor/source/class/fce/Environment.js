@@ -44,23 +44,28 @@ qx.Class.define("fce.Environment", {
   {
     __form : null,
 
+
     /**
      * Queries qx.core.Environment to retrieve all settings/values
+     *
+     * @lint environmentNonLiteralKey(key)
      */
     check : function()
     {
-      var checks = qx.core.Environment._checks;
-      var keys = qx.lang.Object.getKeys(checks);
+      var checks = qx.core.Environment.getChecks();
+      var keys = Object.keys(checks);
 
       var features = {};
       for (var i=0,l=keys.length; i<l; i++) {
         var key = keys[i];
-        features[key] = qx.core.Environment.get(key);
+        if (key.indexOf("fce.") < 0) {
+          features[key] = qx.core.Environment.get(key);
+        }
       }
 
-      checks = qx.core.Environment._asyncChecks;
+      checks = qx.core.Environment.getAsyncChecks();
       var numberOfChecks = qx.lang.Object.getLength(checks);
-      keys = qx.lang.Object.getKeys(checks);
+      keys = Object.keys(checks);
 
       for (var i=0,l=keys.length; i<l; i++) {
         var key = keys[i];

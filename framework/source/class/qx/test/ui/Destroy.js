@@ -29,6 +29,9 @@ qx.Class.define("qx.test.ui.Destroy",
 
   members :
   {
+    /**
+     * @lint ignoreDeprecated(eval)
+     */
     assertLayoutDispose : function(clazz, args, layoutArgsArr)
     {
       this.assertDestroy(function()
@@ -126,54 +129,48 @@ qx.Class.define("qx.test.ui.Destroy",
 
     testContainer : function()
     {
-      if(qx.core.Environment.get("engine.name") == "mshtml" && parseFloat(qx.core.Environment.get("engine.version")) < 7)
-      {
-        this.warn("This test is skipped in IE6.");
-        return ;
-      }
-      else
-      {
-        var forms = [
-          [qx.ui.container.Composite, []],
-          [qx.ui.container.Resizer, []],
-          [qx.ui.container.Scroll, []],
-          [qx.ui.container.SlideBar, []],
-          [qx.ui.container.Stack, []]
-        ];
-        for (var i=0; i<forms.length; i++) {
-          this.assertWidgetDispose(forms[i][0], forms[i][1], "Disposing " + forms[i][0].classname);
-        }
+      var forms = [
+        [qx.ui.container.Composite, []],
+        [qx.ui.container.Resizer, []],
+        [qx.ui.container.Scroll, []],
+        [qx.ui.container.SlideBar, []],
+        [qx.ui.container.Stack, []]
+      ];
+      for (var i=0; i<forms.length; i++) {
+        this.assertWidgetDispose(forms[i][0], forms[i][1], "Disposing " + forms[i][0].classname);
       }
     },
 
 
     testControls : function()
     {
-      if(qx.core.Environment.get("engine.name") == "mshtml" &&
-        parseFloat(qx.core.Environment.get("engine.version")) < 7)
-      {
-        this.warn("This test is skipped in IE6.");
-        return ;
+      var forms = [
+        [qx.ui.control.ColorSelector, []],
+        [qx.ui.control.DateChooser, []]
+      ];
+      for (var i=0; i<forms.length; i++) {
+        this.assertWidgetDispose(forms[i][0], forms[i][1], "Disposing " + forms[i][0].classname);
       }
-      else
+
+      this.assertDestroy(function()
       {
-        var forms = [
-          [qx.ui.control.ColorSelector, []],
-          [qx.ui.control.DateChooser, []]
-        ];
-        for (var i=0; i<forms.length; i++) {
-          this.assertWidgetDispose(forms[i][0], forms[i][1], "Disposing " + forms[i][0].classname);
-        }
+        var widget = new qx.ui.control.ColorPopup();
+        widget.show();
+        this.flush();
 
-        this.assertDestroy(function()
-        {
-          var widget = new qx.ui.control.ColorPopup();
-          widget.show();
-          this.flush();
+        widget.destroy();
+      }, this, "Dispose color popup");
 
-          widget.destroy();
-        }, this, "Dispose color popup");
-      }
+      this.assertDestroy(function()
+      {
+        var widget = new qx.ui.control.ColorPopup();
+        widget.show();
+        widget.getChildControl("selector-button").execute();
+        this.flush();
+
+        widget.destroy();
+        qx.ui.core.queue.Dispose.flush();
+      }, this, "Dispose color popup with selector open");
     },
 
 
@@ -253,12 +250,6 @@ qx.Class.define("qx.test.ui.Destroy",
 
         widget.destroy();
       }, this, "Dispose configured menu");
-    },
-
-
-    testProgressive : function()
-    {
-      // TODO
     },
 
 
@@ -408,12 +399,6 @@ qx.Class.define("qx.test.ui.Destroy",
 
         group.destroy();
       });
-    },
-
-
-    testTreeVirtual : function()
-    {
-      // TODO
     },
 
 

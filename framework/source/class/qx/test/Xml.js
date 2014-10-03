@@ -23,12 +23,6 @@ qx.Class.define("qx.test.Xml",
 
   members :
   {
-    /**
-     * TODOC
-     *
-     * @param arr {Array} TODOC
-     * @return {var} TODOC
-     */
     serializeArray : function(arr)
     {
       var ser = [];
@@ -40,12 +34,6 @@ qx.Class.define("qx.test.Xml",
       return ser.join(", ");
     },
 
-
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
     testParseSerializeXml : function()
     {
       var doc = qx.xml.Document.create();
@@ -63,11 +51,6 @@ qx.Class.define("qx.test.Xml",
     },
 
 
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
     testFromString : function()
     {
       var data = "<Root><Row>test1</Row><Row>test2</Row><Row>test3</Row></Root>";
@@ -77,29 +60,19 @@ qx.Class.define("qx.test.Xml",
     },
 
 
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
     testCreateDocument : function()
     {
       var doc = qx.xml.Document.create("", "rss");
       this.assertEquals('rss', doc.documentElement.tagName);
       this.assertEquals(0, doc.documentElement.childNodes.length);
 
-      var doc = qx.xml.Document.create("http://www.w3.org/1999/xhtml", "html");
-      this.assertEquals('http://www.w3.org/1999/xhtml', doc.documentElement.namespaceURI);
+      doc = qx.xml.Document.create("http://www.w3.org/1999/xhtml/", "html");
+      this.assertEquals('http://www.w3.org/1999/xhtml/', doc.documentElement.namespaceURI);
       this.assertEquals('html', doc.documentElement.tagName);
       this.assertEquals(0, doc.documentElement.childNodes.length);
     },
 
 
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
     testXPath : function()
     {
       var xmlStr = '<html><body>Juhu <em id="toll">Kinners</em>. Wie geht es <em>Euch</em>?</body></html>';
@@ -117,23 +90,19 @@ qx.Class.define("qx.test.Xml",
       this.assertEquals(this.serializeArray(doc2.getElementsByTagName("em")), this.serializeArray(qx.xml.Element.selectNodes(doc2.documentElement, '//em')));
     },
 
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
+
     testXPathNS : function()
     {
-      var xmlStr = '<html xmlns="http://www.w3.org/1999/xhtml"><body>Juhu <em id="toll">Kinners</em>. Wie geht es <em>Euch</em>?<foo xmlns="http://qooxdoo.org" id="bar"/></body></html>';
+      var xmlStr = '<html xmlns="http://www.w3.org/1999/xhtml/"><body>Juhu <em id="toll">Kinners</em>. Wie geht es <em>Euch</em>?<foo xmlns="http://qooxdoo.org" id="bar"/></body></html>';
       var doc = qx.xml.Document.fromString(xmlStr);
-      var em = qx.xml.Element.getElementsByTagNameNS(doc, "http://www.w3.org/1999/xhtml", "em")[0];
+      var em = qx.xml.Element.getElementsByTagNameNS(doc, "http://www.w3.org/1999/xhtml/", "em")[0];
       var foo = qx.xml.Element.getElementsByTagNameNS(doc, "http://qooxdoo.org", "foo")[0];
 
       var emStr = qx.xml.Element.serialize(em);
       var fooStr = qx.xml.Element.serialize(foo);
 
       var nsMap = {
-        "xhtml" : "http://www.w3.org/1999/xhtml",
+        "xhtml" : "http://www.w3.org/1999/xhtml/",
         "qx"    : "http://qooxdoo.org"
       };
       var q1 = "//xhtml:em";
@@ -151,14 +120,6 @@ qx.Class.define("qx.test.Xml",
           qx.xml.Element.selectSingleNode(doc, q2, nsMap);
         }, Error, "DOM Exception 14", "Namespaced XPath query worked in Chrome < 532.2!");
       }
-      // Older versions of Opera don't support XPathEvaluate.
-      // TODO: Define XPathEvaluate as a requirement for this test once the
-      // feature described in bug #1994 has been implemented.
-      else if (qx.core.Environment.get("engine.name") == "opera" &&
-        parseFloat(qx.core.Environment.get("engine.version")) < 9.5)
-      {
-        return true;
-      }
       else {
         var n1 = qx.xml.Element.selectSingleNode(doc, q1, nsMap);
         var s1 = qx.xml.Element.serialize(n1);
@@ -171,17 +132,11 @@ qx.Class.define("qx.test.Xml",
         var n3 = qx.xml.Element.selectNodes(doc, q3, nsMap);
         var n4 = qx.xml.Element.selectNodes(n3[0], q2, nsMap);
         var s4 = qx.xml.Element.serialize(n4[0]);
-        // this.debug("Found node: " + s4);
         this.assertEquals(s4, fooStr);
       }
     },
 
 
-    /**
-     * TODOC
-     *
-     * @return {void}
-     */
     testGetElementsByTagNameNS : function()
     {
       var xmlStr =
@@ -209,13 +164,9 @@ qx.Class.define("qx.test.Xml",
     },
 
 
-    /**
-     * TODOC
-     *
-     */
     testSetAttributeNS : function()
     {
-      var doc = qx.xml.Document.create("http://www.w3.org/1999/xhtml", "html");
+      var doc = qx.xml.Document.create("http://www.w3.org/1999/xhtml/", "html");
       var node = doc.createElement("a");
       var namespaceURI = "http://www.qooxdoo.org/";
       qx.xml.Element.setAttributeNS(doc, node, namespaceURI, "qxid", "foo");
@@ -228,13 +179,10 @@ qx.Class.define("qx.test.Xml",
       }
     },
 
-    /**
-     * TODOC
-     *
-     */
+
     testGetAttributeNS : function()
     {
-      var doc = qx.xml.Document.create("http://www.w3.org/1999/xhtml", "html");
+      var doc = qx.xml.Document.create("http://www.w3.org/1999/xhtml/", "html");
       var node = doc.createElement("a");
       var namespaceURI = "http://www.qooxdoo.org/";
       qx.xml.Element.setAttributeNS(doc, node, namespaceURI, "qxid", "foo");

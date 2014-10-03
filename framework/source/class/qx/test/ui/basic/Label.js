@@ -17,9 +17,9 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-#asset(qx/test/webfonts/*)
-************************************************************************ */
+/**
+ * @asset(qx/test/webfonts/*)
+ */
 
 qx.Class.define("qx.test.ui.basic.Label",
 {
@@ -43,7 +43,10 @@ qx.Class.define("qx.test.ui.basic.Label",
 
     tearDown : function()
     {
+      this.base(arguments);
       this.getSandbox().restore();
+      qx.bom.webfonts.Manager.getInstance().dispose();
+      delete qx.bom.webfonts.Manager.$$instance;
     },
 
     testHeightForWidth : function()
@@ -149,9 +152,9 @@ qx.Class.define("qx.test.ui.basic.Label",
           f.dispose();
           this.assertCalledTwice(statusChangeSpy);
         }, this);
-      }, this, 1000);
+      }, this, 2500);
 
-      this.wait(2000);
+      this.wait(5000);
     },
 
     testApplyFontColorAndTextColor: function()
@@ -170,6 +173,33 @@ qx.Class.define("qx.test.ui.basic.Label",
 
       label1.destroy();
       font1.dispose();
+    },
+
+    testBudy : function() {
+      var label = new qx.ui.basic.Label();
+      var textfield1 = new qx.ui.form.TextField();
+      var textfield2 = new qx.ui.form.TextField();
+
+      // set first text field as budy
+      label.setBuddy(textfield1);
+
+      // label and textfield1 must have the same binding
+      this.assertEquals(1, label.getBindings().length, "There must be one binding!");
+      this.assertEquals(1, textfield1.getBindings().length, "There must be one binding!");
+      this.assertTrue(qx.lang.Array.equals(label.getBindings()[0], textfield1.getBindings()[0]), "label and textfield1 must have the same binding");
+
+      // change the budy of label to textfield2
+      label.setBuddy(textfield2);
+
+      // textfield1 must not have a binding anymore
+      this.assertEquals(0, textfield1.getBindings().length, "There is still a binding!");
+
+      // label and textfield2 must have the same binding
+      this.assertEquals(1, label.getBindings().length, "There must be one binding!");
+      this.assertEquals(1, textfield2.getBindings().length, "There must be one binding!");
+      this.assertTrue(qx.lang.Array.equals(label.getBindings()[0], textfield2.getBindings()[0]), "label and textfield1 must have the same binding");
+
+      label.dispose();
     }
   }
 });

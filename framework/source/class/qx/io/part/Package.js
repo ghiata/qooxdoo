@@ -18,15 +18,12 @@
 
 ************************************************************************ */
 
-/*
- #ignore(qx.util.ResourceManager)
- */
-
 /**
  * The Package wraps a list of related script URLs, which are required by one
  * or more parts.
  *
  * @internal
+ * @ignore(qx.util.ResourceManager)
  */
 qx.Bootstrap.define("qx.io.part.Package",
 {
@@ -229,7 +226,7 @@ qx.Bootstrap.define("qx.io.part.Package",
 
       var urlsLoaded = 0;
       var self = this;
-      var onLoad = function(urls)
+      var loadScripts = function(urls)
       {
         if (urlsLoaded >= urlList.length)
         {
@@ -237,19 +234,13 @@ qx.Bootstrap.define("qx.io.part.Package",
           return;
         }
 
-        var loader = new qx.io.ScriptLoader();
+        var loader = new qx.bom.request.Script();
+        loader.open("GET", urls.shift());
 
-        loader.load(urls.shift(), function(status)
+        loader.onload = function()
         {
           urlsLoaded += 1;
           loader.dispose();
-
-          if (status !== "success") {
-            if (self.__readyState == "loading") {
-              clearTimeout(self.__timeoutId);
-              return errBack.call(self);
-            }
-          }
 
           // Important to use engine detection directly to keep the minimal
           // package size small [BUG #5068]
@@ -260,17 +251,30 @@ qx.Bootstrap.define("qx.io.part.Package",
             // called sync.
             setTimeout(function()
             {
-              onLoad.call(self, urls, callback, self);
+              loadScripts.call(self, urls, callback, self);
             }, 0);
           }
           else
           {
-            onLoad.call(self, urls, callback, self);
+            loadScripts.call(self, urls, callback, self);
           }
-        }, self);
-      }
+        };
 
-      onLoad(urlList.concat());
+        loader.onerror = function() {
+          if (self.__readyState == "loading") {
+            clearTimeout(self.__timeoutId);
+            loader.dispose();
+            return errBack.call(self);
+          }
+        };
+
+        // Force loading script asynchronously (IE may load synchronously)
+        window.setTimeout(function() {
+          loader.send();
+        });
+      };
+
+      loadScripts(urlList.concat());
     },
 
 

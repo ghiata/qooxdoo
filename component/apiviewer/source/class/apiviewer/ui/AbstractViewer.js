@@ -36,6 +36,10 @@ qx.Class.define("apiviewer.ui.AbstractViewer",
     this.setOverflowX("auto");
     this.setOverflowY("auto");
 
+    this.getContentElement().setStyle("-webkit-overflow-scrolling", "touch");
+    this.getContentElement().setStyle("touch-action", "pan-y");
+    this.getContentElement().setStyle("-ms-touch-action", "pan-y");
+
     this.setAppearance("detailviewer");
 
     this._infoPanelHash = {};
@@ -135,10 +139,11 @@ qx.Class.define("apiviewer.ui.AbstractViewer",
           // to its innerHTML the pre tag and the javaScript code and replace the
           // existing pre element with the wrapper element.
           var preWrapper = document.createElement("div");
-          preWrapper.innerHTML = '<pre class="javascript">' + qx.dev.Tokenizer.javaScriptToHtml(element.innerHTML, true) + '</pre>';
+          var content = element.textContent || element.innerText;
+          preWrapper.innerHTML = '<pre class="javascript">' + qx.dev.Tokenizer.javaScriptToHtml(content, true) + '</pre>';
           element.parentNode.replaceChild(preWrapper, element);
         } else {
-          element.innerHTML = qx.dev.Tokenizer.javaScriptToHtml(element.innerHTML);
+          element.innerHTML = qx.dev.Tokenizer.javaScriptToHtml(element.textContent);
         }
       }
     }
@@ -285,7 +290,7 @@ qx.Class.define("apiviewer.ui.AbstractViewer",
       this._updatePanels();
       if(this._tocElem)
       {
-        qx.bom.Element.empty(this._tocElem);
+        qx.dom.Element.empty(this._tocElem);
         this._tocElem.appendChild(this._getTocHtml(this.__classNode));
       }
     },
@@ -308,7 +313,7 @@ qx.Class.define("apiviewer.ui.AbstractViewer",
       }
 
       this._titleElem.innerHTML = this._getTitleHtml(classNode);
-      qx.bom.Element.empty(this._tocElem);
+      qx.dom.Element.empty(this._tocElem);
       this._tocElem.appendChild(this._getTocHtml(classNode));
       this._classDescElem.innerHTML = this._getDescriptionHtml(classNode);
       apiviewer.ui.AbstractViewer.fixLinks(this._classDescElem);
@@ -322,7 +327,7 @@ qx.Class.define("apiviewer.ui.AbstractViewer",
 
 
     /**
-     * Event handler. Called when the user clicked a button for showing/hiding the
+     * Event handler. Called when the user tapped a button for showing/hiding the
      * body of an info panel.
      *
      * @param panelHashCode {Integer} hash code of the panel object.

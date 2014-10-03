@@ -19,13 +19,11 @@
 
 ************************************************************************ */
 
-/*
-#cldr
-*/
-
 /**
  * Static class that provides localized date information (like names of week
  * days, AM/PM markers, start of week, etc.).
+ *
+ * @cldr()
  */
 qx.Class.define("qx.locale.Date",
 {
@@ -193,7 +191,7 @@ qx.Class.define("qx.locale.Date",
      *
      * @param size {String} format of the date format.
      *      Possible values: "short", "medium", "long", "full"
-     * @param locale {String} optional locale to be used
+     * @param locale {String?} optional locale to be used
      * @return {String} localized date format string
      */
     getDateFormat : function(size, locale)
@@ -208,9 +206,11 @@ qx.Class.define("qx.locale.Date",
 
 
     /**
-     * Try to localize a date/time format string.
+     * Try to localize a date/time format string. For format string possibillities see
+     * <a href="http://cldr.unicode.org/translation/date-time">Date/Time Symbol reference</a>
+     * at CLDR - Unicode Common Locale Data Repository.
      *
-     * If no localization is available take the fallback format string
+     * If no localization is available take the fallback format string.
      *
      * @param canonical {String} format string containing only field information, and in a canonical order.
      *       Examples are "yyyyMMMM" for year + full month, or "MMMd" for abbreviated month + day.
@@ -479,14 +479,14 @@ qx.Class.define("qx.locale.Date",
     /**
      * Provide localisation (CLDR) data with fallback between "format" and "stand-alone" contexts.
      * It is used in {@link #getDayName} and {@link #getMonthName} methods.
-     * 
+     *
      * @param context {String} intended context.
      *       Possible values: "format", "stand-alone".
      * @param fallbackContext {String} the context used in case no localisation is found for the key.
      * @param key {String} message id (may contain format strings)
      * @param locale {String} the locale
      * @return {String} localized name for the key
-     * 
+     *
      */
     __localizeWithFallback : function(context, fallbackContext, key, locale)
     {

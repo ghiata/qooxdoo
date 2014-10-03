@@ -26,8 +26,11 @@ qx.Class.define("qx.data.SingleValueBinding",
 
   statics :
   {
-    /** internal reference for all bindings */
+    /** internal reference for all bindings indexed by source object */
     __bindings: {},
+
+    /** internal reference for all bindings indexed by target object */
+    __bindingsByTarget : {},
 
 
     /**
@@ -55,7 +58,7 @@ qx.Class.define("qx.data.SingleValueBinding",
      * which the native does not. Imagine a qooxdoo object a which has a
      * children property containing an array holding more of its own kind.
      * Every object has a name property as a string.
-     * <pre><code>
+     * <pre>
      * var svb = qx.data.SingleValueBinding;
      * // bind the first childs name of 'a' to a textfield
      * svb.bind(a, "children[0].name", textfield, "value");
@@ -63,7 +66,7 @@ qx.Class.define("qx.data.SingleValueBinding",
      * svb.bind(a, "children[last].name", textfield2, "value");
      * // also deeper bindinds are possible
      * svb.bind(a, "children[0].children[0].name", textfield3, "value");
-     * </code></pre>
+     * </pre>
      *
      * As you can see in this example, the abc property of a's b will be bound
      * to the textfield. If now the value of b changed or even the a will get a
@@ -78,18 +81,33 @@ qx.Class.define("qx.data.SingleValueBinding",
      *   object.
      * @param options {Map?null} A map containing the options.
      *   <li>converter: A converter function which takes four parameters
-     *       and should return the converted value. The first parameter is the
-     *       data to convert and the second one is the corresponding model
-     *       object, which is only set in case of the use of an controller.
-     *       The third parameter is the source object for the binding and the
-     *       fourth parameter the target object. If no conversion has been
-     *       done, the given value should be returned.</li>
+     *       and should return the converted value.
+     *       <ol>
+     *         <li>The data to convert</li>
+     *         <li>The corresponding model object, which is only set in case of the use of an controller.</li>
+     *         <li>The source object for the binding</li>
+     *         <li>The target object.</li>
+     *       </ol>
+     *       If no conversion has been done, the given value should be returned.
+     *       e.g. a number to boolean converter
+     *       <code>function(data, model, source, target) {return data > 100;}</code>
+     *   </li>
      *   <li>onUpdate: A callback function can be given here. This method will be
      *       called if the binding was updated successful. There will be
-     *       three parameter you do get in that method call: the source object,
-     *       the target object and the data as third parameter.</li>
+     *       three parameter you do get in that method call.
+     *       <ol>
+     *         <li>The source object</li>
+     *         <li>The target object</li>
+     *         <li>The data</li>
+     *       </ol>
+     *       Here is a sample: <code>onUpdate : function(source, target, data) {...}</code>
+     *   </li>
      *   <li>onSetFail: A callback function can be given here. This method will
-     *       be called if the set of the value fails.</li>
+     *       be called if the set of the value fails.
+     *   </li>
+     *   <li>ignoreConverter: A string which will be matched using the current
+     *       property chain. If it matches, the converter will not be called.
+     *   </li>
      *
      * @return {var} Returns the internal id for that binding. This can be used
      *   for referencing the binding or e.g. for removing. This is not an atomic
@@ -103,6 +121,14 @@ qx.Class.define("qx.data.SingleValueBinding",
       sourceObject, sourcePropertyChain, targetObject, targetPropertyChain, options
     )
     {
+      // check for the arguments
+      if (qx.core.Environment.get("qx.debug")) {
+        qx.core.Assert.assertObject(sourceObject, "sourceObject");
+        qx.core.Assert.assertString(sourcePropertyChain, "sourcePropertyChain");
+        qx.core.Assert.assertObject(targetObject, "targetObject");
+        qx.core.Assert.assertString(targetPropertyChain, "targetPropertyChain");
+      }
+
       // set up the target binding
       var targetListenerMap = this.__setUpTargetBinding(
         sourceObject, sourcePropertyChain, targetObject, targetPropertyChain, options
@@ -167,7 +193,7 @@ qx.Class.define("qx.data.SingleValueBinding",
           // if its not the last property
           } else {
 
-            // create the contenxt for the listener
+            // create the context for the listener
             var context = {
               index: i,
               propertyNames: propertyNames,
@@ -192,13 +218,21 @@ qx.Class.define("qx.data.SingleValueBinding",
 
           // get and store the next source
           if (source["get" + qx.lang.String.firstUp(propertyNames[i])] == null) {
-            source = null;
+            source = undefined;
           } else if (arrayIndexValues[i] !== "") {
-            source = source["get" + qx.lang.String.firstUp(propertyNames[i])](arrayIndexValues[i]);
+            var itemIndex = arrayIndexValues[i] === "last" ?
+              source.length - 1 : arrayIndexValues[i];
+            source = source["get" + qx.lang.String.firstUp(propertyNames[i])](itemIndex);
           } else {
             source = source["get" + qx.lang.String.firstUp(propertyNames[i])]();
+            // the value should be undefined if we can not find the last part of the property chain
+            if (source === null && (propertyNames.length - 1) != i) {
+              source = undefined;
+            }
           }
           if (!source) {
+            // call the converter if no source could be found on binding creation
+            this.__setInitialValue(source, targetObject, targetPropertyChain, options, sourceObject);
             break;
           }
         }
@@ -206,6 +240,7 @@ qx.Class.define("qx.data.SingleValueBinding",
       } catch (ex) {
         // remove the already added listener
         // go threw all added listeners (source)
+
         for (var i = 0; i < sources.length; i++) {
           // check if a source is available
           if (sources[i] && listenerIds[i]) {
@@ -213,7 +248,7 @@ qx.Class.define("qx.data.SingleValueBinding",
           }
         }
         var targets = targetListenerMap.targets;
-        var targetIds = targetListenerMap.listenerIds[i];
+        var targetIds = targetListenerMap.listenerIds;
         // go threw all added listeners (target)
         for (var i = 0; i < targets.length; i++) {
           // check if a target is available
@@ -249,7 +284,6 @@ qx.Class.define("qx.data.SingleValueBinding",
      */
     __chainListener : function(context)
     {
-
       // invoke the onUpdate method
       if (context.options && context.options.onUpdate) {
         context.options.onUpdate(
@@ -283,7 +317,34 @@ qx.Class.define("qx.data.SingleValueBinding",
         context.sources[j] = source;
         // reset the target object if no new source could be found
         if (!source) {
-          this.__resetTargetValue(context.targetObject, context.targetPropertyChain);
+          // use the converter if the property chain breaks [BUG# 6880]
+          if (context.options && context.options.converter) {
+
+            var ignoreConverter = false;
+            // take care of the ignore pattern used for the controller
+            if (context.options.ignoreConverter) {
+              // the current property chain as string
+              var currentSourceChain = context.propertyNames.slice(0,j).join(".");
+              // match for the current patten given in the options
+              var match = currentSourceChain.match(
+                new RegExp("^" + context.options.ignoreConverter)
+              );
+              ignoreConverter = match ? match.length > 0 : false;
+            }
+
+            if (!ignoreConverter) {
+              this.__setTargetValue(
+                context.targetObject,
+                context.targetPropertyChain,
+                context.options.converter()
+              );
+            } else {
+              this.__resetTargetValue(context.targetObject, context.targetPropertyChain);
+            }
+          } else {
+            this.__resetTargetValue(context.targetObject, context.targetPropertyChain);
+          }
+
           break;
         }
 
@@ -490,7 +551,7 @@ qx.Class.define("qx.data.SingleValueBinding",
       sourceObject, sourcePropertyChain, targetObject, targetPropertyChain, options
     )
     {
-      var value = this.getValueFromObject(sourceObject, sourcePropertyChain);
+      var value = this.resolvePropertyChain(sourceObject, sourcePropertyChain);
 
       // convert the data before setting
       value = qx.data.SingleValueBinding.__convertValue(
@@ -508,10 +569,8 @@ qx.Class.define("qx.data.SingleValueBinding",
      * @param propertyChain {String} The property chain which represents
      *   the source property.
      * @return {var?undefined} Returns the set value if defined.
-     *
-     * @internal
      */
-    getValueFromObject : function(o, propertyChain) {
+    resolvePropertyChain : function(o, propertyChain) {
       var source = this.__getTargetFromChain(o, propertyChain);
 
       var value;
@@ -879,6 +938,7 @@ qx.Class.define("qx.data.SingleValueBinding",
           if (arrayIndex === "last") {
             arrayIndex = sourceObject.length - 1;
           }
+
           // get the data of the array
           var data = sourceObject.getItem(arrayIndex);
 
@@ -928,17 +988,17 @@ qx.Class.define("qx.data.SingleValueBinding",
             options.onUpdate(sourceObject, targetObject, data);
           }
 
-        } catch (e) {
-          if (! (e instanceof qx.core.ValidationError)) {
-            throw e;
+        } catch (ex) {
+          if (! (ex instanceof qx.core.ValidationError)) {
+            throw ex;
           }
 
           if (options && options.onSetFail) {
-            options.onSetFail(e);
+            options.onSetFail(ex);
           } else {
             qx.log.Logger.warn(
               "Failed so set value " + data + " on " + targetObject
-               + ". Error message: " + e
+               + ". Error message: " + ex
             );
           }
         }
@@ -974,13 +1034,24 @@ qx.Class.define("qx.data.SingleValueBinding",
       id, sourceObject, sourceEvent, targetObject, targetProperty
     )
     {
+      var hash;
+
       // add the listener id to the internal registry
-      if (this.__bindings[sourceObject.toHashCode()] === undefined) {
-        this.__bindings[sourceObject.toHashCode()] = [];
+      hash = sourceObject.toHashCode();
+      if (this.__bindings[hash] === undefined) {
+        this.__bindings[hash] = [];
       }
-      this.__bindings[sourceObject.toHashCode()].push(
-        [id, sourceObject, sourceEvent, targetObject, targetProperty]
-      );
+
+      var binding = [id, sourceObject, sourceEvent, targetObject, targetProperty];
+      this.__bindings[hash].push(binding);
+
+
+      // add same binding data indexed by target object
+      hash = targetObject.toHashCode();
+      if (this.__bindingsByTarget[hash] === undefined) {
+        this.__bindingsByTarget[hash] = [];
+      }
+      this.__bindingsByTarget[hash].push(binding);
     },
 
 
@@ -1063,6 +1134,7 @@ qx.Class.define("qx.data.SingleValueBinding",
      * @param data {var} The data to convert.
      * @param targetCheck {String} The value of the check property. That usually
      *   contains the target type.
+     * @return {Integer|String|Float} The converted data
      */
     __defaultConversion : function(data, targetCheck) {
       var dataType = qx.lang.Type.getClass(data);
@@ -1120,12 +1192,22 @@ qx.Class.define("qx.data.SingleValueBinding",
       }
 
       // remove the id from the internal reference system
-      var bindings = this.__bindings[sourceObject.toHashCode()];
+      var bindings = this.getAllBindingsForObject(sourceObject);
       // check if the binding exists
       if (bindings != undefined) {
         for (var i = 0; i < bindings.length; i++) {
           if (bindings[i][0] == id) {
-            qx.lang.Array.remove(bindings, bindings[i]);
+            // remove binding data from internal reference indexed by target object
+            var target = bindings[i][3];
+            if (this.__bindingsByTarget[target.toHashCode()]) {
+              qx.lang.Array.remove(this.__bindingsByTarget[target.toHashCode()], bindings[i]);
+            }
+
+            // remove binding data from internal reference indexed by source object
+            var source = bindings[i][1];
+            if (this.__bindings[source.toHashCode()]) {
+              qx.lang.Array.remove(this.__bindings[source.toHashCode()], bindings[i]);
+            }
             return;
           }
         }
@@ -1153,12 +1235,49 @@ qx.Class.define("qx.data.SingleValueBinding",
       }
 
       // get the bindings
-      var bindings = this.__bindings[object.toHashCode()];
+      var bindings = this.getAllBindingsForObject(object);
       if (bindings != undefined)
       {
         // remove every binding with the removeBindingFromObject function
         for (var i = bindings.length - 1; i >= 0; i--) {
           this.removeBindingFromObject(object, bindings[i][0]);
+        }
+      }
+    },
+
+
+    /**
+     * Removes all bindings between given objects.
+     *
+     * @param object {qx.core.Object} The object of which the bindings should be
+     *   removed.
+     * @param relatedObject {qx.core.Object} The object of which related
+     *   bindings should be removed.
+     * @throws {qx.core.AssertionError} If the object is not in the internal
+     *   registry of the bindings.
+     * @throws {Error} If one of the bindings listed internally can not be
+     *   removed.
+     */
+    removeRelatedBindings : function(object, relatedObject) {
+      // check for the null value
+      if (qx.core.Environment.get("qx.debug")) {
+        qx.core.Assert.assertNotNull(object,
+          "Can not remove the bindings for null object!");
+        qx.core.Assert.assertNotNull(relatedObject,
+          "Can not remove the bindings for null object!");
+      }
+
+      // get the bindings
+      var bindings = this.getAllBindingsForObject(object);
+      if (bindings != undefined)
+      {
+        // remove every binding with the removeBindingFromObject function
+        for (var i = bindings.length - 1; i >= 0; i--) {
+          var source = bindings[i][1];
+          var target = bindings[i][3];
+          if (source === relatedObject || target === relatedObject) {
+            this.removeBindingFromObject(object, bindings[i][0]);
+          }
         }
       }
     },
@@ -1175,12 +1294,19 @@ qx.Class.define("qx.data.SingleValueBinding",
      *   sourceEvent, targetObject and targetProperty in that order.
      */
     getAllBindingsForObject : function(object) {
+      var hash = object.toHashCode();
       // create an empty array if no binding exists
-      if (this.__bindings[object.toHashCode()] === undefined) {
-        this.__bindings[object.toHashCode()] = [];
+      if (this.__bindings[hash] === undefined) {
+        this.__bindings[hash] = [];
       }
 
-      return this.__bindings[object.toHashCode()];
+      // get all bindings of object as source
+      var sourceBindings = this.__bindings[hash];
+
+      // get all bindings of object as target
+      var targetBindings = this.__bindingsByTarget[hash] ? this.__bindingsByTarget[hash] : [];
+
+      return qx.lang.Array.unique(sourceBindings.concat(targetBindings));
     },
 
 

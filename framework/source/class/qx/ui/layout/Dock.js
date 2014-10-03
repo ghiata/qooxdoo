@@ -85,7 +85,7 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/layout/dock.html'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/layout/dock.html'>
  * Extended documentation</a> and links to demos of this layout in the qooxdoo manual.
  */
 qx.Class.define("qx.ui.layout.Dock",
@@ -103,8 +103,8 @@ qx.Class.define("qx.ui.layout.Dock",
   /**
    * @param spacingX {Integer?0} The horizontal spacing. Sets {@link #spacingX}.
    * @param spacingY {Integer?0} The vertical spacing. Sets {@link #spacingY}.
-   * @param separatorX {Decorator} Separator to render between columns
-   * @param separatorY {Decorator} Separator to render between rows
+   * @param separatorX {String|qx.ui.decoration.IDecorator} Separator to render between columns
+   * @param separatorY {String|qx.ui.decoration.IDecorator} Separator to render between rows
    */
   construct : function(spacingX, spacingY, separatorX, separatorY)
   {
@@ -252,7 +252,7 @@ qx.Class.define("qx.ui.layout.Dock",
 
 
     /**
-     * {Map} Maps edge IDs to numeric values
+     * @type {Map} Maps edge IDs to numeric values
      *
      * @lint ignoreReferenceField(__edgeMap)
      */
@@ -267,7 +267,7 @@ qx.Class.define("qx.ui.layout.Dock",
 
 
     /**
-     * {Map} Maps edges to align values
+     * @type {Map} Maps edges to align values
      *
      * @lint ignoreReferenceField(__alignMap)
      */
@@ -283,7 +283,6 @@ qx.Class.define("qx.ui.layout.Dock",
     /**
      * Rebuilds cache for sorted children list.
      *
-     * @return {void}
      */
     __rebuildCache : function()
     {
@@ -357,7 +356,7 @@ qx.Class.define("qx.ui.layout.Dock",
     */
 
     // overridden
-    renderLayout : function(availWidth, availHeight)
+    renderLayout : function(availWidth, availHeight, padding)
     {
       // Rebuild flex/width caches
       if (this._invalidChildrenCache) {
@@ -650,8 +649,8 @@ qx.Class.define("qx.ui.layout.Dock",
               }
 
               this._renderSeparator(separatorY, {
-                left : separatorLeft,
-                top : separatorTop,
+                left : separatorLeft + padding.left,
+                top : separatorTop + padding.top,
                 width : separatorWidth,
                 height : separatorWidths.y
               });
@@ -716,8 +715,8 @@ qx.Class.define("qx.ui.layout.Dock",
               }
 
               this._renderSeparator(separatorX, {
-                left : separatorLeft,
-                top : separatorTop,
+                left : separatorLeft + padding.left,
+                top : separatorTop + padding.top,
                 width : separatorWidths.x,
                 height : separatorHeight
               });
@@ -764,7 +763,7 @@ qx.Class.define("qx.ui.layout.Dock",
         }
 
         // Apply layout
-        child.renderLayout(left, top, width, height);
+        child.renderLayout(left + padding.left, top + padding.top, width, height);
       }
     },
 

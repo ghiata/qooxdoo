@@ -15,12 +15,13 @@
    Authors:
      * Sebastian Werner (wpbasti)
      * Martin Wittemann (martinwittemann)
+     * Christian Hagendorn (chris_schmidt)
 
 ************************************************************************ */
 
 /**
  * Methods to place popup like widgets to other widgets, points,
- * mouse event coordinates, etc.
+ * pointer event coordinates, etc.
  */
 qx.Mixin.define("qx.ui.core.MPlacement",
 {
@@ -108,10 +109,10 @@ qx.Mixin.define("qx.ui.core.MPlacement",
     {
       check :
       [
-        "top-left", "top-right",
-        "bottom-left", "bottom-right",
-        "left-top", "left-bottom",
-        "right-top", "right-bottom"
+        "top-left", "top-center", "top-right",
+        "bottom-left", "bottom-center", "bottom-right",
+        "left-top", "left-middle", "left-bottom",
+        "right-top", "right-middle", "right-bottom"
       ],
       init : "bottom-left",
       themeable : true
@@ -119,12 +120,12 @@ qx.Mixin.define("qx.ui.core.MPlacement",
 
     /**
      * Whether the widget should be placed relative to an other widget or to
-     * the mouse cursor.
+     * the pointer.
      */
     placeMethod :
     {
-      check : ["widget", "mouse"],
-      init : "mouse",
+      check : ["widget", "pointer"],
+      init : "pointer",
       themeable: true
     },
 
@@ -161,7 +162,7 @@ qx.Mixin.define("qx.ui.core.MPlacement",
       themeable : true
     },
 
-    /** Left offset of the mouse pointer (in pixel) */
+    /** Left offset of the pointer (in pixel) */
     offsetLeft :
     {
       check : "Integer",
@@ -169,7 +170,7 @@ qx.Mixin.define("qx.ui.core.MPlacement",
       themeable : true
     },
 
-    /** Top offset of the mouse pointer (in pixel) */
+    /** Top offset of the pointer (in pixel) */
     offsetTop :
     {
       check : "Integer",
@@ -177,7 +178,7 @@ qx.Mixin.define("qx.ui.core.MPlacement",
       themeable : true
     },
 
-    /** Right offset of the mouse pointer (in pixel) */
+    /** Right offset of the pointer (in pixel) */
     offsetRight :
     {
       check : "Integer",
@@ -185,7 +186,7 @@ qx.Mixin.define("qx.ui.core.MPlacement",
       themeable : true
     },
 
-    /** Bottom offset of the mouse pointer (in pixel) */
+    /** Bottom offset of the pointer (in pixel) */
     offsetBottom :
     {
       check : "Integer",
@@ -232,6 +233,11 @@ qx.Mixin.define("qx.ui.core.MPlacement",
 
       // Add bounds of the widget itself
       bounds = widget.getBounds();
+
+      if (!bounds) {
+        return null;
+      }
+
       left = bounds.left;
       top = bounds.top;
 
@@ -259,7 +265,7 @@ qx.Mixin.define("qx.ui.core.MPlacement",
       // Add the rendered location of the root widget
       if (widget.isRootWidget())
       {
-        var rootCoords = widget.getContainerLocation();
+        var rootCoords = widget.getContentLocation();
         if (rootCoords)
         {
           left += rootCoords.left;
@@ -322,7 +328,7 @@ qx.Mixin.define("qx.ui.core.MPlacement",
             (bottom > elemLocation.top && top < elemLocation.bottom)
           ) {
             var direction = qx.ui.core.MPlacement.getMoveDirection();
-            
+
             if (direction === "left") {
               left = Math.max(elemLocation.left - bounds.width, 0);
             } else {
@@ -348,9 +354,11 @@ qx.Mixin.define("qx.ui.core.MPlacement",
      * @param target {qx.ui.core.Widget} Target coords align coords
      * @param liveupdate {Boolean} Flag indicating if the position of the
      * widget should be checked and corrected automatically.
+     * @return {Boolean} true if the widget was successfully placed
      */
     placeToWidget : function(target, liveupdate)
     {
+
       // Use the idle event to make sure that the widget's position gets
       // updated automatically (e.g. the widget gets scrolled).
       if (liveupdate)
@@ -372,14 +380,22 @@ qx.Mixin.define("qx.ui.core.MPlacement",
 
       }
 
-      var coords = target.getContainerLocation() || this.getLayoutLocation(target);
-      this.__place(coords);
+      var coords = target.getContentLocation() || this.getLayoutLocation(target);
+
+      if(coords != null) {
+        this._place(coords);
+        return true;
+      } else {
+        return false;
+      }
     },
+
 
     /**
      * Removes all resources allocated by the last run of placeToWidget with liveupdate=true
      */
-    __cleanupFromLastPlaceToWidgetLiveUpdate : function(){
+    __cleanupFromLastPlaceToWidgetLiveUpdate : function()
+    {
       if (this.__ptwLiveUpdater)
       {
         qx.event.Idle.getInstance().removeListener("interval", this.__ptwLiveUpdater);
@@ -395,14 +411,14 @@ qx.Mixin.define("qx.ui.core.MPlacement",
 
 
     /**
-     * Places the widget to the mouse cursor position.
+     * Places the widget to the pointer position.
      *
-     * @param event {qx.event.type.Mouse} Mouse event to align to
+     * @param event {qx.event.type.Pointer} Pointer event to align to
      */
-    placeToMouse : function(event)
+    placeToPointer : function(event)
     {
-      var left = event.getDocumentLeft();
-      var top = event.getDocumentTop();
+      var left = Math.round(event.getDocumentLeft());
+      var top = Math.round(event.getDocumentTop());
 
       var coords =
       {
@@ -412,7 +428,7 @@ qx.Mixin.define("qx.ui.core.MPlacement",
         bottom: top
       };
 
-      this.__place(coords);
+      this._place(coords);
     },
 
 
@@ -454,7 +470,7 @@ qx.Mixin.define("qx.ui.core.MPlacement",
         }, this);
       }
 
-      this.__place(coords);
+      this._place(coords);
     },
 
 
@@ -474,7 +490,7 @@ qx.Mixin.define("qx.ui.core.MPlacement",
         bottom: point.top
       };
 
-      this.__place(coords);
+      this._place(coords);
     },
 
 
@@ -534,7 +550,7 @@ qx.Mixin.define("qx.ui.core.MPlacement",
      *   should have the keys <code>left</code>, <code>top</code>, <code>right</code>
      *   and <code>bottom</code>.
      */
-    __place : function(coords)
+    _place : function(coords)
     {
       this.__getPlacementSize(function(size)
       {
@@ -547,6 +563,11 @@ qx.Mixin.define("qx.ui.core.MPlacement",
           this.getPlacementModeX(),
           this.getPlacementModeY()
         );
+
+        // state handling for tooltips e.g.
+        this.removeState("placementLeft");
+        this.removeState("placementRight");
+        this.addState(coords.left < result.left ? "placementRight" : "placementLeft");
 
         this.moveTo(result.left, result.top);
       });

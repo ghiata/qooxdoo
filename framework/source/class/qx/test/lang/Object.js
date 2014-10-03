@@ -49,22 +49,6 @@ qx.Class.define("qx.test.lang.Object",
     },
 
 
-    testHasMinLength : function()
-    {
-      var object = {};
-      this.assertTrue(qx.lang.Object.hasMinLength(object, 0));
-      this.assertFalse(qx.lang.Object.hasMinLength(object, 1));
-
-      var object = {a: 1};
-      this.assertTrue(qx.lang.Object.hasMinLength(object, 1));
-      this.assertFalse(qx.lang.Object.hasMinLength(object, 2));
-
-      var object = {a:undefined, b: null, c: 1};
-      this.assertTrue(qx.lang.Object.hasMinLength(object, 3));
-      this.assertFalse(qx.lang.Object.hasMinLength(object, 4));
-    },
-
-
     testGetLength : function()
     {
       var object = {};
@@ -87,13 +71,13 @@ qx.Class.define("qx.test.lang.Object",
       }
       this.assertArrayEquals(
         ["a", "b", "c"].sort(),
-        qx.lang.Object.getKeys(object).sort()
+        Object.keys(object).sort()
       );
 
       var object = {}
       this.assertArrayEquals(
         [],
-        qx.lang.Object.getKeys(object)
+        Object.keys(object)
       );
 
       var object = {
@@ -111,39 +95,7 @@ qx.Class.define("qx.test.lang.Object",
           "toString",
           "valueOf"
         ].sort(),
-        qx.lang.Object.getKeys(object).sort()
-      );
-    },
-
-
-    testGetKeysAsString : function()
-    {
-      var object = {
-        a: undefined,
-        b: null,
-        c: 1
-      }
-      this.assertEquals(
-        '"a", "b", "c"',
-        qx.lang.Object.getKeysAsString(object)
-      );
-
-      var object = {}
-      this.assertEquals(
-        '',
-        qx.lang.Object.getKeysAsString(object)
-      );
-
-      var object = {
-        "isPrototypeOf": 1,
-        "hasOwnProperty": 1,
-        "toLocaleString": 1,
-        "toString": 1,
-        "valueOf": 1
-      };
-      this.assertEquals(
-        '"isPrototypeOf", "hasOwnProperty", "toLocaleString", "toString", "valueOf"',
-        qx.lang.Object.getKeysAsString(object)
+        Object.keys(object).sort()
       );
     },
 
@@ -181,24 +133,64 @@ qx.Class.define("qx.test.lang.Object",
 
 
     testMergeWith : function() {
-      this.warn("needs test!");
+      var original = {a: 0};
+      var o1 = {a: 2, b: 1};
+
+      qx.lang.Object.mergeWith(original, o1, true);
+
+      // check the original
+      this.assertEquals(2, original.a);
+      this.assertEquals(1, original.b);
     },
 
 
-    testCarefullyMergeWith : function() {
-      this.warn("needs test!");
-    },
+    testMergeWithCarefully : function() {
+      var original = {a: 0};
+      var o1 = {a: 2, b: 1};
 
+      qx.lang.Object.mergeWith(original, o1, false);
 
-    testMerge : function() {
-      this.warn("needs test!");
+      // check the original
+      this.assertEquals(0, original.a);
+      this.assertEquals(1, original.b);
     },
 
 
     testClone : function() {
-      this.warn("needs test!");
+      var original = {a: 12, b: true, c: "affe"};
+      var clone = qx.lang.Object.clone(original);
+
+      clone.a = 14;
+      original.b = false;
+      clone.c = "AFFE";
+
+      // check the original
+      this.assertEquals(12, original.a);
+      this.assertEquals(false, original.b);
+      this.assertEquals("affe", original.c);
+
+      // check the clone
+      this.assertEquals(14, clone.a);
+      this.assertEquals(true, clone.b);
+      this.assertEquals("AFFE", clone.c);
     },
 
+
+    testCloneDeep : function() {
+      var original = {a: {b: 0}};
+      var clone = qx.lang.Object.clone(original, true);
+
+      // change the original
+      original.a.b = 1;
+      this.assertEquals(0, clone.a.b);
+
+      original = {a: [{b: 0}]};
+      clone = qx.lang.Object.clone(original, true);
+
+      // change the original
+      original.a[0].b = 1;
+      this.assertEquals(0, clone.a[0].b);
+    },
 
     testInvert : function()
     {
@@ -219,22 +211,22 @@ qx.Class.define("qx.test.lang.Object",
 
 
     testGetKeyFromValue : function() {
-      this.warn("needs test!");
+      var obj = {a: 123};
+      this.assertEquals("a", qx.lang.Object.getKeyFromValue(obj, 123));
     },
 
 
     testContains : function() {
-      this.warn("needs test!");
-    },
-
-
-    testSelect : function() {
-      this.warn("needs test!");
+      this.assertTrue(qx.lang.Object.contains({a:1}, 1));
     },
 
 
     testFromArray : function() {
-      this.warn("needs test!");
+      var array = ["a", "b"];
+      var obj = qx.lang.Object.fromArray(array);
+
+      this.assertTrue(obj.a);
+      this.assertTrue(obj.b);
     },
 
     /**
@@ -256,32 +248,67 @@ qx.Class.define("qx.test.lang.Object",
       qxObj.dispose();
     },
 
-    testToUriParameter : function()
-    {
-      var obj = {affe: true, maus: false};
-      var str = qx.lang.Object.toUriParameter(obj);
-      this.assertEquals("affe=true&maus=false", str);
-    },
+    testEquals : function(){
 
-    testToUriParameterUmlauts : function()
-    {
-      var obj = {"äffe": "jøah", "maüs": "nö"};
-      var str = qx.lang.Object.toUriParameter(obj);
-      this.assertEquals("%C3%A4ffe=j%C3%B8ah&ma%C3%BCs=n%C3%B6", str);
-    },
+      var a = {a: 'text', b:[0,1]};
+      var b = {a: 'text', b:[0,1]};
+      var c = {a: 'text', b: 0};
+      var d = {a: 'text', b: false};
+      var e = {a: 'text', b:[1,0]};
+      var f = {a: 'text', b:[1,0], f: function(){ this.f = this.b; }};
+      var g = {a: 'text', b:[1,0], f: function(){ this.f = this.b; }};
+      var h = {a: 'text', b:[1,0], f: function(){ this.a = this.b; }};
 
-    testToUriParameterSpaces : function()
-    {
-      var obj = {"a f f e": true};
-      var str = qx.lang.Object.toUriParameter(obj);
-      this.assertEquals("a%20f%20f%20e=true", str);
-    },
+      var i = {
+          a: 'text',
+          c: {
+              b: [1, 0],
+              f: function(){
+                  this.a = this.b;
+              }
+          }
+      };
 
-    testToUriParameterSpacesPost : function()
-    {
-      var obj = {"a f  f e": "j a"};
-      var str = qx.lang.Object.toUriParameter(obj, true);
-      this.assertEquals("a+f++f+e=j+a", str);
+      var j = {
+          a: 'text',
+          c: {
+              b: [1, 0],
+              f: function(){
+                  this.a = this.b;
+              }
+          }
+      };
+      var k = {a: 'text', b: null};
+      var l = {a: 'text', b: undefined};
+
+
+
+      this.assertTrue(qx.lang.Object.equals(a,b));
+      this.assertFalse(qx.lang.Object.equals(a,c));
+      this.assertFalse(qx.lang.Object.equals(c,d));
+      this.assertFalse(qx.lang.Object.equals(a,e));
+      this.assertFalse(qx.lang.Object.equals(f,g));
+      this.assertFalse(qx.lang.Object.equals(h,g));
+      this.assertFalse(qx.lang.Object.equals(i,j));
+      this.assertFalse(qx.lang.Object.equals(d,k));
+      this.assertFalse(qx.lang.Object.equals(k,l));
+
+
+      this.assertFalse(qx.lang.Object.equals({}, null));
+      this.assertFalse(qx.lang.Object.equals({}, undefined));
+      this.assertTrue(qx.lang.Object.equals('qooxdoo','qooxdoo'));
+      this.assertTrue(qx.lang.Object.equals(5,5));
+      this.assertFalse(qx.lang.Object.equals(5,10));
+      this.assertFalse(qx.lang.Object.equals(1,'1'));
+      this.assertTrue(qx.lang.Object.equals([],[]));
+      this.assertTrue(qx.lang.Object.equals([1,2],[1,2]));
+      this.assertFalse(qx.lang.Object.equals([1,2],[2,1]));
+      this.assertFalse(qx.lang.Object.equals([1,2],[1,2,3]));
+      this.assertTrue(qx.lang.Object.equals(new Date("03/31/2014"), new Date("03/31/2014")));
+      this.assertFalse(qx.lang.Object.equals({1:{name:"mhc",age:28}, 2:{name:"arb",age:26}},{1:{name:"mhc",age:28}, 2:{name:"arb",age:27}}));
+      this.assertFalse(qx.lang.Object.equals(function(x){return x;},function(y){return y+2;}));
+
     }
+
   }
 });

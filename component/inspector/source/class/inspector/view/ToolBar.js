@@ -19,10 +19,13 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/Tango/16/actions/view-refresh.png)
-#asset(qx/icon/Tango/16/actions/media-seek-forward.png)
 
 ************************************************************************ */
+/**
+ *
+ * @asset(qx/icon/Tango/16/actions/view-refresh.png)
+ * @asset(qx/icon/Tango/16/actions/media-seek-forward.png)
+ */
 
 qx.Class.define("inspector.view.ToolBar",
 {
@@ -39,7 +42,6 @@ qx.Class.define("inspector.view.ToolBar",
 
     this.__model.addListener("changeInspected", this.__changeInspected, this);
 
-    this.setDecorator("myToolbar");
     this._getLayout().setAlignY("middle");
 
     // create the headline label
@@ -55,6 +57,9 @@ qx.Class.define("inspector.view.ToolBar",
 
     this.addSeparator();
 
+    this.__windowsPart = new qx.ui.toolbar.Part();
+    this.add(this.__windowsPart);
+
     // Objects window
     this.__createWindow("Objects", inspector.objects.Window, "_objectsButton");
 
@@ -66,9 +71,6 @@ qx.Class.define("inspector.view.ToolBar",
 
     // Console window
     this._consoleWindow = this.__createWindow("Console", inspector.console.ConsoleWindow, "_consoleButton");
-
-    // Selenium window
-    this.__createWindow("Selenium", inspector.selenium.SeleniumWindow, "_seleniumButton");
 
     this._separator = new qx.ui.toolbar.Separator();
     this.add(this._separator);
@@ -106,7 +108,6 @@ qx.Class.define("inspector.view.ToolBar",
 
     // enable overflow handling
     this.setOverflowHandling(true);
-    this.setRemovePriority(this._seleniumButton, 5);
     this.setRemovePriority(this._propertyButton, 4);
     this.setRemovePriority(this._widgetsButton, 3);
     this.setRemovePriority(this._objectsButton, 2);
@@ -147,6 +148,8 @@ qx.Class.define("inspector.view.ToolBar",
 
     __overflowMenu : null,
 
+    __windowsPart : null,
+
     getTextField : function() {
       return this._urlTextField;
     },
@@ -165,7 +168,7 @@ qx.Class.define("inspector.view.ToolBar",
       this.__state.add(win, name.toLowerCase());
 
       var button = this[buttonRef] = new qx.ui.toolbar.CheckBox(name);
-      this.add(button);
+      this.__windowsPart.add(button);
 
       button.addListener("changeValue", function(e) {
         e.getData() ? win.open() : win.close();
@@ -195,6 +198,9 @@ qx.Class.define("inspector.view.ToolBar",
       if (object != null) {
         this._selectedWidgetLabel.setValue("<tt>" + object.classname + "[" +
           object.toHashCode() + "]</tt>");
+          // flush the queue before calculating the overflow again
+          qx.ui.core.queue.Manager.flush();
+          this._recalculateOverflow();
       }
     },
 
@@ -204,7 +210,6 @@ qx.Class.define("inspector.view.ToolBar",
       this._widgetsButton.setEnabled(value);
       this._consoleButton.setEnabled(value);
       this._propertyButton.setEnabled(value);
-      this._seleniumButton.setEnabled(value);
       this._inspectButton.setEnabled(value);
       this._selectedWidgetLabel.setEnabled(value);
     },
@@ -274,13 +279,13 @@ qx.Class.define("inspector.view.ToolBar",
     this._widgetsButton.dispose();
     this._propertyButton.dispose();
     this._consoleButton.dispose();
-    this._seleniumButton.dispose();
     this._consoleWindow.dispose();
     this.__overflowMenu.dispose();
+    this.__windowsPart.dispose();
 
     this._separator = this._inspectButton = this._selectedWidgetLabel =
       this._urlTextField = this._reloadButton = this._objectsButton =
       this._widgetsButton = this._propertyButton = this._consoleButton =
-      this._seleniumButton = this._consoleWindow = this.__overflowMenu = null;
+      this._consoleWindow = this.__overflowMenu = null;
   }
 });

@@ -47,8 +47,9 @@ qx.Class.define("qx.ui.tooltip.ToolTip",
     this.base(arguments);
 
     // Use static layout
-    this.setLayout(new qx.ui.layout.Grow);
+    this.setLayout(new qx.ui.layout.HBox());
 
+    this._createChildControl("arrow");
     // Integrate atom
     this._createChildControl("atom");
 
@@ -61,7 +62,7 @@ qx.Class.define("qx.ui.tooltip.ToolTip",
       this.setIcon(icon);
     }
 
-    this.addListener("mouseover", this._onMouseOver, this);
+    this.addListener("pointerover", this._onPointerOver, this);
   },
 
 
@@ -131,11 +132,22 @@ qx.Class.define("qx.ui.tooltip.ToolTip",
       apply : "_applyRich"
     },
 
+
     /** Widget that opened the tooltip */
     opener :
     {
       check : "qx.ui.core.Widget",
       nullable : true
+    },
+
+
+    /** Position of the arrow pointing towards the opening widget **/
+    arrowPosition :
+    {
+      check : ["left", "right"],
+      init : "left",
+      themeable : true,
+      apply : "_applyArrowPosition"
     }
   },
 
@@ -147,6 +159,16 @@ qx.Class.define("qx.ui.tooltip.ToolTip",
 
   members :
   {
+
+    // overridden
+    /**
+     * @lint ignoreReferenceField(_forwardStates)
+     */
+    _forwardStates :
+    {
+      placementLeft : true
+    },
+
     // overridden
     _createChildControlImpl : function(id, hash)
     {
@@ -155,9 +177,12 @@ qx.Class.define("qx.ui.tooltip.ToolTip",
       switch(id)
       {
         case "atom":
-          control = new qx.ui.basic.Atom;
-          this._add(control);
+          control = new qx.ui.basic.Atom();
+          this._add(control, {flex: 1});
           break;
+        case "arrow":
+          control = new qx.ui.basic.Image();
+          this._add(control);
       }
 
       return control || this.base(arguments, id);
@@ -165,12 +190,12 @@ qx.Class.define("qx.ui.tooltip.ToolTip",
 
 
     /**
-     * Listener method for "mouseover" event
+     * Listener method for "pointerover" event
      *
-     * @param e {qx.event.type.Event} Mouse event
+     * @param e {qx.event.type.Pointer} Pointer event
      */
-    _onMouseOver : function(e) {
-      this.hide();
+    _onPointerOver : function(e) {
+      //this.hide();
     },
 
 
@@ -200,6 +225,12 @@ qx.Class.define("qx.ui.tooltip.ToolTip",
     {
       var atom = this.getChildControl("atom");
       atom.setRich(value);
+    },
+
+    // property apply
+    _applyArrowPosition : function(value, old)
+    {
+      this._getLayout().setReversed(value == "left");
     }
   }
 });

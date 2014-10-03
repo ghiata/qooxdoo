@@ -1,5 +1,5 @@
 /**
- * A SplitPane is used to divide two Widgets. These widgets can be resized by clicking the splitter widget and moving the slider.
+ * A SplitPane is used to divide two Widgets. These widgets can be resized by tapping the splitter widget and moving the slider.
  * The orientation property states if the widgets should be aligned horizontally or vertically.
  *
  * *Example*
@@ -25,6 +25,6 @@
  *
  * *External Documentation*
  *
- * <a href='http://manual.qooxdoo.org/1.4/pages/widget/splitpane.html' target='_blank'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/widget/splitpane.html' target='_blank'>
  * Documentation of this widget in the qooxdoo manual.</a>
  */

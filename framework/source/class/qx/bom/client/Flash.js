@@ -37,18 +37,13 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.bom.client.OperatingSystem)
-
-************************************************************************ */
-
 /**
  * This class contains all Flash detection.
  *
  * It is used by {@link qx.core.Environment} and should not be used
  * directly. Please check its class comment for details how to use it.
  *
+ * @require(qx.bom.client.OperatingSystem)
  * @internal
  */
 qx.Bootstrap.define("qx.bom.client.Flash",
@@ -109,7 +104,7 @@ qx.Bootstrap.define("qx.bom.client.Flash",
             full = [ 6, 0, 21 ];
             obj.AllowScriptAccess = "always";
           }
-          catch(ex)
+          catch(ex1)
           {
             if (full[0] == 6) {
               fp6Crash = true;
@@ -120,7 +115,7 @@ qx.Bootstrap.define("qx.bom.client.Flash",
           {
             try {
               obj = new ActiveXObject("ShockwaveFlash.ShockwaveFlash");
-            } catch(ex) {}
+            } catch(ex1) {}
           }
         }
 

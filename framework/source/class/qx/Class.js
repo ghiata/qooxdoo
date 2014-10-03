@@ -18,16 +18,6 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.Interface)
-#require(qx.Mixin)
-#require(qx.lang.Core)
-
-#use(qx.lang.Generics)
-
-************************************************************************ */
-
 /**
  * This class is one of the most important parts of qooxdoo's
  * object-oriented features.
@@ -67,13 +57,25 @@
  *   }
  * }
  * </pre>
+ *
+ * By using <code>qx.Class</code> within an app, the native JS data types are
+ * conveniently polyfilled according to {@link qx.lang.normalize}.
+ *
+ * @require(qx.Interface)
+ * @require(qx.Mixin)
+ * @require(qx.lang.normalize.Array)
+ * @require(qx.lang.normalize.Date)
+ * @require(qx.lang.normalize.Error)
+ * @require(qx.lang.normalize.Function)
+ * @require(qx.lang.normalize.String)
+ * @require(qx.lang.normalize.Object)
  */
 qx.Bootstrap.define("qx.Class",
 {
   statics :
   {
     /**
-     * A static reference to the property implementation in the case it 
+     * A static reference to the property implementation in the case it
      * should be included.
      */
     __Property : qx.core.Environment.get("module.property") ? qx.core.Property : null,
@@ -124,7 +126,8 @@ qx.Bootstrap.define("qx.Class",
      * });
      * </pre>
      *
-     * @param name {String} Name of the class
+     * @param name {String?null} Name of the class. If <code>null</code>, the class
+     *   will not be added to any namespace which could be handy for testing.
      * @param config {Map ? null} Class definition structure. The configuration map has the following keys:
      *     <table>
      *       <tr><th>Name</th><th>Type</th><th>Description</th></tr>
@@ -154,7 +157,7 @@ qx.Bootstrap.define("qx.Class",
     define : function(name, config)
     {
       if (!config) {
-        var config = {};
+        config = {};
       }
 
       // Normalize include to array
@@ -215,6 +218,11 @@ qx.Bootstrap.define("qx.Class",
             this.__addMixin(clazz, config.include[i], false);
           }
         }
+      }
+      // If config has a 'extend' key but it's null or undefined
+      else if (config.hasOwnProperty('extend') && qx.core.Environment.get("qx.debug"))
+      {
+         throw new Error('"extend" parameter is null or undefined');
       }
 
       // Process environment
@@ -287,7 +295,7 @@ qx.Bootstrap.define("qx.Class",
         } else {
           break;
         }
-      };
+      }
     },
 
 
@@ -298,7 +306,7 @@ qx.Bootstrap.define("qx.Class",
      * @param name {String} class name to check
      * @return {Boolean} true if class exists
      */
-    isDefined : qx.Bootstrap.classIsDefined,
+    isDefined : qx.util.OOUtil.classIsDefined,
 
 
     /**
@@ -402,14 +410,12 @@ qx.Bootstrap.define("qx.Class",
      * Returns the definition of the given property. Returns null
      * if the property does not exist.
      *
-     * TODO: Correctly support refined properties?
-     *
      * @signature function(clazz, name)
      * @param clazz {Class} class to check
-     * @param name {String} name of the event to check for
+     * @param name {String} name of the class to check for
      * @return {Map|null} whether the object support the given event.
      */
-    getPropertyDefinition : qx.Bootstrap.getPropertyDefinition,
+    getPropertyDefinition : qx.util.OOUtil.getPropertyDefinition,
 
 
     /**
@@ -425,7 +431,7 @@ qx.Bootstrap.define("qx.Class",
       while (clazz)
       {
         if (clazz.$$properties) {
-          list.push.apply(list, qx.Bootstrap.getKeys(clazz.$$properties));
+          list.push.apply(list, Object.keys(clazz.$$properties));
         }
 
         clazz = clazz.superclass;
@@ -467,7 +473,7 @@ qx.Bootstrap.define("qx.Class",
      * @param name {String} name of the property to check for
      * @return {Boolean} whether the class includes the given property.
      */
-    hasProperty : qx.Bootstrap.hasProperty,
+    hasProperty : qx.util.OOUtil.hasProperty,
 
 
     /**
@@ -479,7 +485,7 @@ qx.Bootstrap.define("qx.Class",
      * @param name {String} name of the event
      * @return {String|null} Event type of the given event.
      */
-    getEventType : qx.Bootstrap.getEventType,
+    getEventType : qx.util.OOUtil.getEventType,
 
 
     /**
@@ -490,7 +496,7 @@ qx.Bootstrap.define("qx.Class",
      * @param name {String} name of the event to check for
      * @return {Boolean} whether the class supports the given event.
      */
-    supportsEvent : qx.Bootstrap.supportsEvent,
+    supportsEvent : qx.util.OOUtil.supportsEvent,
 
 
     /**
@@ -546,7 +552,7 @@ qx.Bootstrap.define("qx.Class",
      * @param clazz {Class} class which should be inspected
      * @return {Mixin[]} array of mixins this class uses
      */
-    getMixins : qx.Bootstrap.getMixins,
+    getMixins : qx.util.OOUtil.getMixins,
 
 
     /**
@@ -587,14 +593,14 @@ qx.Bootstrap.define("qx.Class",
      * @param iface {Interface} interface to look for
      * @return {Class | null} the class which directly implements the given interface
      */
-    getByInterface : qx.Bootstrap.getByInterface,
+    getByInterface : qx.util.OOUtil.getByInterface,
 
 
     /**
-     * Returns a list of all mixins available in a class.
+     * Returns a list of all interfaces a given class has to implement.
      *
      * @param clazz {Class} class which should be inspected
-     * @return {Mixin[]} array of mixins this class uses
+     * @return {Interface[]} array of interfaces this class implements
      */
     getInterfaces : function(clazz)
     {
@@ -626,11 +632,11 @@ qx.Bootstrap.define("qx.Class",
      * @param iface {Interface} the interface to check for
      * @return {Boolean} whether the class includes the interface.
      */
-    hasInterface : qx.Bootstrap.hasInterface,
+    hasInterface : qx.util.OOUtil.hasInterface,
 
 
     /**
-     * Whether a given class to an interface.
+     * Whether a given class complies to an interface.
      *
      * Checks whether all methods defined in the interface are
      * implemented. The class does not need to implement
@@ -648,19 +654,13 @@ qx.Bootstrap.define("qx.Class",
         return true;
       }
 
-      try
-      {
-        qx.Interface.assertObject(obj, iface);
+      if (qx.Interface.objectImplements(obj, iface)) {
         return true;
       }
-      catch(ex) {}
 
-      try
-      {
-        qx.Interface.assert(clazz, iface, false);
+      if (qx.Interface.classImplements(clazz, iface)) {
         return true;
       }
-      catch(ex) {}
 
       return false;
     },
@@ -670,13 +670,14 @@ qx.Bootstrap.define("qx.Class",
      * Helper method to handle singletons
      *
      * @internal
+     * @return {Object} The singleton instance
      */
     getInstance : function()
     {
       if (!this.$$instance)
       {
         this.$$allowconstruct = true;
-        this.$$instance = new this;
+        this.$$instance = new this();
         delete this.$$allowconstruct;
       }
 
@@ -709,7 +710,7 @@ qx.Bootstrap.define("qx.Class",
     $$registry : qx.Bootstrap.$$registry,
 
 
-    /** {Map} allowed keys in non-static class definition */
+    /** @type {Map} allowed keys in non-static class definition */
     __allowedKeys : qx.core.Environment.select("qx.debug",
     {
       "true":
@@ -732,7 +733,7 @@ qx.Bootstrap.define("qx.Class",
     }),
 
 
-    /** {Map} allowed keys in static class definition */
+    /** @type {Map} allowed keys in static class definition */
     __staticAllowedKeys : qx.core.Environment.select("qx.debug",
     {
       "true":
@@ -880,7 +881,7 @@ qx.Bootstrap.define("qx.Class",
         }
       },
 
-      "default" : function() {}
+      "default" : function(name, config) {}
     }),
 
 
@@ -912,7 +913,7 @@ qx.Bootstrap.define("qx.Class",
         }
       },
 
-      "default" : function() {}
+      "default" : function(clazz) {}
     }),
 
 
@@ -940,7 +941,7 @@ qx.Bootstrap.define("qx.Class",
       }
       else
       {
-        var clazz = {};
+        clazz = {};
 
         if (extend)
         {
@@ -970,7 +971,7 @@ qx.Bootstrap.define("qx.Class",
 
           var key;
 
-          for (var i=0, a=qx.Bootstrap.getKeys(statics), l=a.length; i<l; i++)
+          for (var i=0, a=Object.keys(statics), l=a.length; i<l; i++)
           {
             key = a[i];
             var staticValue = statics[key];
@@ -993,7 +994,7 @@ qx.Bootstrap.define("qx.Class",
       }
 
       // Create namespace
-      var basename = qx.Bootstrap.createNamespace(name, clazz);
+      var basename = name ? qx.Bootstrap.createNamespace(name, clazz) : "";
 
       // Store names in constructor/object
       clazz.name = clazz.classname = name;
@@ -1148,7 +1149,7 @@ qx.Bootstrap.define("qx.Class",
           if (!qx.core.Environment.get("module.events")) {
             throw new Error("Events module not enabled.");
           }
-          var event = {}
+          var event = {};
           event[config.event] = "qx.event.type.Data";
           this.__addEvents(clazz, event, patch);
         }
@@ -1185,7 +1186,7 @@ qx.Bootstrap.define("qx.Class",
         if (!qx.core.Environment.get("module.property")) {
           throw new Error("Property module disabled.");
         }
-        
+
         var has = this.hasProperty(clazz, name);
 
         if (has)
@@ -1265,7 +1266,7 @@ qx.Bootstrap.define("qx.Class",
      * @param clazz {Class} clazz to add members to
      * @param members {Map} The map of members to attach
      * @param patch {Boolean ? false} Enable patching of
-     * @param base (Boolean ? true) Attach base flag to mark function as members
+     * @param base {Boolean ? true} Attach base flag to mark function as members
      *     of this class
      * @param wrap {Boolean ? false} Whether the member method should be wrapped.
      *     this is needed to allow base calls in patched mixin members.
@@ -1274,10 +1275,9 @@ qx.Bootstrap.define("qx.Class",
     {
       var proto = clazz.prototype;
       var key, member;
-
       qx.Bootstrap.setDisplayNames(members, clazz.classname + ".prototype");
 
-      for (var i=0, a=qx.Bootstrap.getKeys(members), l=a.length; i<l; i++)
+      for (var i=0, a=Object.keys(members), l=a.length; i<l; i++)
       {
         key = a[i];
         member = members[key];
@@ -1290,6 +1290,10 @@ qx.Bootstrap.define("qx.Class",
 
           if (patch !== true && proto.hasOwnProperty(key)) {
             throw new Error('Overwriting member "' + key + '" of Class "' + clazz.classname + '" is not allowed!');
+          }
+
+          if (proto[key] != undefined && proto[key].$$propertyMethod) {
+            throw new Error('Overwriting generated property method "' + key + '" of Class "' + clazz.classname + '" is not allowed!');
           }
         }
 
@@ -1344,7 +1348,7 @@ qx.Bootstrap.define("qx.Class",
           var retval = member.apply(this, arguments);
           member.base = oldBase;
           return retval;
-        }
+        };
       }
       else
       {
@@ -1364,7 +1368,7 @@ qx.Bootstrap.define("qx.Class",
       if (qx.core.Environment.get("qx.debug"))
       {
         if (!clazz || !iface) {
-          throw new Error("Incomplete parameters!")
+          throw new Error("Incomplete parameters!");
         }
 
         // This differs from mixins, we only check if the interface is already
@@ -1401,14 +1405,15 @@ qx.Bootstrap.define("qx.Class",
      * constructor.
      *
      * @param clazz {Class} The class to wrap
+     * @return {Class} The wrapped class
      */
     __retrospectWrapConstruct : function(clazz)
     {
-      var name = clazz.classname
+      var name = clazz.classname;
       var wrapper = this.__wrapConstructor(clazz, name, clazz.$$classtype);
 
       // copy all keys from the wrapped constructor to the wrapper
-      for (var i=0, a=qx.Bootstrap.getKeys(clazz), l=a.length; i<l; i++)
+      for (var i=0, a=Object.keys(clazz), l=a.length; i<l; i++)
       {
         key = a[i];
         wrapper[key] = clazz[key];
@@ -1419,7 +1424,7 @@ qx.Bootstrap.define("qx.Class",
 
       // fix self references in members
       var members = clazz.prototype;
-      for (var i=0, a=qx.Bootstrap.getKeys(members), l=a.length; i<l; i++)
+      for (var i=0, a=Object.keys(members), l=a.length; i<l; i++)
       {
         key = a[i];
         var method = members[key];
@@ -1475,7 +1480,7 @@ qx.Bootstrap.define("qx.Class",
       if (qx.core.Environment.get("qx.debug"))
       {
         if (!clazz || !mixin) {
-          throw new Error("Incomplete parameters!")
+          throw new Error("Incomplete parameters!");
         }
       }
 
@@ -1545,19 +1550,9 @@ qx.Bootstrap.define("qx.Class",
     {
       function defaultConstructor() {
         defaultConstructor.base.apply(this, arguments);
-      };
+      }
 
       return defaultConstructor;
-    },
-
-
-    /**
-     * Returns an empty function. This is needed to get an empty function with an empty closure.
-     *
-     * @return {Function} empty function
-     */
-    __createEmptyFunction : function() {
-      return function() {};
     },
 
 
@@ -1609,6 +1604,7 @@ qx.Bootstrap.define("qx.Class",
      * @param construct {Function} the original constructor
      * @param name {String} name of the class
      * @param type {String} the user specified class type
+     * @return {Function} The wrapped constructor
      */
     __wrapConstructor : function(construct, name, type)
     {

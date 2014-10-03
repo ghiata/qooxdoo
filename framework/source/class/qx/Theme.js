@@ -27,7 +27,7 @@
  * themes.
  *
  * For more details, take a look at the
- * <a href='http://manual.qooxdoo.org/1.4/pages/gui_toolkit/ui_theming.html' target='_blank'>
+ * <a href='http://manual.qooxdoo.org/${qxversion}/pages/desktop/ui_theming.html' target='_blank'>
  * documentation of the theme system in the qooxdoo manual.</a>
  */
 qx.Bootstrap.define("qx.Theme",
@@ -63,12 +63,11 @@ qx.Bootstrap.define("qx.Theme",
      * </pre>
      *
      * For more details, take a look at the
-     * <a href='http://manual.qooxdoo.org/1.4/pages/gui_toolkit/ui_theming.html' target='_blank'>
+     * <a href='http://manual.qooxdoo.org/${qxversion}/pages/desktop/ui_theming.html' target='_blank'>
      * documentation of the theme system in the qooxdoo manual.</a>
      *
      * @param name {String} name of the mixin
      * @param config {Map} config structure
-     * @return {void}
      */
     define : function(name, config)
     {
@@ -297,15 +296,15 @@ qx.Bootstrap.define("qx.Theme",
     },
 
 
-    /** {Map} Internal theme registry */
+    /** @type {Map} Internal theme registry */
     $$registry : {},
 
 
-    /** {Array} Keys which support inheritance */
+    /** @type {Array} Keys which support inheritance */
     __inheritableKeys : [ "colors", "borders", "decorations", "fonts", "icons", "widgets", "appearances", "meta" ],
 
 
-    /** {Map} allowed keys in theme definition */
+    /** @type {Map} allowed keys in theme definition */
     __allowedKeys : qx.core.Environment.select("qx.debug",
     {
       "true":
@@ -329,7 +328,7 @@ qx.Bootstrap.define("qx.Theme",
       "default" : null
     }),
 
-    /** {Map} allowed keys inside a meta theme block */
+    /** @type {Map} allowed keys inside a meta theme block */
     __metaKeys :qx.core.Environment.select("qx.debug",
     {
       "true":
@@ -352,8 +351,7 @@ qx.Bootstrap.define("qx.Theme",
      * @signature function(name, config)
      * @param name {String} The name of the class
      * @param config {Map} Configuration map
-     * @return {void}
-     * @throws An error if the given config is not valid (e.g. wrong key or wrong key value)
+     * @throws {Error} if the given config is not valid (e.g. wrong key or wrong key value)
      */
     __validateConfig : qx.core.Environment.select("qx.debug",
     {
@@ -508,12 +506,12 @@ qx.Bootstrap.define("qx.Theme",
         target[key] = source[key];
       }
     },
-    
+
     /**
      * Helper method to check for an invalid theme
-     * 
-     * @param mixinTheme {qx,Theme?null} theme to check
-     * @throws an error if the theme is not valid
+     *
+     * @param mixinTheme {qx.Theme?null} theme to check
+     * @throws {Error} if the theme is not valid
      */
     __checkForInvalidTheme: function(mixinTheme)
     {

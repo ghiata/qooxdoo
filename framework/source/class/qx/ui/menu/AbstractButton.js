@@ -49,11 +49,8 @@ qx.Class.define("qx.ui.menu.AbstractButton",
     this._setLayout(new qx.ui.menu.ButtonLayout);
 
     // Add listeners
-    this.addListener("click", this._onClick);
+    this.addListener("tap", this._onTap);
     this.addListener("keypress", this._onKeyPress);
-
-    // @deprecated since 1.5: Please use _onClick instead.
-    qx.log.Logger.deprecateMethodOverriding(this, qx.ui.menu.AbstractButton, "_onMouseUp");
 
     // Add command listener
     this.addListener("changeCommand", this._onChangeCommand, this);
@@ -80,7 +77,8 @@ qx.Class.define("qx.ui.menu.AbstractButton",
     {
       check : "String",
       apply : "_applyLabel",
-      nullable : true
+      nullable : true,
+      event: "changeLabel"
     },
 
     /** Whether a sub menu should be shown and which one */
@@ -89,7 +87,8 @@ qx.Class.define("qx.ui.menu.AbstractButton",
       check : "qx.ui.menu.Menu",
       apply : "_applyMenu",
       nullable : true,
-      dereference : true
+      dereference : true,
+      event : "changeMenu"
     },
 
     /** The icon to use */
@@ -98,7 +97,18 @@ qx.Class.define("qx.ui.menu.AbstractButton",
       check : "String",
       apply : "_applyIcon",
       themeable : true,
-      nullable : true
+      nullable : true,
+      event: "changeIcon"
+    },
+
+    /** Indicates whether the label for the command (shortcut) should be visible or not. */
+    showCommandLabel :
+    {
+      check : "Boolean",
+      apply : "_applyShowCommandLabel",
+      themeable : true,
+      init : true,
+      event: "changeShowCommandLabel"
     }
   },
 
@@ -139,6 +149,9 @@ qx.Class.define("qx.ui.menu.AbstractButton",
         case "shortcut":
           control = new qx.ui.basic.Label;
           control.setAnonymous(true);
+          if (!this.getShowCommandLabel()) {
+            control.exclude();
+          }
           this._add(control, {column:2});
           break;
 
@@ -213,34 +226,36 @@ qx.Class.define("qx.ui.menu.AbstractButton",
     ---------------------------------------------------------------------------
     */
 
+
     /**
-     * Event listener for mouseup event
+     * Event listener for tap
      *
-     * @deprecated since 1.5: Please use _onClick instead.
-     * @param e {qx.event.type.Mouse} mouseup event
+     * @param e {qx.event.type.Pointer} pointer event
      */
-    _onMouseUp : function(e) {
-      qx.log.Logger.deprecatedMethodWarning(arguments.callee);
+    _onTap : function(e)
+    {
+      if (e.isLeftPressed()) {
+        this.execute();
+        qx.ui.menu.Manager.getInstance().hideAll();
+      }
+
+      // right click
+      else {
+        // only prevent contextmenu event if button has no further context menu.
+        if (!this.getContextMenu()) {
+          qx.ui.menu.Manager.getInstance().preventContextMenuOnce();
+        }
+      }
     },
 
 
     /**
-     * Event listener for click
-     *
-     * @param e {qx.event.type.Mouse} mouseup event
-     */
-    _onClick : function(e) {
-      // pass
-    },
-
-
-    /**
-     * Event listener for mouseup event
+     * Event listener for keypress event
      *
      * @param e {qx.event.type.KeySequence} keypress event
      */
     _onKeyPress : function(e) {
-      // pass
+      this.execute();
     },
 
 
@@ -335,6 +350,16 @@ qx.Class.define("qx.ui.menu.AbstractButton",
       else
       {
         this._excludeChildControl("arrow");
+      }
+    },
+
+    // property apply
+    _applyShowCommandLabel : function(value, old)
+    {
+      if (value) {
+        this._showChildControl("shortcut");
+      } else {
+        this._excludeChildControl("shortcut");
       }
     }
   },

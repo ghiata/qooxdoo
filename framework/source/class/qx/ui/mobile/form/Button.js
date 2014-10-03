@@ -18,8 +18,6 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * A Button widget.
  *
  * *Example*
@@ -37,7 +35,7 @@
  * </pre>
  *
  * This example creates a button with the label "Hello World" and attaches an
- * event listener to the {@link #tap} event.
+ * event listener to the {@link qx.ui.mobile.core.Widget#tap} event.
  */
 qx.Class.define("qx.ui.mobile.form.Button",
 {
@@ -65,13 +63,24 @@ qx.Class.define("qx.ui.mobile.form.Button",
       init : true
     }
   },
-  
+
   members :
   {
+    /**
+     * Sets the value.
+     *
+     * @param value {String} The value to set
+     */
     setValue : function(value) {
       this.setLabel(value);
     },
-    
+
+
+    /**
+     * Returns the set value.
+     *
+     * @return {String} The set value
+     */
     getValue : function() {
       return this.getLabel();
     }

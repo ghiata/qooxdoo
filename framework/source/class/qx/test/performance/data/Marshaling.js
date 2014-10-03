@@ -19,7 +19,7 @@
 qx.Class.define("qx.test.performance.data.Marshaling",
 {
   extend : qx.dev.unit.TestCase,
-  include : qx.test.performance.MMeasure,
+  include : qx.dev.unit.MMeasure,
 
   members :
   {
@@ -91,7 +91,7 @@ qx.Class.define("qx.test.performance.data.Marshaling",
         function() {
           for (var i=0; i < self.__objects.length; i++) {
             self.__objects[i].dispose();
-          };
+          }
           qx.Class.undefine("qx.data.model.a");
         },
         this.CREATE_ITERATIONS

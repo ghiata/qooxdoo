@@ -44,7 +44,15 @@ qx.Class.define("qx.dev.unit.TestLoader",
       // Dependencies to loggers
       qx.log.appender.Console;
 
-      this.setTestNamespace(this._getClassNameFromUrl());
+      var url = this._getClassNameFromUrl();
+      if (url !== "__unknown_class__") {
+        this.setTestNamespace(this._getClassNameFromUrl());
+      } else {
+        var namespace = qx.core.Environment.get("qx.testNameSpace");
+        if (namespace) {
+          this.setTestNamespace(namespace);
+        }
+      }
 
       if (window.top.jsUnitTestSuite)
       {
@@ -52,10 +60,9 @@ qx.Class.define("qx.dev.unit.TestLoader",
         return;
       }
 
-      if (window == window.top)
+      if (window == window.top && qx.core.Environment.get("qx.standaloneAutorun"))
       {
         this.runStandAlone();
-        return;
       }
     }
   }

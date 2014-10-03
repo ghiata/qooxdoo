@@ -20,16 +20,10 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.util.ResourceManager)
-
-************************************************************************ */
-
 /**
  * Cross-browser wrapper to work with CSS stylesheets.
  */
-qx.Class.define("qx.bom.Stylesheet",
+qx.Bootstrap.define("qx.bom.Stylesheet",
 {
   /*
   *****************************************************************************
@@ -42,9 +36,13 @@ qx.Class.define("qx.bom.Stylesheet",
     /**
      * Include a CSS file
      *
+     * <em>Note:</em> Using a resource ID as the <code>href</code> parameter
+     * will no longer be supported. Call
+     * <code>qx.util.ResourceManager.getInstance().toUri(href)</code> to get
+     * valid URI to be used with this method.
+     *
      * @param href {String} Href value
-     * @param doc? {Document} Document to modify
-     * @return {void}
+     * @param doc {Document?} Document to modify
      */
     includeFile : function(href, doc)
     {
@@ -55,7 +53,7 @@ qx.Class.define("qx.bom.Stylesheet",
       var el = doc.createElement("link");
       el.type = "text/css";
       el.rel = "stylesheet";
-      el.href = qx.util.ResourceManager.getInstance().toUri(href);
+      el.href = href;
 
       var head = doc.getElementsByTagName("head")[0];
       head.appendChild(el);
@@ -65,7 +63,7 @@ qx.Class.define("qx.bom.Stylesheet",
     /**
      * Create a new Stylesheet node and append it to the document
      *
-     * @param text? {String} optional string of css rules
+     * @param text {String?} optional string of css rules
      * @return {Stylesheet} the generates stylesheet element
      */
     createElement : function(text)
@@ -92,6 +90,7 @@ qx.Class.define("qx.bom.Stylesheet",
       }
     },
 
+
     /**
      * Insert a new CSS rule into a given Stylesheet
      *
@@ -101,6 +100,12 @@ qx.Class.define("qx.bom.Stylesheet",
      */
     addRule : function(sheet, selector, entry)
     {
+      if (qx.core.Environment.get('qx.debug')) {
+        var msg = "qx.bom.Stylesheet.addRule: The rule '" + entry + "' for the selector '" + selector +
+        "' must not be enclosed in braces";
+        qx.core.Assert.assertFalse(/^\s*?\{.*?\}\s*?$/.test(entry), msg);
+      }
+
       if (qx.core.Environment.get("html.stylesheet.insertrule")) {
         sheet.insertRule(selector + "{" + entry + "}", sheet.cssRules.length);
       }
@@ -115,7 +120,6 @@ qx.Class.define("qx.bom.Stylesheet",
      *
      * @param sheet {Object} the Stylesheet
      * @param selector {String} the Selector of the rule to remove
-     * @return {void}
      */
     removeRule : function(sheet, selector)
     {
@@ -145,10 +149,19 @@ qx.Class.define("qx.bom.Stylesheet",
 
 
     /**
+     * Remove the given sheet from its owner.
+     * @param sheet {Object} the stylesheet object
+     */
+    removeSheet : function(sheet) {
+      var owner = sheet.ownerNode ? sheet.ownerNode : sheet.owningElement;
+      qx.dom.Element.removeChild(owner, owner.parentNode);
+    },
+
+
+    /**
      * Remove all CSS rules from a stylesheet
      *
      * @param sheet {Object} the stylesheet object
-     * @return {void}
      */
     removeAllRules : function(sheet)
     {
@@ -175,7 +188,6 @@ qx.Class.define("qx.bom.Stylesheet",
      *
      * @param sheet {Object} the stylesheet object
      * @param url {String} URL of the external stylesheet file
-     * @return {void}
      */
     addImport : function(sheet, url)
     {
@@ -193,7 +205,6 @@ qx.Class.define("qx.bom.Stylesheet",
      *
      * @param sheet {Object} the stylesheet object
      * @param url {String} URL of the imported CSS file
-     * @return {void}
      */
     removeImport : function(sheet, url)
     {
@@ -203,7 +214,7 @@ qx.Class.define("qx.bom.Stylesheet",
 
         for (var i=len-1; i>=0; i--)
         {
-          if (imports[i].href == url || 
+          if (imports[i].href == url ||
           imports[i].href == qx.util.Uri.getAbsolute(url))
           {
             sheet.removeImport(i);
@@ -228,7 +239,6 @@ qx.Class.define("qx.bom.Stylesheet",
      * Remove all imports from a stylesheet
      *
      * @param sheet {Object} the stylesheet object
-     * @return {void}
      */
     removeAllImports : function(sheet)
     {

@@ -18,8 +18,6 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * This class provides the <code>domupdated</code> event. The event is
  * delegated to all widget instances that have a
  * listener for the <code>domupdated</code> event registered.
@@ -65,22 +63,22 @@ qx.Class.define("qx.ui.mobile.core.DomUpdatedHandler",
 
   statics :
   {
-    /** {Integer} Priority of this handler */
+    /** @type {Integer} Priority of this handler */
     PRIORITY : qx.event.Registration.PRIORITY_NORMAL,
 
 
-    /** {Map} Supported event types */
+    /** @type {Map} Supported event types */
     SUPPORTED_TYPES :
     {
       domupdated : 1
     },
 
 
-    /** {Integer} Whether the method "canHandleEvent" must be called */
+    /** @type {Integer} Whether the method "canHandleEvent" must be called */
     IGNORE_CAN_HANDLE : false,
 
 
-    /** {Map} Stores all domUpdated manager instances */
+    /** @type {Map} Stores all domUpdated manager instances */
     __instances : {},
 
 
@@ -88,7 +86,6 @@ qx.Class.define("qx.ui.mobile.core.DomUpdatedHandler",
      * Informs all handlers. Useful after massive DOM manipulations e.g.
      * through {@link qx.ui.mobile.core.Widget}.
      *
-     * @return {void}
      */
     refresh : function()
     {
@@ -165,7 +162,6 @@ qx.Class.define("qx.ui.mobile.core.DomUpdatedHandler",
      * This method is called by all DOM tree modifying routines
      * to inform the widgets.
      *
-     * @return {void}
      */
     refresh : function()
     {

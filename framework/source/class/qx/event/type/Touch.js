@@ -20,12 +20,10 @@
 
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * Touch event object.
  *
  * For more information see:
- *     http://developer.apple.com/safari/library/documentation/UserExperience/Reference/TouchEventClassReference/TouchEvent/TouchEvent.html
+ *     https://developer.apple.com/library/safari/#documentation/UserExperience/Reference/TouchEventClassReference/TouchEvent/TouchEvent.html
  */
 qx.Class.define("qx.event.type.Touch",
 {
@@ -47,26 +45,33 @@ qx.Class.define("qx.event.type.Touch",
 
         clone.pageX = nativeEvent.pageX;
         clone.pageY = nativeEvent.pageY;
-        clone.layerX = nativeEvent.layerX;
-        clone.layerY = nativeEvent.layerY;
+        clone.offsetX = nativeEvent.offsetX;
+        clone.offsetY = nativeEvent.offsetY;
+
+        // Workaround for BUG #6491
+        clone.layerX = (nativeEvent.offsetX || nativeEvent.layerX);
+        clone.layerY = (nativeEvent.offsetY || nativeEvent.layerY);
+
         clone.scale = nativeEvent.scale;
         clone.rotation = nativeEvent.rotation;
+        clone._rotation = nativeEvent._rotation;
+        clone.delta = nativeEvent.delta;
         clone.srcElement = nativeEvent.srcElement;
 
         clone.targetTouches = [];
         for (var i = 0; i < nativeEvent.targetTouches.length; i++) {
           clone.targetTouches[i] = nativeEvent.targetTouches[i];
-        };
+        }
 
         clone.changedTouches = [];
-        for (var i = 0; i < nativeEvent.changedTouches.length; i++) {
+        for (i = 0; i < nativeEvent.changedTouches.length; i++) {
           clone.changedTouches[i] = nativeEvent.changedTouches[i];
-        };
+        }
 
         clone.touches = [];
-        for (var i = 0; i < nativeEvent.touches.length; i++) {
+        for (i = 0; i < nativeEvent.touches.length; i++) {
           clone.touches[i] = nativeEvent.touches[i];
-        };
+        }
 
         return clone;
       },
@@ -84,7 +89,7 @@ qx.Class.define("qx.event.type.Touch",
        * Returns an empty array for the "touchend" event.
        *
        * @return {Object[]} Array of touch objects. For more information see:
-       *     http://developer.apple.com/safari/library/documentation/UserExperience/Reference/TouchClassReference/Touch/Touch.html
+       *     https://developer.apple.com/library/safari/#documentation/UserExperience/Reference/TouchClassReference/Touch/Touch.html
        */
       getAllTouches : function() {
         return this._native.touches;
@@ -97,10 +102,10 @@ qx.Class.define("qx.event.type.Touch",
        * Returns an empty array for the "touchend" event.
        *
        * @return {Object[]} Array of touch objects. For more information see:
-       *     http://developer.apple.com/safari/library/documentation/UserExperience/Reference/TouchClassReference/Touch/Touch.html
+       *     https://developer.apple.com/library/safari/#documentation/UserExperience/Reference/TouchClassReference/Touch/Touch.html
        */
       getTargetTouches : function() {
-          return this._native.targetTouches;
+        return this._native.targetTouches;
       },
 
 
@@ -116,10 +121,10 @@ qx.Class.define("qx.event.type.Touch",
        * to be on the target element.
        *
        * @return {Object[]} Array of touch objects. For more information see:
-       *     http://developer.apple.com/safari/library/documentation/UserExperience/Reference/TouchClassReference/Touch/Touch.html
+       *     https://developer.apple.com/library/safari/#documentation/UserExperience/Reference/TouchClassReference/Touch/Touch.html
        */
       getChangedTargetTouches : function() {
-          return this._native.changedTouches;
+        return this._native.changedTouches;
       },
 
 
@@ -135,14 +140,14 @@ qx.Class.define("qx.event.type.Touch",
 
 
       /**
-       * iOS only: Returns the distance between two fingers since the start of the event.
+       * Returns the distance between two fingers since the start of the event.
        * The distance is a multiplier of the initial distance.
        * Initial value: 1.0.
        * Gestures:
        * < 1.0, pinch close / zoom out.
        * > 1.0, pinch open / to zoom in.
        *
-       * @return The scale distance between two fingers
+       * @return {Float} The scale distance between two fingers
        */
       getScale : function() {
         return this._native.scale;
@@ -150,7 +155,7 @@ qx.Class.define("qx.event.type.Touch",
 
 
       /**
-       * iOS only: Returns the delta of the rotation since the start of the event, in degrees.
+       * Returns the delta of the rotation since the start of the event, in degrees.
        * Initial value is 0.0
        * Clockwise > 0
        * Counter-clockwise < 0.
@@ -158,7 +163,23 @@ qx.Class.define("qx.event.type.Touch",
        * @return {Float} The rotation delta
        */
       getRotation : function() {
-        return this._native.rotation;
+        if(typeof this._native._rotation === "undefined") {
+          return this._native.rotation;
+        } else {
+          return this._native._rotation;
+        }
+      },
+
+
+      /**
+       * Returns an array with the calculated delta coordinates of all active touches,
+       * relative to the position on <code>touchstart</code> event.
+       *
+       * @return {Array} an array with objects for each active touch which contains the delta as <code>x</code> and
+       * <code>y</code>, the touch identifier as <code>identifier</code> and the movement axis as <code>axis</code>.
+       */
+      getDelta : function() {
+        return this._native.delta;
       },
 
 
@@ -167,7 +188,7 @@ qx.Class.define("qx.event.type.Touch",
        * left of the document. This property takes into account any scrolling of
        * the page.
        *
-       * @param touchIndex {Integer ? 0) The index of the Touch object
+       * @param touchIndex {Integer ? 0} The index of the Touch object
        * @return {Integer} The horizontal position of the touch in the document.
        */
       getDocumentLeft : function(touchIndex) {
@@ -180,7 +201,7 @@ qx.Class.define("qx.event.type.Touch",
        * top of the document. This property takes into account any scrolling of
        * the page.
        *
-       * @param touchIndex {Integer ? 0) The index of the Touch object
+       * @param touchIndex {Integer ? 0} The index of the Touch object
        * @return {Integer} The vertical position of the touch in the document.
        */
       getDocumentTop : function(touchIndex) {
@@ -192,7 +213,7 @@ qx.Class.define("qx.event.type.Touch",
        * Get the horizontal coordinate at which the event occurred relative to
        * the origin of the screen coordinate system.
        *
-       * @param touchIndex {Integer ? 0) The index of the Touch object
+       * @param touchIndex {Integer ? 0} The index of the Touch object
        * @return {Integer} The horizontal position of the touch
        */
       getScreenLeft : function(touchIndex) {
@@ -204,11 +225,11 @@ qx.Class.define("qx.event.type.Touch",
        * Get the vertical coordinate at which the event occurred relative to
        * the origin of the screen coordinate system.
        *
-       * @param touchIndex {Integer ? 0) The index of the Touch object
+       * @param touchIndex {Integer ? 0} The index of the Touch object
        * @return {Integer} The vertical position of the touch
        */
       getScreenTop: function(touchIndex) {
-          return this.__getEventSpecificTouch(touchIndex).screenY;
+        return this.__getEventSpecificTouch(touchIndex).screenY;
       },
 
 
@@ -216,11 +237,11 @@ qx.Class.define("qx.event.type.Touch",
        * Get the the horizontal coordinate at which the event occurred relative
        * to the viewport.
        *
-       * @param touchIndex {Integer ? 0) The index of the Touch object
+       * @param touchIndex {Integer ? 0} The index of the Touch object
        * @return {Integer} The horizontal position of the touch
        */
       getViewportLeft : function(touchIndex) {
-          return this.__getEventSpecificTouch(touchIndex).clientX;
+        return this.__getEventSpecificTouch(touchIndex).clientX;
       },
 
 
@@ -228,18 +249,18 @@ qx.Class.define("qx.event.type.Touch",
        * Get the vertical coordinate at which the event occurred relative
        * to the viewport.
        *
-       * @param touchIndex {Integer ? 0) The index of the Touch object
+       * @param touchIndex {Integer ? 0} The index of the Touch object
        * @return {Integer} The vertical position of the touch
        */
       getViewportTop : function(touchIndex) {
-          return this.__getEventSpecificTouch(touchIndex).clientY;
+        return this.__getEventSpecificTouch(touchIndex).clientY;
       },
 
 
       /**
        * Returns the unique identifier for a certain touch object.
        *
-       * @param touchIndex {Integer ? 0) The index of the Touch object
+       * @param touchIndex {Integer ? 0} The index of the Touch object
        * @return {Integer} Unique identifier of the touch object
        */
       getIdentifier : function(touchIndex) {
@@ -252,7 +273,7 @@ qx.Class.define("qx.event.type.Touch",
        * used as the "touchend" event only offers Touch objects in the
        * changedTouches array.
        *
-       * @param touchIndex {Integer ? 0) The index of the Touch object to
+       * @param touchIndex {Integer ? 0} The index of the Touch object to
        *     retrieve
        * @return {Object} A native Touch object
        */

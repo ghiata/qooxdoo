@@ -76,16 +76,10 @@
  * (qx.io.remote.Rpc.callAsyncListeners).
  * <p>
  * You may also find the server writer's guide helpful:
- *   http://manual.qooxdoo.org/1.4/pages/communication/rpc_server_writer_guide.html
- */
-
- /**
-  #ignore(qx.core.ServerSettings)
-  #ignore(qx.core.ServerSettings.serverPathSuffix)
-  #ignore(qx.core.ServerSettings.serverPathPrefix)
-  #ignore(qx.core.ServerSettings.lastSessionRefresh)
-  #ignore(qx.core.ServerSettings.sessionTimeoutInSeconds)
-  */
+ *   http://manual.qooxdoo.org/${qxversion}/pages/communication/rpc_server_writer_guide.html
+ *
+ * @ignore(qx.core.ServerSettings.*)
+*/
 
 qx.Class.define("qx.io.remote.Rpc",
 {
@@ -197,7 +191,8 @@ qx.Class.define("qx.io.remote.Rpc",
     localError :
     {
       timeout : 1,
-      abort   : 2
+      abort   : 2,
+      nodata  : 3
     },
 
 
@@ -447,7 +442,7 @@ qx.Class.define("qx.io.remote.Rpc",
      * @param parameters {Array}
      *   An array containing the arguments to the called method.
      *
-     * @param serverData {Any}
+     * @param serverData {var}
      *   "Out-of-band" data to be provided to the server.
      *
      * @return {Object}
@@ -692,6 +687,17 @@ qx.Class.define("qx.io.remote.Rpc",
       req.addListener("completed", function(evt)
       {
         response = evt.getContent();
+
+        // server may have reset, giving us no data on our requests
+        if (response === null)
+        {
+          ex = makeException(qx.io.remote.Rpc.origin.local,
+                             qx.io.remote.Rpc.localError.nodata,
+                             "No data in response to " + whichMethod);
+          id = this.getSequenceNumber();
+          handleRequestFinished("failed", eventTarget);
+          return;
+        }
 
         // Parse. Skip when response is already an object
         // because the script transport was used.
@@ -992,7 +998,6 @@ qx.Class.define("qx.io.remote.Rpc",
      *
      * @param handler {Function} a callback function that is called when the
      *                           refresh is complete (or failed).
-     * @return {void}
      */
     refreshSession : function(handler)
     {
@@ -1053,7 +1058,6 @@ qx.Class.define("qx.io.remote.Rpc",
      * @param opaqueCallRef {var} the call reference as returned by
      *                            <code>callAsync</code> or
      *                            <code>callAsyncListeners</code>
-     * @return {void}
      */
     abort : function(opaqueCallRef)
     {

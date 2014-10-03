@@ -51,7 +51,7 @@
  *     tearDown: function() {
  *       // Restore all stubs, spies and overridden host objects.
  *       //
- *       // It is a good idea to always run this in the tearDown()
+ *       // It is a good idea to always run this in the <code>tearDown()</code>
  *       // method, especially when overwriting global or host objects.
  *       this.getSandbox().restore();
  *     }
@@ -88,7 +88,7 @@
  * those assertions have the advantage that meaningful error messages can be
  * generated.
  *
- * For full list of assertions see http://sinonjs.org/docs/api/#assertions.
+ * For full list of assertions see http://sinonjs.org/docs/#assertions.
  * Note that sinon.assert.xyz() translates as assertXyz().
  *
  */
@@ -97,10 +97,7 @@ qx.Mixin.define("qx.dev.unit.MMock",
   construct: function()
   {
     var sinon = this.__getSinon();
-    // Expose Sinon.JS assertions. Provides methods such
-    // as assertCalled(), assertCalledWith().
-    // (http://sinonjs.org/docs/api/#assert-expose)
-    sinon.assert.expose(this, {includeFail: false});
+    this.__exposeAssertions();
 
     this.__sandbox = sinon.sandbox;
   },
@@ -111,6 +108,23 @@ qx.Mixin.define("qx.dev.unit.MMock",
     __sandbox: null,
 
     __fakeXhr: null,
+
+    /**
+     * Expose Sinon.JS assertions. Provides methods such
+     * as assertCalled(), assertCalledWith().
+     * (http://sinonjs.org/docs/#assert-expose)
+     * Does not override existing assertion methods.
+     * @ignore(sinon.assert.expose)
+     */
+    __exposeAssertions : function() {
+      var temp = {};
+      sinon.assert.expose(temp, {includeFail: false});
+      for (var method in temp) {
+        if (!this[method]) {
+          this[method] = temp[method];
+        }
+      }
+    },
 
     /**
     * Get the Sinon.JS object.
@@ -146,11 +160,16 @@ qx.Mixin.define("qx.dev.unit.MMock",
     *
     * A spy has a rich interface to introspect how the wrapped function was used:
     *
+    * * spy.withArgs(arg1[, arg2, ...]);
     * * spy.callCount
     * * spy.called
     * * spy.calledOnce
     * * spy.calledTwice
     * * spy.calledThrice
+    * * spy.firstCall
+    * * spy.secondCall
+    * * spy.thirdCall
+    * * spy.lastCall
     * * spy.calledBefore(anotherSpy)
     * * spy.calledAfter(anotherSpy)
     * * spy.calledOn(obj)
@@ -159,6 +178,11 @@ qx.Mixin.define("qx.dev.unit.MMock",
     * * spy.alwaysCalledWith(arg1, arg2, ...)
     * * spy.calledWithExactly(arg1, arg2, ...)
     * * spy.alwaysCalledWithExactly(arg1, arg2, ...)
+    * * spy.calledWithMatch(arg1, arg2, ...);
+    * * spy.alwaysCalledWithMatch(arg1, arg2, ...);
+    * * spy.calledWithNew();
+    * * spy.neverCalledWith(arg1, arg2, ...);
+    * * spy.neverCalledWithMatch(arg1, arg2, ...);
     * * spy.threw()
     * * spy.threw("TypeError")
     * * spy.threw(obj)
@@ -172,18 +196,20 @@ qx.Mixin.define("qx.dev.unit.MMock",
     * * spy.args
     * * spy.exceptions
     * * spy.returnValues
+    * * spy.reset()
+    * * spy.printf("format string", [arg1, arg2, ...])
     *
-    * See http://sinonjs.org/docs/api/#spies.
+    * See http://sinonjs.org/docs/#spies.
     *
     * Note: Spies are transparently added to a sandbox. To restore
-    * the original function for all spies run this.getSandbox().restore()
-    * in your tearDown() method.
+    * the original function for all spies run <code>this.getSandbox().restore()</code>
+    * in your <code>tearDown()</code> method.
     *
-    * @param function_or_object {Function?null|Object?null} Spies on the
+    * @param function_or_object {Function|Object} Spies on the
     *   provided function or object.
     * @param method {String?null} The method to spy upon if an object was given.
-    * @return {Spy} The wrapped function enhanced with properties and methods
-    *   that allow for introspection.
+    * @return {Function} The wrapped function enhanced with properties and methods
+    *   that allow for introspection. See http://sinonjs.org/docs/#spies.
     */
     spy: function(function_or_object, method) {
       return this.__sandbox.spy.apply(this.__sandbox, arguments);
@@ -218,19 +244,19 @@ qx.Mixin.define("qx.dev.unit.MMock",
     * * stub.callsArg(0)
     * * stub.callsArgWith(index, arg1, arg2, ...)
     *
-    * See http://sinonjs.org/docs/api/#stubs.
+    * See http://sinonjs.org/docs/#stubs.
     *
     * Note: Stubs are transparently added to a sandbox. To restore
-    * the original function for all stubs run this.getSandbox().restore()
-    * in your tearDown() method.
+    * the original function for all stubs run <code>this.getSandbox().restore()</code>
+    * in your <code>tearDown()</code> method.
     *
-    * @param object {Object?null} Object to stub. Stubs all methods if no method
-    *   is given.
+    * @param object {Object?null} Object to stub. Creates an anonymous stub function
+    *   if not given.
     * @param  method {String?null} Replaces object.method with a stub function.
     *   An exception is thrown if the property is not already a function, to
     *   help avoid typos when stubbing methods.
-    * @return {Stub} A stub. Has the interface of a spy in addition to methods
-    *   that allow to define behaviour.
+    * @return {Function} A stub. Has the interface of a spy in addition to methods
+    *   that allow to define behaviour. See http://sinonjs.org/docs/#stubs.
     *
     */
     stub: function(object, method) {
@@ -265,10 +291,10 @@ qx.Mixin.define("qx.dev.unit.MMock",
     * * expectation.on(obj);
     * * expecation.verify();
     *
-    * See http://sinonjs.org/docs/api/#mocks.
+    * See http://sinonjs.org/docs/#mocks.
     *
     * @param object {Object} The object to create a mock of.
-    * @return {Mock} A mock to set expectations on.
+    * @return {Function} A mock to set expectations on. See http://sinonjs.org/docs/#mocks.
     */
     mock: function(object) {
       var sinon = this.__getSinon();
@@ -280,12 +306,12 @@ qx.Mixin.define("qx.dev.unit.MMock",
     * a custom implementation which does not send actual requests.
     *
     * Note: The fake XHR is transparently added to a sandbox. To restore
-    * the original host method run this.getSandbox().restore()
-    * in your tearDown() method.
+    * the original host method run <code>this.getSandbox().restore()</code>
+    * in your <code>tearDown()</code> method.
     *
-    * See http://sinonjs.org/docs/api/#useFakeXMLHttpRequest.
+    * See http://sinonjs.org/docs/#useFakeXMLHttpRequest.
     *
-    * @return {Xhr}
+    * @return {Object}
     */
     useFakeXMLHttpRequest: function() {
       return this.__fakeXhr = this.__sandbox.useFakeXMLHttpRequest();
@@ -297,7 +323,7 @@ qx.Mixin.define("qx.dev.unit.MMock",
     * Each request can be queried for url, method, requestHeaders,
     * status and more.
     *
-    * See http://sinonjs.org/docs/api/#FakeXMLHttpRequest.
+    * See http://sinonjs.org/docs/#FakeXMLHttpRequest.
     *
     * @return {Array} Array of faked requests.
     */
@@ -310,13 +336,13 @@ qx.Mixin.define("qx.dev.unit.MMock",
     * API to setup server responses. To setup responses, use the server
     * returned by {@link #getServer}.
     *
-    * See http://sinonjs.org/docs/api/#server.
+    * See http://sinonjs.org/docs/#server.
     *
     * Note: The fake server is transparently added to a sandbox. To restore
-    * the original host method run this.getSandbox().restore()
-    * in your tearDown() method.
+    * the original host method run <code>this.getSandbox().restore()</code>
+    * in your <code>tearDown()</code> method.
     *
-    * @return {Server}
+    * @return {Object}
     */
     useFakeServer: function() {
       return this.__fakeXhr = this.__sandbox.useFakeServer();
@@ -334,7 +360,7 @@ qx.Mixin.define("qx.dev.unit.MMock",
     /**
     * Get sandbox.
     *
-    * The sandbox holds all stubs and mocks. Run this.getSandbox().restore()
+    * The sandbox holds all stubs and mocks. Run <code>this.getSandbox().restore()</code>
     * to restore all mock objects.
     *
     * @return {Object}
@@ -354,7 +380,7 @@ qx.Mixin.define("qx.dev.unit.MMock",
      * belong to the prototype chain.
      *
      * @param object {Object} Object to stub deeply.
-     * @return {Stub} A stub.
+     * @return {Object} A stub.
      */
     deepStub: function(object) {
       this.__getOwnProperties(object).forEach(function(prop) {
@@ -367,15 +393,20 @@ qx.Mixin.define("qx.dev.unit.MMock",
     /**
      * EXPERIMENTAL - NOT READY FOR PRODUCTION
      *
-     * Shallowly stub methods that belong to classes found in inheritance
+     * Shallowly stub all methods (except excluded) that belong to classes found in inheritance
      * chain up to (but including) the given class.
      *
      * @param object {Object} Object to stub shallowly.
      * @param targetClazz {Object} Class which marks the end of the chain.
+     * @param propsToExclude {Array} Array with properties which shouldn't be stubbed.
      * @return {Object} A stub.
      */
-    shallowStub: function(object, targetClazz) {
+    shallowStub: function(object, targetClazz, propsToExclude) {
       this.__getOwnProperties(object, targetClazz).forEach(function(prop) {
+        if (propsToExclude && propsToExclude.indexOf(prop) >= 0) {
+          // don't stub excluded prop
+          return;
+        }
         this.__stubProperty(object, prop);
       }, this);
 
@@ -395,8 +426,8 @@ qx.Mixin.define("qx.dev.unit.MMock",
      * @param object {Object} Namespace to hold factory, e.g. qx.html.
      * @param property {String} Property as string that functions as
      *  constructor, e.g. "Element".
-     * @param customStub {Stub?} Stub to inject.
-     * @return {Stub} Injected stub.
+     * @param customStub {Object?} Stub to inject.
+     * @return {Object} Injected stub.
      */
     injectStub: function(object, property, customStub) {
       var stub = customStub || this.deepStub(new object[property]);
@@ -418,7 +449,7 @@ qx.Mixin.define("qx.dev.unit.MMock",
      * @param property {String} Property as string that functions as
      *  constructor, e.g. "Element".
      * @param customObject {Object?} Object to inject.
-     * @return {Mock} Mock of the object built.
+     * @return {Object} Mock of the object built.
      */
     revealMock: function(object, property, customObject) {
       var source = customObject ||

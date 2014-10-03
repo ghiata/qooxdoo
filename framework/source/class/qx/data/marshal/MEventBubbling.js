@@ -42,6 +42,7 @@ qx.Mixin.define("qx.data.marshal.MEventBubbling",
      *   <li>old: The old value of the property.</li>
      *   <li>name: The name of the property changed including its parent
      *     properties separated by dots.</li>
+     *   <li>item: The item which has the changed property.</li>
      * Due to that, the <code>getOldData</code> method will always return null
      * because the old data is contained in the map.
      */
@@ -63,7 +64,9 @@ qx.Mixin.define("qx.data.marshal.MEventBubbling",
      */
     _applyEventPropagation : function(value, old, name)
     {
-      this.fireDataEvent("changeBubble", {value: value, name: name, old: old});
+      this.fireDataEvent("changeBubble", {
+        value: value, name: name, old: old, item: this
+      });
 
       this._registerEventChaining(value, old, name);
     },
@@ -80,6 +83,15 @@ qx.Mixin.define("qx.data.marshal.MEventBubbling",
      */
     _registerEventChaining : function(value, old, name)
     {
+      // if an old value is given, remove the old listener if possible
+      if (old != null && old.getUserData && old.getUserData("idBubble-" + this.$$hash) != null) {
+        var listeners = old.getUserData("idBubble-" + this.$$hash);
+        for (var i = 0; i < listeners.length; i++) {
+          old.removeListenerById(listeners[i]);
+        }
+        old.setUserData("idBubble-" + this.$$hash, null);
+      }
+
       // if the child supports chaining
       if ((value instanceof qx.core.Object)
         && qx.Class.hasMixin(value.constructor, qx.data.marshal.MEventBubbling)
@@ -97,14 +109,6 @@ qx.Mixin.define("qx.data.marshal.MEventBubbling",
           value.setUserData("idBubble-" + this.$$hash, listeners);
         }
         listeners.push(id);
-      }
-      // if an old value is given, remove the old listener if possible
-      if (old != null && old.getUserData && old.getUserData("idBubble-" + this.$$hash) != null) {
-        var listeners = old.getUserData("idBubble-" + this.$$hash);
-        for (var i = 0; i < listeners.length; i++) {
-          old.removeListenerById(listeners[i]);
-        }
-        old.setUserData("idBubble-" + this.$$hash, null);
       }
     },
 
@@ -130,7 +134,10 @@ qx.Mixin.define("qx.data.marshal.MEventBubbling",
           var dotIndex = data.name.indexOf(".") != -1 ? data.name.indexOf(".") : data.name.length;
           var bracketIndex = data.name.indexOf("[") != -1 ? data.name.indexOf("[") : data.name.length;
 
-          if (dotIndex < bracketIndex) {
+          // braktes in the first spot is ok [BUG #5985]
+          if (bracketIndex == 0) {
+            var newName = name + data.name;
+          } else if (dotIndex < bracketIndex) {
             var index = data.name.substring(0, dotIndex);
             var rest = data.name.substring(dotIndex + 1, data.name.length);
             if (rest[0] != "[") {
@@ -150,6 +157,10 @@ qx.Mixin.define("qx.data.marshal.MEventBubbling",
 
       // if the target is not an array
       } else {
+        // special case for array as first element of the chain [BUG #5985]
+        if (parseInt(name) == name && name !== "") {
+          name = "[" + name + "]";
+        }
         var newName =  name + "." + data.name;
       }
 
@@ -158,7 +169,8 @@ qx.Mixin.define("qx.data.marshal.MEventBubbling",
         {
           value: value,
           name: newName,
-          old: old
+          old: old,
+          item: data.item || e.getTarget()
         }
       );
     }

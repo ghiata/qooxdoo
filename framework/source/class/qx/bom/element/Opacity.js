@@ -64,22 +64,10 @@
  * in some browsers). Reduced class dependencies for optimal size and
  * performance.
  */
-qx.Class.define("qx.bom.element.Opacity",
+qx.Bootstrap.define("qx.bom.element.Opacity",
 {
-  /*
-  *****************************************************************************
-     STATICS
-  *****************************************************************************
-  */
-
   statics :
   {
-    /**
-     * {Boolean} <code>true</code> when the style attribute "opacity" is supported,
-     * <code>false</code> otherwise.
-     */
-    SUPPORT_CSS3_OPACITY : false,
-
     /**
      * Compiles the given opacity value into a cross-browser CSS string.
      * Accepts numbers between zero and one
@@ -101,24 +89,10 @@ qx.Class.define("qx.bom.element.Opacity",
           opacity = 0;
         }
 
-        if (qx.bom.element.Opacity.SUPPORT_CSS3_OPACITY) {
+        if (qx.core.Environment.get("css.opacity")) {
           return "opacity:" + opacity + ";";
         } else {
           return "zoom:1;filter:alpha(opacity=" + (opacity * 100) + ");";
-        }
-      },
-
-      "gecko" : function(opacity)
-      {
-        // Animations look better when not using 1.0 in gecko
-        if (opacity >= 1) {
-          opacity = 0.999999;
-        }
-
-        if (!qx.bom.element.Opacity.SUPPORT_CSS3_OPACITY) {
-          return "-moz-opacity:" + opacity + ";";
-        } else {
-          return "opacity:" + opacity + ";";
         }
       },
 
@@ -139,28 +113,23 @@ qx.Class.define("qx.bom.element.Opacity",
      *
      * @param element {Element} DOM element to modify
      * @param opacity {Float} A float number between 0 and 1
-     * @return {void}
      * @signature function(element, opacity)
      */
     set : qx.core.Environment.select("engine.name",
     {
       "mshtml" : function(element, opacity)
       {
-        if (qx.bom.element.Opacity.SUPPORT_CSS3_OPACITY)
-        {
+        if (qx.core.Environment.get("css.opacity")) {
           if (opacity >= 1) {
             opacity = "";
           }
 
           element.style.opacity = opacity;
-        }
-        else
-        {
+        } else {
           // Read in computed filter
           var filter = qx.bom.element.Style.get(element, "filter", qx.bom.element.Style.COMPUTED_MODE, false);
 
-          if (opacity >= 1)
-          {
+          if (opacity >= 1) {
             opacity = 1;
           }
 
@@ -179,22 +148,7 @@ qx.Class.define("qx.bom.element.Opacity",
         }
       },
 
-      "gecko" : function(element, opacity)
-      {
-        // Animations look better when not using 1.0 in gecko
-        if (opacity >= 1) {
-          opacity = 0.999999;
-        }
-
-        if (!qx.bom.element.Opacity.SUPPORT_CSS3_OPACITY) {
-          element.style.MozOpacity = opacity;
-        } else {
-          element.style.opacity = opacity;
-        }
-      },
-
-      "default" : function(element, opacity)
-      {
+      "default" : function(element, opacity) {
         if (opacity >= 1) {
           opacity = "";
         }
@@ -208,33 +162,21 @@ qx.Class.define("qx.bom.element.Opacity",
      * Resets opacity of given element.
      *
      * @param element {Element} DOM element to modify
-     * @return {void}
      * @signature function(element)
      */
     reset : qx.core.Environment.select("engine.name",
     {
       "mshtml" : function(element)
       {
-        if (qx.bom.element.Opacity.SUPPORT_CSS3_OPACITY)
+        if (qx.core.Environment.get("css.opacity"))
         {
           element.style.opacity = "";
-        }
-        else
-        {
+        } else {
           // Read in computed filter
           var filter = qx.bom.element.Style.get(element, "filter", qx.bom.element.Style.COMPUTED_MODE, false);
 
           // Remove old alpha filter
           element.style.filter = filter.replace(/alpha\([^\)]*\)/gi, "");
-        }
-      },
-
-      "gecko" : function(element)
-      {
-        if (!qx.bom.element.Opacity.SUPPORT_CSS3_OPACITY) {
-          element.style.MozOpacity = "";
-        } else {
-          element.style.opacity = "";
         }
       },
 
@@ -259,7 +201,7 @@ qx.Class.define("qx.bom.element.Opacity",
     {
       "mshtml" : function(element, mode)
       {
-        if (qx.bom.element.Opacity.SUPPORT_CSS3_OPACITY)
+        if (qx.core.Environment.get("css.opacity"))
         {
           var opacity = qx.bom.element.Style.get(element, "opacity", mode, false);
 
@@ -286,21 +228,6 @@ qx.Class.define("qx.bom.element.Opacity",
         }
       },
 
-      "gecko" : function(element, mode)
-      {
-        var opacity = qx.bom.element.Style.get(element, !qx.bom.element.Opacity.SUPPORT_CSS3_OPACITY ? "MozOpacity" : "opacity", mode, false);
-
-        if (opacity == 0.999999) {
-          opacity = 1.0;
-        }
-
-        if (opacity != null) {
-          return parseFloat(opacity);
-        }
-
-        return 1.0;
-      },
-
       "default" : function(element, mode)
       {
         var opacity = qx.bom.element.Style.get(element, "opacity", mode, false);
@@ -312,9 +239,5 @@ qx.Class.define("qx.bom.element.Opacity",
         return 1.0;
       }
     })
-  },
-
-  defer : function(statics) {
-    statics.SUPPORT_CSS3_OPACITY = (typeof document.documentElement.style.opacity == "string");
   }
 });

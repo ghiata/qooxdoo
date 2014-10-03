@@ -19,9 +19,6 @@
 
 /* ************************************************************************
 
-#asset(qx/icon/${qx.icontheme}/32/apps/media-photo-album.png)
-#asset(qx/icon/${qx.icontheme}/48/devices/*)
-#asset(qx/icon/${qx.icontheme}/16/places/folder.png)
 
 ************************************************************************ */
 
@@ -30,6 +27,10 @@
  *
  * indicator.ProgressBar
  * popup.Popup
+ *
+ * @asset(qx/icon/${qx.icontheme}/32/apps/media-photo-album.png)
+ * @asset(qx/icon/${qx.icontheme}/48/devices/*)
+ * @asset(qx/icon/${qx.icontheme}/16/places/folder.png)
  *
  */
 
@@ -85,12 +86,11 @@ qx.Class.define("widgetbrowser.pages.Misc",
       this.__vbox.add(slideBar);
 
       // Pop-Up
-      label = new qx.ui.basic.Label("Pop-Up");
+      label = new qx.ui.basic.Label("Tooltip");
       var popup = new qx.ui.popup.Popup(new qx.ui.layout.Canvas()).set({
-        backgroundColor: "#FFFAD3",
-        padding: [2, 4],
         offset : 3,
-        offsetBottom : 20
+        offsetBottom : 20,
+        appearance: "tooltip"
       });
       popup.set({
         allowStretchX: false,
@@ -152,10 +152,18 @@ qx.Class.define("widgetbrowser.pages.Misc",
         var type = e.getCurrentType();
         var result;
 
+        var selection = this.getSelection();
+        var dragTarget = e.getDragTarget();
+        if (selection.length === 0) {
+          selection.push(dragTarget);
+        } else if (selection.indexOf(dragTarget) == -1) {
+          selection = [dragTarget];
+        }
+
         switch(type)
         {
           case "items":
-            result = this.getSelection();
+            result = selection;
 
             if (action == "copy")
             {
@@ -170,7 +178,6 @@ qx.Class.define("widgetbrowser.pages.Misc",
 
         if (action == "move")
         {
-          var selection = this.getSelection();
           for (var i=0, l=selection.length; i<l; i++) {
             this.remove(selection[i]);
           }

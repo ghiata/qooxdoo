@@ -81,7 +81,7 @@ qx.Mixin.define("qx.ui.virtual.selection.MModel",
 
     /**
      * Enable drag selection (multi selection of items through
-     * dragging the mouse in pressed states).
+     * dragging the pointer in pressed states).
      *
      * Only possible for the selection modes <code>multi</code> and <code>additive</code>
      */
@@ -94,7 +94,7 @@ qx.Mixin.define("qx.ui.virtual.selection.MModel",
 
 
     /**
-     * Enable quick selection mode, where no click is needed to change the selection.
+     * Enable quick selection mode, where no tap is needed to change the selection.
      *
      * Only possible for the modes <code>single</code> and <code>one</code>.
      */
@@ -107,21 +107,34 @@ qx.Mixin.define("qx.ui.virtual.selection.MModel",
   },
 
 
+  events : {
+    /**
+     * This event is fired as soon as the content of the selection property changes, but
+     * this is not equal to the change of the selection of the widget. If the selection
+     * of the widget changes, the content of the array stored in the selection property
+     * changes. This means you have to listen to the change event of the selection array
+     * to get an event as soon as the user changes the selected item.
+     * <pre class="javascript">obj.getSelection().addListener("change", listener, this);</pre>
+     */
+    "changeSelection" : "qx.event.type.Data"
+  },
+
+
   members :
   {
-    /** {qx.ui.virtual.selection.Row} selection manager */
+    /** @type {qx.ui.virtual.selection.Row} selection manager */
     _manager : null,
 
 
-    /** {Boolean} flag to ignore the selection change from {@link #selection} */
+    /** @type {Boolean} flag to ignore the selection change from {@link #selection} */
     __ignoreChangeSelection : false,
 
 
-    /** {Boolean} flag to ignore the selection change from <code>_manager</code> */
+    /** @type {Boolean} flag to ignore the selection change from <code>_manager</code> */
     __ignoreManagerChangeSelection : false,
 
     __defaultSelection : null,
-    
+
 
     /**
      * Initialize the selection manager with his delegate.
@@ -152,9 +165,32 @@ qx.Mixin.define("qx.ui.virtual.selection.MModel",
       this._manager = new qx.ui.virtual.selection.Row(
         this.getPane(), selectionDelegate
       );
-      this._manager.attachMouseEvents(this.getPane());
+      this._manager.attachPointerEvents(this.getPane());
       this._manager.attachKeyEvents(this);
       this._manager.addListener("changeSelection", this._onManagerChangeSelection, this);
+    },
+
+
+    /**
+     * Determines, if automatically scrolling of selected item is active.
+     * Set <code>false</code> to suspend auto scrolling.
+     *
+     * @param value {Boolean} Set <code>false</code> to suspend auto scrolling.
+     */
+    setAutoScrollIntoView : function(value)
+    {
+      this._manager._autoScrollIntoView = value;
+    },
+
+
+    /**
+     * Returns true, if automatically scrolling of selected item is active.
+     *
+     * @return {Boolean} Returns <code>false</code> if auto scrolling is suspended.
+     */
+    getAutoScrollIntoView : function()
+    {
+      return this._manager._autoScrollIntoView;
     },
 
 
@@ -237,11 +273,11 @@ qx.Mixin.define("qx.ui.virtual.selection.MModel",
         var item = selection.getItem(i);
         var selectables = this._getSelectables();
         var index = -1;
-        
+
         if (selectables != null) {
           index = selectables.indexOf(item);
         }
-        
+
         var row = this._reverseLookup(index);
 
         if (row >= 0) {
@@ -255,9 +291,11 @@ qx.Mixin.define("qx.ui.virtual.selection.MModel",
       }
 
       try {
-        this._manager.replaceSelection(newSelection);
+        if (!qx.lang.Array.equals(newSelection, this._manager.getSelection())) {
+          this._manager.replaceSelection(newSelection);
+        }
       }
-      catch(e)
+      catch(ex)
       {
         this._manager.selectItem(newSelection[newSelection.length - 1]);
       }
@@ -303,8 +341,13 @@ qx.Mixin.define("qx.ui.virtual.selection.MModel",
       var managerSelection = this._manager.getSelection();
       var newSelection = [];
 
-      for (var i = 0; i < managerSelection.length; i++) {
-        newSelection.push(this._getDataFromRow(managerSelection[i]));
+      for (var i = 0; i < managerSelection.length; i++)
+      {
+        var item = this._getDataFromRow(managerSelection[i]);
+
+        if (item != null) {
+          newSelection.push(item);
+        }
       }
 
       this.__replaceSelection(newSelection);
@@ -333,9 +376,9 @@ qx.Mixin.define("qx.ui.virtual.selection.MModel",
 
 
     /**
-     * Checks whether the local and the manager selection is equals.
+     * Checks whether the local and the manager selection are equal.
      *
-     * @return {Boolean} <code>true</code> when the selection is equals,
+     * @return {Boolean} <code>true</code> if the selections are equal,
      *   <code>false</code> otherwise.
      */
     __isSelectionEquals : function()
@@ -352,7 +395,7 @@ qx.Mixin.define("qx.ui.virtual.selection.MModel",
         var item = selection.getItem(i);
         var selectables = this._getSelectables()
         var index = -1;
-        
+
         if (selectables != null) {
           index = selectables.indexOf(item);
         }

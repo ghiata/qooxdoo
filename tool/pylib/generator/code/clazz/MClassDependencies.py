@@ -25,25 +25,20 @@
 
 import sys, os, types, re, string, time
 from ecmascript.frontend import treeutil, lang
-from ecmascript.frontend.Script     import Script
-from ecmascript.frontend.tree       import Node, NodeAccessException
+from ecmascript.frontend.tree       import Node, NODE_VARIABLE_TYPES
 from ecmascript.transform.optimizer import variantoptimizer
+from ecmascript.transform.check     import scopes, jshints, global_symbols as gs
 from generator.code.DependencyItem  import DependencyItem
+from generator.code.HintArgument    import HintArgument
+from generator                      import Context
 from misc import util
+from misc.util import inverse, bind, pipeline
 
-QXGLOBALS = [
-    #"clazz",
-    "qxvariants",
-    "qxsettings",
-    r"qx\.\$\$",    # qx.$$domReady, qx.$$libraries, ...
-    ]
+ClassesAll = None # {'cid':generator.code.Class}
 
-GlobalSymbolsCombinedPatt = re.compile('|'.join(r'^%s\b' % x for x in lang.GLOBALS + QXGLOBALS))
-
-_memo1_ = [None, None]  # for memoizing getScript()
+GlobalSymbolsCombinedPatt = re.compile('|'.join(r'^%s\b' % re.escape(x) for x in lang.GLOBALS + lang.QXGLOBALS))
 
 DEFER_ARGS = ("statics", "members", "properties")
-
 
 class MClassDependencies(object):
 
@@ -57,7 +52,7 @@ class MClassDependencies(object):
     # return all dependencies of class from its code (both meta hints as well
     # as source code, and transitive load deps)
 
-    def dependencies(self, variantSet, force=False):
+    def dependencies(self, variantSet, force=False, tree=None):
 
         ##
         # Get deps from meta info and class code, and sort them into
@@ -66,68 +61,50 @@ class MClassDependencies(object):
         # Note:
         #   load time = before class = require
         #   run time  = after class  = use
-        def buildShallowDeps():
+        def buildShallowDeps(tree=None):
 
-            load   = []
-            run    = []
+            load, run   = [], []
             ignore = [DependencyItem(x, '', "|DefaultIgnoredNamesDynamic|") for x in self.defaultIgnoredNamesDynamic]
 
-            console.debug("Analyzing tree: %s" % self.id)
+            console.debug("Getting shallow deps of: %s" % self.id)
             console.indent()
 
-            # Read meta data
-            meta         = self.getHints()
-            metaLoad     = meta.get("loadtimeDeps", [])
-            metaRun      = meta.get("runtimeDeps" , [])
-            metaOptional = meta.get("optionalDeps", [])
-            metaIgnore   = meta.get("ignoreDeps"  , [])
-            metaIgnore.extend(metaOptional)
-
-            # regexify globs in metaignore
-            metaIgnore = map(MetaIgnore, metaIgnore)
-
-            # Turn strings into DependencyItems()
-            for target,metaHint in ((load,metaLoad), (run,metaRun), (ignore,metaIgnore)):
-                for key in metaHint:
-                    # add all feature checks if requested
-                    if key == "feature-checks" and metaHint in (metaLoad, metaRun):
-                        target.extend(self.getAllEnvChecks(-1, metaHint==metaLoad))
-                    # turn an entry into a DependencyItem
-                    elif isinstance(key, types.StringTypes):
-                        sig = key.split('#',1)
-                        className = sig[0]
-                        attrName  = sig[1] if len(sig)>1 else ''
-                        target.append(DependencyItem(className, attrName, self.id, "|hints|"))
-
             # Read source tree data
+            if not tree:
+                if variantSet: # a filled variantSet map means that "variants" optimization is wanted
+                    tree = self.optimize(None, ["variants"], variantSet)
+                else:
+                    tree = self.tree()
+
+            # Get deps from compiler hints
+            if not hasattr(tree, 'hint'):
+                tree = jshints.create_hints_tree(tree) # this will be used by some of the subsequent method calls
+            load_hints, run_hints, ignore_hints, all_feature_checks = self.dependencies_from_comphints(tree) # ignore_hints=[HintArgument]
+            load.extend(load_hints)
+            run.extend(run_hints)
+            load_feature_checks = all_feature_checks[0]
+            run_feature_checks = all_feature_checks[1]
+
+            # Analyze tree
             treeDeps  = []  # will be filled by _analyzeClassDepsNode
-            self._analyzeClassDepsNode(self.tree(variantSet), treeDeps, variantSet, inLoadContext=True)
+            self._analyzeClassDepsNode(tree, treeDeps, inLoadContext=True)
 
-            # Process source tree data
-            for dep in treeDeps:
-                if dep.isLoadDep:
-                    if "auto-require" not in metaIgnore:
-                        item = dep.name
-                        if item in metaIgnore:
-                            pass
-                        elif item in metaLoad:
-                            console.warn("%s: #require(%s) is auto-detected" % (self.id, item))
-                        else:
-                            # adding all items to list (the second might have needsRecursion)
-                            load.append(dep)
+            # Filter lexical deps through ignore_hints
+            load1, run1, ignore1 = self.filter_symbols_by_comphints(treeDeps, ignore_hints)
+                # load and run are being filtered, ignore contains the actually filtered depsItems
 
-                else: # runDep
-                    if "auto-use" not in metaIgnore:
-                        item = dep.name
-                        if item in metaIgnore:
-                            pass
-                        #elif item in (x.name for x in load):
-                        #    pass
-                        elif item in metaRun:
-                            console.warn("%s: #use(%s) is auto-detected" % (self.id, item))
-                        else:
-                            # adding all items to list (to comply with the 'load' deps)
-                            run.append(dep)
+            # integrate into existing lists
+            load_hint_names = [str(x) for x in load_hints]
+            for dep in load1:
+                if str(dep) in load_hint_names and not load_feature_checks:
+                    console.warn("%s: @require(%s) is auto-detected" % (self.id, dep))
+                load.append(dep)
+            run_hint_names = [str(x) for x in run_hints]
+            for dep in run1:
+                if str(dep) in run_hint_names and not run_feature_checks:
+                    console.warn("%s: @use(%s) is auto-detected" % (self.id, dep))
+                run.append(dep)
+            ignore.extend(ignore1)
 
             console.outdent()
 
@@ -146,7 +123,9 @@ class MClassDependencies(object):
             classMaps = {}
             for dep in shallowDeps['load']:
                 if dep.needsRecursion:
-                    recDeps = self.getTransitiveDeps(dep, variantSet, classMaps, force=force)
+                    recDeps = self.getTransitiveDeps(dep, variantSet, classMaps, force=force)  # need variantSet here (not relevantVariants), as the recursive deps might depend on any of those
+                    for recdep in recDeps:
+                        recdep.isLoadDep = True # all these become load dependencies
                     newLoad.update(recDeps)
             shallowDeps['load'] = list(newLoad)
 
@@ -163,8 +142,8 @@ class MClassDependencies(object):
             else:
                 for dep in depsStruct["load"]:
                     if dep.requestor != self.id: # this was included through a recursive traversal
-                        if dep.name in self._classesObj:
-                            classObj = self._classesObj[dep.name]
+                        if dep.name in ClassesAll:
+                            classObj = ClassesAll[dep.name]
                             if cacheModTime < classObj.m_time():
                             #if cacheModTime < classObj.library.mostRecentlyChangedFile()[1]:
                                 console.debug("Invalidating dep cache for %s, as %s is newer" % (self.id, classObj.id))
@@ -175,54 +154,66 @@ class MClassDependencies(object):
                                 # much faster, as it is only calculated once (when called without (force=True));
                                 # the downside is that a change of one class in a library will result in cache
                                 # invalidation for *all* classes in this lib; that's the trade-off;
-                                # i'd love to just check the libs directly ("for lib in script.libraries: 
+                                # i'd love to just check the libs directly ("for lib in script.libraries:
                                 # if cacheModTime < lib.mostRecentlyChangedFile()[1]:..."), but I don't
                                 # have access to the script here in Class.
-            
+
             return result
+
         # -- Main ---------------------------------------------------------
 
         # handles cache and invokes worker function
 
         console = self.context['console']
 
-        classVariants    = self.classVariants()
+        classVariants = self.classVariants()
         relevantVariants = self.projectClassVariantsToCurrent(classVariants, variantSet)
-        cacheId          = "deps-%s-%s" % (self.path, util.toString(relevantVariants))
-        cached           = True
+        statics_optim = 'statics' in Context.jobconf.get("compile-options/code/optimize",[])
+        cacheId = "deps-%s-%s-%s" % (self.path, util.toString(relevantVariants), int(statics_optim))
+        cached = True
 
+        # try compile cache
         classInfo, classInfoMTime = self._getClassCache()
         (deps, cacheModTime) =  classInfo[cacheId] if cacheId in classInfo else (None,None)
+
+        # try dependencies.json
+        if (True  # just a switch
+            and deps == None
+            # TODO: temp. hack to work around issue with 'statics' optimization and dependencies.json
+            and not statics_optim
+           ):
+            deps_json, cacheModTime = self.library.getDependencies(self.id)
+            if deps_json is not None:
+                #console.info("using dependencies.json for: %s" % self.id)
+                deps = self.depsItems_from_Json(deps_json)
+                # don't cache at all, so later 'statics' optimized jobs don't
+                # pick up the short depsList from cache
 
         if (deps == None
           or force == True
           or not transitiveDepsAreFresh(deps, cacheModTime)):
             cached = False
-            deps = buildShallowDeps()
+            deps = buildShallowDeps(tree)
             deps = buildTransitiveDeps(deps)
-            #if self.id != "qx.core.Environment":
-            #    # Mustn't cache q.c.Env deps across runs, as they depend on the entire
-            #    # class list
-            if True:
+            if not tree: # don't cache for a passed-in tree
                 classInfo[cacheId] = (deps, time.time())
                 self._writeClassCache(classInfo)
-        
+
         return deps, cached
 
         # end:dependencies()
 
 
-    def getCombinedDeps(self, variants, config, stripSelfReferences=True, projectClassNames=True, genProxy=None):
+    def getCombinedDeps(self, classesAll_, variants, config, stripSelfReferences=True, projectClassNames=True, force=False, tree=None):
 
         # init lists
+        global ClassesAll
+        ClassesAll = classesAll_  # TODO: this is a quick hack, to not have to pass classesAll_ around as param
         loadFinal = []
         runFinal  = []
 
         # add static dependencies
-        if genProxy == None:
-            static, cached = self.dependencies (variants)
-        else:
-            static, cached = genProxy.dependencies(self.id, self.path, variants)
+        static, cached = self.dependencies (variants, force, tree=tree)
 
         loadFinal.extend(static["load"])
         runFinal.extend(static["run"])
@@ -234,16 +225,19 @@ class MClassDependencies(object):
 
         # collapse multiple occurrences of the same class
         if projectClassNames:
-            loads = loadFinal
-            loadFinal = []
-            for dep in loads:
-                if dep.name not in (x.name for x in loadFinal):
-                    loadFinal.append(dep)
-            runs = runFinal
-            runFinal = []
-            for dep in runs:
-                if dep.name not in (x.name for x in runFinal):
-                    runFinal.append(dep)
+            def dedup(deps):
+                out = []
+                seen = set()
+                for dep in deps:
+                    name = dep.name
+                    if name in seen:
+                        continue
+                    seen.add(name)
+                    out.append(dep)
+                return out
+
+            loadFinal = dedup(loadFinal)
+            runFinal = dedup(runFinal)
 
         # add config dependencies
         crequire = config.get("require", {})
@@ -265,348 +259,316 @@ class MClassDependencies(object):
 
 
     # ----------------------------------------------------------------------------------
-    # -- all methods below this line up to _analyzeClassDepsNode() are only used by that
-    
-    ##
-    # Only applies to qx.*.define calls, checks for a 'defer' child in class map
-    def checkDeferNode(self, assembled, node):
-        deferNode = None
-        if assembled == "qx.Class.define" or assembled == "qx.Bootstrap.define" or assembled == "qx.List.define":
-            if node.hasParentContext("call/operand"):
-                deferNode = treeutil.selectNode(node, "../../params/2/keyvalue[@key='defer']/value/function/body/block")
-        return deferNode
-
-
-    def isUnknownClass(self, assembled, node, fileId):
-        # check name in 'new ...' position
-        if (node.hasParentContext("instantiation/*/*/operand")
-        # check name in "'extend' : ..." position
-        or (node.hasParentContext("keyvalue/*") and node.parent.parent.get('key') == 'extend')):
-            # skip built-in classes (Error, document, RegExp, ...)
-            if (assembled in lang.BUILTIN + ['clazz'] or re.match(r'this\b', assembled)):
-               return False
-            # skip scoped vars - expensive, therefore last test
-            elif self._isScopedVar(assembled, node, fileId):
-                return False
-            else:
-                return True
-
-        return False
-        
 
     ##
-    # Checks if the required class is known, and the reference to is in a
-    # context that is executed at load-time
-    def followCallDeps(self, node, fileId, depClassName, inLoadContext):
-        
-        def hasFollowContext(node):
-            pchn = node.getParentChain()
-            pchain = "/".join(pchn)
-            return (
-                #pchain.endswith("keyvalue/value/call/operand")               # limited version
-                #or pchain.endswith("instantiation/expression/call/operand")  # limited version
-                pchain.endswith("call/operand")                 # it's a function call
-                or pchain.endswith("instantiation/expression")  # like "new Date" (no parenthesies, but constructor called anyway)
-                )
-
-        if (inLoadContext
-            and depClassName
-            and depClassName in self._classesObj  # we have a class id
-            and hasFollowContext(node)
-           ):
-            return True
-        else:
-            return False
-
-
-    ##
-    # analyze a class AST for dependencies (compiler hints not treated here)
-    # does not follow dependencies to other classes (ie. it's a "shallow" analysis)!
-    # the "variants" param is only to support getTransitiveDeps()!
+    # Find dependencies of a code tree, purely looking at identifier head-symbols
+    # that are not covered by the current scope chain.
     #
-    # i tried an iterative version once, wrapping the main function body into a
-    # loop over treeutil.nodeIteratorNonRec(); surprisingly, it seem slightly
-    # slower than the recursive version on first measurements; also, it still
-    # needed a recursive call when coming across a 'defer' node, and i'm not
-    # sure how to handle this sub-recursion when the main body is an iteration.
-    # TODO:
-    # - <recurse> seems artificial, and should be removed when cleaning up dependencies1()
-    def _analyzeClassDepsNode(self, node, depsList, variants, inLoadContext, inDefer=False):
-
-        if node.type == "variable":
-            assembled = (treeutil.assembleVariable(node))[0]
-
-            # treat dependencies in defer as requires
-            deferNode = self.checkDeferNode(assembled, node)
-            if deferNode != None:
-                self._analyzeClassDepsNode(deferNode, depsList, variants, inLoadContext=True, inDefer=True)
-
-            (context, className, classAttribute) = self._isInterestingReference(assembled, node, self.id, inDefer)
-            # postcond: 
-            # - if className != '' it is an interesting reference
-            # - might be a known qooxdoo class, or an unknown class (use 'className in self._classes')
-            # - if assembled contained ".", classAttribute will contain approx. non-class part
-
-            if className:
-                # we allow self-references, to be able to track method dependencies within the same class
-                if className == 'this':
-                    className = self.id
-                elif inDefer and className in DEFER_ARGS:
-                    className = self.id
-                if not classAttribute:  # see if we have to provide 'construct'
-                    if node.hasParentContext("instantiation/*/*/operand"): # 'new ...' position
-                        classAttribute = 'construct'
-                # Can't do the next; it's catching too many occurrences of 'getInstance' that have
-                # nothing to do with the singleton 'getInstance' method (just grep in the framework)
-                #elif classAttribute == 'getInstance':  # erase 'getInstance' and introduce 'construct' dependency
-                #    classAttribute = 'construct'
-                depsItem = DependencyItem(className, classAttribute, self.id, node.get('line', -1), inLoadContext)
-                #print "-- adding: %s (%s:%s)" % (className, treeutil.getFileFromSyntaxItem(node), node.get('line',False))
-                if node.hasParentContext("call/operand"): # it's a function call
-                    depsItem.isCall = True  # interesting when following transitive deps
-
-                # Adding all items to list; let caller sort things out
-                depsList.append(depsItem)
-
-                # Mark items that need recursive analysis of their dependencies (bug#1455)
-                if self.followCallDeps(node, self.id, className, inLoadContext):
-                    depsItem.needsRecursion = True
-
-        # check e.g. qx.core.Environment.get("runtime.name")
-        elif node.type == "constant" and node.hasParentContext("call/params"):
-            callnode = treeutil.selectNode(node, "../..")
-            if variantoptimizer.isEnvironmentCall(callnode):
-                className, classAttribute = self.getClassNameFromEnvKey(node.get("value", ""))
-                if className:
-                    depsItem = DependencyItem(className, classAttribute, self.id, node.get('line', -1), inLoadContext)
-                    depsItem.isCall = True  # treat as if actual call, to collect recursive deps
-                    depsList.append(depsItem)
-
-
-        elif node.type == "body" and node.parent.type == "function":
-            if (node.parent.hasParentContext("call/operand") 
-                or node.parent.hasParentContext("call/operand/group")):
-                # if the function is immediately called, it's still load context (if that's what it was before)
-                pass
-            else:
-                inLoadContext = False
-
-        if node.hasChildren():
-            for child in node.children:
-                self._analyzeClassDepsNode(child, depsList, variants, inLoadContext, inDefer)
-
-        return
-
-        # end:_analyzeClassDepsNode
-
-
-    def getAllEnvChecks(self, nodeline, inLoadContext):
+    # Node -> Node[]  (head nodes)
+    #
+    def dependencies_from_ast(self, tree):
         result = []
-        envmappings = self.context['envchecksmap']
-        for key in envmappings:
-            clsname, clsattribute = self.getClassNameFromEnvKey(key)
-            result.append(DependencyItem(clsname, clsattribute, self.id, nodeline, inLoadContext))
-        return result
 
-
-    ##
-    # Looks up the environment key in a map that yields the full class plus
-    # method name as a string.
-    def getClassNameFromEnvKey(self, key):
-        result = '',''
-        envmappings = self.context['envchecksmap']
-        if key in envmappings:
-            implementation = envmappings[key]
-            fullname, methname = implementation.rsplit(".", 1)
-            if fullname in self._classesObj:
-                result = fullname, methname
-        return result
-
-
-    def _isInterestingReference(self, assembled, node, fileId, inDefer):
-
-        def checkNodeContext(node):
-            context = 'interesting' # every context is interesting, mybe we get more specific
-            #context = ''
-
-            # filter out the occurrences like 'c' in a.b().c
-            myFirst = node.getFirstChild(mandatory=False, ignoreComments=True)
-            if not treeutil.checkFirstChainChild(myFirst): # see if myFirst is the first identifier in a chain
-                context = ''
-
-            # filter out variable in lval position -- Nope! (qx.ui.form.ListItem.prototype.setValue = 
-            # function(..){...};)
-            #elif (node.hasParentContext("assignment/left")):
-            #    context = ''
-
-            # fitler out a.b[c] -- Nope! E.g. foo.ISO_8601_FORMAT might carry further dependencies
-            # (like 'new qx.util.format.DateFormat("yyyy-MM-dd")')
-            elif (treeutil.selectNode(node, "accessor")):
-                context = 'accessor'
-
-            # check name in 'new ...' position
-            elif (node.hasParentContext("instantiation/*/*/operand")):
-                context = 'new'
-
-            # check name in call position
-            elif (node.hasParentContext("call/operand")):
-                context = 'call'
-
-            # check name in "'extend' : ..." position
-            elif (node.hasParentContext("keyvalue/*") and node.parent.parent.get('key') in ['extend']): #, 'include']):
-                #print "-- found context: %s" % node.parent.parent.get('key')
-                context = 'extend'
-
-            return context
-
-        def isInterestingIdentifier(assembled):
-            # accept 'this', as we want to track dependencies within the same class
-            if assembled[:4] == "this":
-                if len(assembled) == 4 or (len(assembled) > 4 and assembled[4] == "."):
-                    return True
-            # skip built-in classes (Error, document, RegExp, ...); GLOBALS contains 'this' and 'arguments'
-            if GlobalSymbolsCombinedPatt.search(assembled):
-                return False
-            firstDot = assembled.find(".")
-            if firstDot:
-                firstElement = assembled[:firstDot]
-            else:
-                firstElement = assembled
-            if inDefer and firstElement in DEFER_ARGS:
-                return True
-            # skip scoped vars - expensive, therefore last test
-            elif self._isScopedVar(assembled, node, fileId):
-                return False
-            else:
-                return True
-
-        def attemptSplitIdentifier(context, assembled):
-            # try qooxdoo classes first
-            className, classAttribute = self._splitQxClass(assembled)
-            if className:
-                return className, classAttribute
-
-            # check some scoped vars that equal 'this'
-            parts = assembled.split(".")  # split on ".", if any
-            if parts[0] in (("this",) + DEFER_ARGS):
-                className, classAttribute = parts[0], (parts[1] if len(parts)>1 else '') # this also strips parts[>1]
-                return className, classAttribute
-            
-            # now handle non-qooxdoo classes
-            className, classAttribute = assembled, ''
-            if context == 'new':
-                className = assembled
-            elif context == 'extend':
-                className = assembled
-            #elif context in ('call', 'accessor'):
-            else:
-                # try split at last dot
-                lastDotIdx = assembled.rfind('.')
-                if lastDotIdx > -1:
-                    className   = assembled[:lastDotIdx]
-                    classAttribute = assembled[lastDotIdx + 1:]
-                else:
-                    className = assembled
-
-            return className, classAttribute
-
-        # ---------------------------------------------------------------------
-        context = nameBase = nameExtension = ''
-        context = checkNodeContext(node)
-        if context: 
-            if isInterestingIdentifier(assembled): # filter some local or build-in names
-                nameBase, nameExtension = attemptSplitIdentifier(context, assembled)
-
-        return context, nameBase, nameExtension
-
-        # end:_isInterestingReference()
-
-
-    ##
-    # this supersedes reduceAssembled(), improving the return value
-    def _splitQxClass(self, assembled):
-        className = classAttribute = ''
-        if assembled in self._classesObj:  # short cut
-            className = assembled
-        elif "." in assembled:
-            for entryId in self._classesObj:
-                if assembled.startswith(entryId) and re.match(r'%s\b' % entryId, assembled):
-                    if len(entryId) > len(className): # take the longest match
-                        className      = entryId
-                        classAttribute = assembled[ len(entryId) +1 :]  # skip entryId + '.'
-                        # see if classAttribute is chained, too
-                        dotidx = classAttribute.find(".")
-                        if dotidx > -1:
-                            classAttribute = classAttribute[:dotidx]    # only use the first component
-        return className, classAttribute
-
-
-    ##
-    # Check if the detected (pot. complex) identifier <idStr>, with corresponding
-    # AST node <node>, is a scoped identifier in <fileId>.
-    #
-    # Uses scope analysis (ecmascript.frontend.Scope) of <fileId>; finds the
-    # enclosing scope of <node>, then looks up <idStr> in this scope.
-    def _isScopedVar(self, idStr, node, fileId):
-
-        def findScopeNode(node):
-            node1 = node
-            sNode = None
-            while not sNode:
-                if node1.type in ["function", "catch"]:
-                    sNode = node1
-                if node1.hasParent():
-                    node1 = node1.parent
-                else:
-                    break # we're at the root
-            if not sNode:
-                sNode = node1 # use root node
-            return sNode
-
-        def getScript(node, fileId, ):
-            # TODO: checking the root nodes is a fix, as they sometimes differ (prob. caching)
-            # -- looking up nodes in a Script() uses object identity for comparison; sometimes, the
-            #    tree _analyzeClassDepsNode works on and the tree Script is built from are not the
-            #    same in memory, e.g. when the tree is re-read from disk; then those comparisons
-            #    fail (although the nodes are semantically the same); hence we have to
-            #    re-calculate the Script (which is expensive!) when the root node object changes;
-            #    using __memo allows at least to re-use the existing script when a class is worked
-            #    on and this method is called successively for the same tree.
-            rootNode = node.getRoot()
-            #if _memo1_[0] == fileId: # replace with '_memo1_[0] == rootNode', to make it more robust, but slightly less performant
-            if _memo1_[0] == rootNode:
-                script = _memo1_[1]
-            else:
-                # TODO: disentagle use of ecmascript.frontend.Script and generator.code.Script
-                script = Script(rootNode, fileId)
-                _memo1_[0], _memo1_[1] = rootNode, script
-            return script
-
-        def getLeadingId(idStr):
-            leadingId = idStr
-            dotIdx = idStr.find('.')
-            if dotIdx > -1:
-                leadingId = idStr[:dotIdx]
-            return leadingId
-
-        # -----------------------------------------------------------------------------
-
-        # check composite id a.b.c, check only first part
-        idString = getLeadingId(idStr)
-        script   = getScript(node, fileId)
-
-        scopeNode = findScopeNode(node)  # find the node of the enclosing scope (function - catch - global)
-        if scopeNode == script.root:
-            fcnScope = script.getGlobalScope()
+        if tree.type in ('file', 'function', 'catch'):
+            top_scope = tree.scope
         else:
-            fcnScope  = script.getScope(scopeNode)
-        assert fcnScope != None, "idString: '%s', idStr: '%s', fileId: '%s'" % (idString, idStr, fileId)
-        varDef = script.getVariableDefinition(idString, fcnScope)
-        if varDef:
-            return True
-        return False
+            top_scope = scopes.find_enclosing(tree)
+        # walk through enclosing and all nested scopes
+        for scope in top_scope.scope_iterator():
+            if scope.is_defer:
+                # e.g. in 'defer' handle locals like 'statics' as dependency with recursion
+                vars_ = dict(scope.globals().items() +
+                    [(x,y) for x,y in scope.locals().items() if y.is_param])
+            else:
+                # only consider global syms
+                vars_ = scope.globals()
+            for name, scopeVar in vars_.items():  # { sym_name: ScopeVar }
+                # create a depsItem for all its uses
+                for var_node in scopeVar.uses:
+                    if treeutil.hasAncestor(var_node, tree): # var_node is not disconnected through optimization
+                        #depsItem = self.depsItem_from_node(var_node)
+                        #result.append(depsItem)
+                        result.append(var_node)
+        return result
 
-        # end:_isScopedVar()
+
+
+    ##
+    # DepsItems from qx.core.Environment.*() feature dependencies
+    #
+    def dependencies_from_envcalls(self, node):
+
+        depsList = []
+        if 'qx.core.Environment' not in ClassesAll:
+            self.context['console'].warn("No qx.core.Environment available to extract feature keys from")
+            return depsList
+        qcEnvClass = ClassesAll['qx.core.Environment']
+
+        for env_operand in variantoptimizer.findVariantNodes(node):
+            call_node = env_operand.parent.parent
+            env_key = call_node.getChild("arguments").children[0].get("value", "")
+            # Without qx.core.Environment._checksMap:
+            # ---------------------------------------
+            className = qcEnvClass.classNameFromEnvKeyByIndex(env_key)
+            if className and className in ClassesAll:
+                #print className
+                depsItem = DependencyItem(className, "", self.id, env_operand.get('line', -1))
+                depsItem.isCall = True  # treat as if actual call, to collect recursive deps
+                depsItem.node = call_node
+                # .inLoadContext
+                qx_idnode = treeutil.findFirstChainChild(env_operand) # 'qx' node of 'qx.core.Environment....'
+                scope = qx_idnode.scope
+                depsItem.isLoadDep = scope.is_load_time
+                if depsItem.isLoadDep:
+                    depsItem.needsRecursion = True
+                depsList.append(depsItem)
+            # With qx.core.Environment._checksMap:
+            # ------------------------------------
+            # className, classAttribute = qcEnvClass.classNameFromEnvKey(env_key)
+            # if className and className in ClassesAll:
+            #     #print className
+            #     depsItem = DependencyItem(className, classAttribute, self.id, env_operand.get('line', -1))
+            #     depsItem.isCall = True  # treat as if actual call, to collect recursive deps
+            #     depsItem.node = call_node
+            #     # .inLoadContext
+            #     qx_idnode = treeutil.findFirstChainChild(env_operand) # 'qx' node of 'qx.core.Environment....'
+            #     scope = qx_idnode.scope
+            #     depsItem.isLoadDep = scope.is_load_time
+            #     if depsItem.isLoadDep:
+            #         depsItem.needsRecursion = True
+            #     depsList.append(depsItem)
+        return depsList
+
+
+    ##
+    # This still covers #-hints.
+    #
+    # @return
+    #  load [DepsItem]     DepsItems from load hints
+    #  run  [DepsItem]     DepsItems from run hints
+    #  ignore [HintArgument]  HintArgument items from ignore hints
+    #
+    def dependencies_from_comphints(self, node):
+        load, run = [], []
+        # Read meta data
+        meta         = self.getHints()
+        metaLoad     = meta.get("loadtimeDeps", [])
+        metaRun      = meta.get("runtimeDeps" , [])
+        metaOptional = meta.get("optionalDeps", [])
+        metaIgnore   = meta.get("ignoreDeps"  , [])
+        metaIgnore.extend(metaOptional)
+        all_feature_checks = [False, False]  # load_feature_checks, run_feature_checks
+
+        # regexify globs in metaignore
+        metaIgnore = map(HintArgument, metaIgnore)
+
+        # Turn strings into DependencyItems()
+        for target,metaHint in ((load,metaLoad), (run,metaRun)):
+            for key in metaHint:
+                # add all feature checks if requested
+                if key == "feature-checks":
+                    all_feature_checks[bool(metaHint==metaRun)] = True
+                    target.extend(self.depsItems_from_envchecks(-1, metaHint==metaLoad))
+                # turn an entry into a DependencyItem
+                elif isinstance(key, types.StringTypes):
+                    sig = key.split('#',1)
+                    className = sig[0]
+                    attrName  = sig[1] if len(sig)>1 else ''
+                    target.append(DependencyItem(className, attrName, self.id, "|hints|"))
+
+        # Add JSDoc Hints
+        for hint in node.hint.iterator():
+            for target,hintKey in ((load,'require'), (run,'use')):
+                if hintKey in hint.hints:
+                    for hintArg in hint.hints[hintKey][None]:
+                        # add all feature checks if requested
+                        if hintArg == "feature-checks":
+                            all_feature_checks[bool(hintKey=='use')] = True
+                            target.extend(self.depsItems_from_envchecks(hint.node.get('line',-1), metaHint==metaLoad))
+                        # turn the HintArgument into a DependencyItem
+                        else:
+                            sig = hintArg.source.split('#',1)
+                            className = sig[0]
+                            attrName  = sig[1] if len(sig)>1 else ''
+                            target.append(DependencyItem(className, attrName, self.id, hint.node.get('line',-1)))
+
+        return load, run, metaIgnore, all_feature_checks
+
+
+    ##
+    # DepsItem Factory: Create a DependencyItem() from an AST node.
+    #
+    def depsItem_from_node(self, node):
+        scope = node.scope
+        # some initializations (might get refined later)
+        depsItem = DependencyItem('', '', '')
+        depsItem.name           = ''
+        depsItem.attribute      = ''
+        depsItem.requestor      = self.id
+        depsItem.line           = node.get("line", -1)
+        depsItem.isLoadDep      = scope.is_load_time
+        depsItem.needsRecursion = False
+        depsItem.isCall         = False
+        depsItem.node           = node
+        var_root = treeutil.findVarRoot(node)  # various of the tests need the var (dot) root, rather than the head symbol (like 'qx')
+
+        # .isCall
+        if treeutil.isCallOperand(var_root): # it's a function call or new op.
+            depsItem.isCall = True  # interesting when following transitive deps
+
+        # .name, .attribute
+        assembled = (treeutil.assembleVariable(node))[0]
+        className = gs.test_for_libsymbol(assembled, ClassesAll, []) # TODO: no namespaces!?
+        if not className:
+            is_lib_class = False
+            className = assembled
+            classAttribute = ''
+        else:
+            is_lib_class = True
+            if len(assembled) > len(className):
+                classAttribute = assembled[len(className)+1:]
+                dotidx = classAttribute.find(".") # see if classAttribute is chained too
+                if dotidx > -1:
+                    classAttribute = classAttribute[:dotidx]    # only use the first component
+            else:
+                classAttribute = ''
+        # we allow self-references, to be able to track method dependencies within the same class
+        assembled_parts = assembled.split('.')
+        if assembled_parts[0] == 'this':
+            className = self.id
+            is_lib_class = True
+            if '.' in assembled:
+                classAttribute = assembled_parts[1]
+        elif scope.is_defer and assembled_parts[0] in DEFER_ARGS:
+            className = self.id
+            is_lib_class = True
+            if '.' in assembled:
+                classAttribute = assembled_parts[1]
+        if is_lib_class and not classAttribute:  # see if we have to provide 'construct'
+            if treeutil.isNEWoperand(var_root):
+                classAttribute = 'construct'
+        depsItem.name = className
+        depsItem.attribute = classAttribute
+
+        # .needsRecursion
+        # Mark items that need recursive analysis of their dependencies (bug#1455)
+        if (is_lib_class and
+            scope.is_load_time and
+            (treeutil.isCallOperand(var_root) or
+             treeutil.isNEWoperand(var_root))):
+            depsItem.needsRecursion = True
+
+        return depsItem
+
+
+    ##
+    # DepsItem Factory: Create a DependencyItem() for each Feature Check class.
+    #
+    def depsItems_from_envchecks(self, nodeline, inLoadContext):
+        # Without qx.core.Environment._checksMap:
+        # ---------------------------------------
+        result = []
+        qcEnvClass = ClassesAll['qx.core.Environment']
+        for key in qcEnvClass.envKeyProviderIndex:
+            clsname = qcEnvClass.classNameFromEnvKeyByIndex(key)
+            result.append(DependencyItem(clsname, "", self.id, nodeline, inLoadContext))
+        return result
+        # With qx.core.Environment._checksMap:
+        # -----------------------------------
+        # result = []
+        # qcEnvClass = ClassesAll['qx.core.Environment']
+        # for key in qcEnvClass.checksMap:
+        #     clsname, clsattribute = qcEnvClass.classNameFromEnvKey(key)
+        #     result.append(DependencyItem(clsname, clsattribute, self.id, nodeline, inLoadContext))
+        # return result
+
+
+    ##
+    # Create depsItems from dependencies.json entry.
+    #
+    # deps_json = {'load':['qx.util.OOUtil', ...], 'run':['qx.util.DisposeUtil',...]}
+    #
+    def depsItems_from_Json(self, deps_json):
+        result = {'run':[], 'load':[], 'ignore':[]}
+        for category in ('run', 'load'):
+            for classId in deps_json[category]:
+                if any([classId.startswith(x) for x in ('/resource/', '/translation/', '/locale/')]):
+                    continue  # sorting out resource, locale and msgid dependencies
+                depsItem = DependencyItem(classId, '', '|dependency.json|')
+                depsItem.isLoadDep = category == 'load'
+                result[category].append(depsItem)
+        return result
+
+
+    ##
+    # Return a list of dependency items, gleaned from an AST node, with some filters
+    # applied.
+    #
+    def _analyzeClassDepsNode(self, node, depsList, inLoadContext, inDefer=False):
+        # helper functions
+        not_jsignored = inverse(gs.test_ident_is_jsignored)
+        browser_sans_this = [x for x in lang.GLOBALS if x!='this']
+        not_builtin = inverse(gs.test_ident_is_builtin(browser_sans_this))
+        not_jsignore_envcall = inverse(lambda d: gs.name_is_jsignored(
+            d.name+('.'+d.attribute if d.attribute else ''), d.node))
+        # ensure a complete hint tree for ignore checking
+        root_node = node.getRoot()
+        if not hasattr(root_node, 'hint'):
+            root_node = jshints.create_hints_tree(root_node)
+
+        code_deps = pipeline(
+            self.dependencies_from_ast(node)
+            , bind(filter, not_jsignored)
+            , bind(filter, not_builtin)
+            , bind(map, self.depsItem_from_node)
+        )
+        envcall_deps = pipeline(
+            self.dependencies_from_envcalls(node)
+            , bind(filter, not_jsignore_envcall)
+        )
+        dependencies = code_deps + envcall_deps
+
+        [setattr(x,'node',None) for x in dependencies]  # remove AST links (for easier caching)
+        depsList.extend(dependencies)
+
+
+    #def filter_symbols_by_builtins(self, depsList):
+    #    return [deps for deps in depsList if not GlobalSymbolsCombinedPatt.search(deps.name)]
+
+
+    #def filter_symbols_by_jshints(self, tree, depsItems):
+    #    result = []
+    #    for depsItem in depsItems:
+    #        deps_repr = depsItem.name
+    #        if depsItem.attribute:
+    #            deps_repr += '.' + depsItem.attribute
+    #        is_ignored = gs.name_is_jsignored(deps_repr, depsItem.node)
+    #        if not is_ignored:
+    #            result.append(depsItem)
+    #    return result
+
+
+    def filter_symbols_by_comphints(self, treeDeps, ignore_hints):
+        load, run, ignored = [], [], []
+        # Process source tree data
+        for dep in treeDeps:
+            # load deps
+            if dep.isLoadDep:
+                if "auto-require" not in ignore_hints:
+                    if dep.name in ignore_hints:
+                        ignored.append(dep)
+                    else:
+                        # adding all items to list (the second might have needsRecursion)
+                        load.append(dep)
+            # run deps
+            else:
+                if "auto-use" not in ignore_hints:
+                    if dep.name in ignore_hints:
+                        ignored.append(dep)
+                    else:
+                        # adding all items to list (to comply with the 'load' deps)
+                        run.append(dep)
+        return load, run, ignored
 
 
     # --------------------------------------------------------------------
@@ -639,14 +601,14 @@ class MClassDependencies(object):
             clazzId = "Function"
         # TODO: getter/setter are also not lexically available!
         # handle .call() ?!
-        if clazzId not in self._classesObj: # can't further process non-qooxdoo classes
+        if clazzId not in ClassesAll: # can't further process non-qooxdoo classes
             # TODO: maybe this should better use something like isInterestingIdentifier()
             # to invoke the same machinery for filtering references like in other places
             return None, None
 
         # early return if class id is finalized
         if clazzId != self.id:
-            classObj = self._classesObj[clazzId]
+            classObj = ClassesAll[clazzId]
             featureNode = self.getFeatureNode(featureId, variants)
             if featureNode:
                 return clazzId, featureNode
@@ -665,6 +627,9 @@ class MClassDependencies(object):
         if featureId == 'construct':  # constructor requested, but not supplied in class map
             # supply the default constructor
             featureNode = treeutil.compileString("function(){this.base(arguments);}", self.path)
+            # the next is a hack to provide minimal scope info
+            featureNode.set("treegenerator_tag", 1)
+            featureNode = scopes.create_scopes(featureNode)
             return self.id, featureNode
 
         # inspect inheritance/mixins
@@ -676,26 +641,26 @@ class MClassDependencies(object):
             # this.base calls
             if featureId == "base":
                 classId = parents[0]  # first entry must be super-class
-                if classId in self._classesObj:
-                    return self._classesObj[classId].findClassForFeature('construct', variants, classMaps)
+                if classId in ClassesAll:
+                    return ClassesAll[classId].findClassForFeature('construct', variants, classMaps)
                 else:
                     return None, None
         includeVal = classMap.get('include', None)
         if includeVal:
             # 'include' value according to Class spec.
-            if includeVal.type in ('variable', 'array'):
+            if includeVal.type in NODE_VARIABLE_TYPES + ('array',):
                 includeVal = treeutil.variableOrArrayNodeToArray(includeVal)
-            
+
             # assume qx.core.Environment.filter() call
             else:
                 filterMap = variantoptimizer.getFilterMap(includeVal, self.id)
                 includeSymbols = []
                 for key, node in filterMap.items():
-                    # only consider true or undefined 
+                    # only consider true or undefined
                     #if key not in variants or (key in variants and bool(variants[key]):
                     # map value has to be value/variable
                     variable =  node.children[0]
-                    assert variable.type == "variable"
+                    assert variable.isVar()
                     symbol, isComplete = treeutil.assembleVariable(variable)
                     assert isComplete
                     includeSymbols.append(symbol)
@@ -705,15 +670,15 @@ class MClassDependencies(object):
 
         # go through all ancestors
         for parClass in parents:
-            if parClass not in self._classesObj:
+            if parClass not in ClassesAll:
                 continue
-            parClassObj = self._classesObj[parClass]
+            parClassObj = ClassesAll[parClass]
             rclass, keyval = parClassObj.findClassForFeature(featureId, variants, classMaps)
             if rclass:
                 return rclass, keyval
         return None, None
 
-    
+
     ##
     # Returns the AST node of a class feature (e.g. memeber method) if it exists
     def getFeatureNode(self, featureId, variants, classMap=None):
@@ -739,7 +704,7 @@ class MClassDependencies(object):
 
 
     def getClassMap(self, variants):
-        tree = self.tree (variants)
+        tree = self.optimize (None, ["variants"], variants) # TODO: this might incur an extra cached tree, if not(variants)
         qxDefine = treeutil.findQxDefine (tree)
         classMap = treeutil.getClassMap (qxDefine)
 
@@ -781,7 +746,7 @@ class MClassDependencies(object):
         # <classId>. recurse on the immediate dependencies in the method code.
         #
         # @param deps accumulator variable set((c1,m1), (c2,m2),...)
-        
+
         def getTransitiveDepsR(dependencyItem, variantString, totalDeps):
 
             # We don't add the in-param to the global result
@@ -807,17 +772,17 @@ class MClassDependencies(object):
                     return cachedDeps
 
             # Need to calculate deps
-            console.dot("_")
+            console.dot(1)
 
             # Check known class
-            if classId not in self._classesObj:
+            if classId not in ClassesAll:
                 console.debug("Skipping unknown class of dependency: %s#%s (%s:%d)" % (classId, methodId,
                               dependencyItem.requestor, dependencyItem.line))
                 return set()
 
             # Check other class
             elif classId != self.id:
-                classObj = self._classesObj[classId]
+                classObj = ClassesAll[classId]
                 otherdeps = classObj.getTransitiveDeps(dependencyItem, variants, classMaps, totalDeps, force)
                 return otherdeps
 
@@ -825,11 +790,11 @@ class MClassDependencies(object):
             defClassId, attribNode = self.findClassForFeature(methodId, variants, classMaps)
 
             # lookup error
-            if not defClassId or defClassId not in self._classesObj:
-                console.debug("Skipping unknown definition of dependency: %s#%s (%s:%d)" % (classId, 
+            if not defClassId or defClassId not in ClassesAll:
+                console.debug("Skipping unknown definition of dependency: %s#%s (%s:%d)" % (classId,
                               methodId, dependencyItem.requestor, dependencyItem.line))
                 return set()
-            
+
             defDepsItem = DependencyItem(defClassId, methodId, classId)
             if dependencyItem.isCall:
                 defDepsItem.isCall = True  # if the dep is an inherited method being called, pursue the parent method as call
@@ -838,7 +803,7 @@ class MClassDependencies(object):
             # inherited feature
             if defClassId != classId:
                 self.resultAdd(defDepsItem, localDeps)
-                defClass = self._classesObj[defClassId]
+                defClass = ClassesAll[defClassId]
                 otherdeps = defClass.getTransitiveDeps(defDepsItem, variants, classMaps, totalDeps, force)
                 localDeps.update(otherdeps)
                 return localDeps
@@ -858,12 +823,14 @@ class MClassDependencies(object):
                     # Get the method's immediate deps
                     # TODO: is this the right API?!
                     depslist = []
-                    self._analyzeClassDepsNode(attribNode, depslist, variants, inLoadContext=False)
+                    if attribNode.type == 'value':
+                       attribNode = attribNode.children[0]
+                    self._analyzeClassDepsNode(attribNode, depslist, inLoadContext=False)
                     console.debug( "shallow dependencies: %r" % (depslist,))
 
                     # This depends on attribNode belonging to current class
                     my_ignores = self.getHints("ignoreDeps") + self.getHints("optionalDeps")
-                    my_ignores = map(MetaIgnore, my_ignores)
+                    my_ignores = map(HintArgument, my_ignores)
 
                     for depsItem in depslist:
                         if depsItem in totalDeps:
@@ -871,8 +838,9 @@ class MClassDependencies(object):
                         if depsItem.name in my_ignores:
                             continue
                         if self.resultAdd(depsItem, localDeps):
+                            totalDeps = totalDeps.union(localDeps)
                             # Recurse dependencies
-                            downstreamDeps = getTransitiveDepsR(depsItem, variants, totalDeps.union(localDeps))
+                            downstreamDeps = getTransitiveDepsR(depsItem, variants, totalDeps)
                             localDeps.update(downstreamDeps)
 
             # Cache update
@@ -881,7 +849,7 @@ class MClassDependencies(object):
             #       around 'attribNode.getChild("function",...)')
             if not function_pruned:
                 cache.write(cacheId, localDeps, memory=True, writeToFile=False)
-             
+
             console.outdent()
             return localDeps
 
@@ -894,25 +862,4 @@ class MClassDependencies(object):
         deps = getTransitiveDepsR(depsItem, variantString, checkset) # checkset is currently not used, leaving it for now
 
         return deps
-
-
-
-##
-# #ignore hints can have globs (like 'qx.test.*')
-# This class provides a wrapper around those entries so you can immediately match
-# agaist the regexp.
-class MetaIgnore(object):
-
-    def __init__ (self, source=""):
-        self.source   = source  # "qx/test/*"
-        so = re.escape(source)  # for '.', '$'
-        so = so.replace(r'\*', '.*')  # re-activate '*'
-        self.regex    = re.compile(r'^%s$' % so) # re.compile("qx\.test\.*")
-
-    ##
-    # Overloading __eq__ so that 'in' tests will use a regex match
-    def __eq__ (self, other):
-        return self.regex.match(other)
-
-
 

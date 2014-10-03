@@ -31,6 +31,9 @@ qx.Class.define("feedreader.view.desktop.Header",
   *****************************************************************************
   */
 
+  /**
+   * @ignore(qxc)
+   */
   construct : function()
   {
     this.base(arguments);

@@ -71,8 +71,8 @@ qx.Class.define("apiviewer.Controller",
     this._history = qx.bom.History.getInstance();
     this.__bindHistory();
 
-    qx.core.Init.getApplication().getRoot().addListener("mousedown", function(e) {
-        this.__openInNewTab = e.isShiftPressed() || e.isCtrlOrCommandPressed();
+    qx.core.Init.getApplication().getRoot().addListener("pointerdown", function(e) {
+      this.__openInNewTab = e.isShiftPressed() || e.isCtrlOrCommandPressed();
     }, this, true);
   },
 
@@ -163,7 +163,7 @@ qx.Class.define("apiviewer.Controller",
      */
     __bindTabViewController : function()
     {
-      this._tabViewController.addListener("classLinkClicked", function(evt) {
+      this._tabViewController.addListener("classLinkTapped", function(evt) {
           this._updateHistory(evt.getData());
       }, this);
 
@@ -276,7 +276,7 @@ qx.Class.define("apiviewer.Controller",
      */
     __bindHistory : function()
     {
-      this._history.addListener("request", function(evt) {
+      this._history.addListener("changeState", function(evt) {
         var item = this.__decodeState(evt.getData());
         if (item) {
           this.__selectItem(item);
@@ -378,7 +378,7 @@ qx.Class.define("apiviewer.Controller",
         var parenPos = itemName.indexOf("(");
 
         if (parenPos != -1) {
-          itemName = qx.lang.String.trim(itemName.substring(0, parenPos));
+          itemName = itemName.substring(0, parenPos).trim();
         }
       }
 
@@ -390,6 +390,7 @@ qx.Class.define("apiviewer.Controller",
       if (!couldSelectTreeNode) {
         this.error("Unknown class: " + className);
         alert("Unknown class: " + className);
+        apiviewer.LoadingIndicator.getInstance().hide();
         return;
       }
 
@@ -407,6 +408,7 @@ qx.Class.define("apiviewer.Controller",
           {
             this.error("Unknown item of class '"+ className +"': " + itemName);
             alert("Unknown item of class '"+ className +"': " + itemName);
+            apiviewer.LoadingIndicator.getInstance().hide();
 
             this._updateHistory(className);
             this._ignoreTabViewSelection = false;
@@ -437,11 +439,14 @@ qx.Class.define("apiviewer.Controller",
      */
     __getFirstPackage : function(tree)
     {
-       if(tree.type && tree.type == "package") {
-         return tree;
-       } else {
-         return this.__getFirstPackage(tree.children[0]);
-       }
+      for (var i=0, l=tree.children.length; i<l; i++) {
+        var child = tree.children[i];
+        if(child.type && child.type == "package") {
+           return child;
+        } else {
+           return this.__getFirstPackage(child);
+        }
+      }
     }
 
   },

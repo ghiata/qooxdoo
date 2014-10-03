@@ -40,7 +40,7 @@ qx.Mixin.define("qx.ui.core.MChildrenHandling",
      * Returns the children list
      *
      * @return {LayoutItem[]} The children array (Arrays are
-     *   reference types, please to not modify them in-place)
+     *   reference types, please do not modify them in-place)
      */
     getChildren : function() {
       return this._getChildren();
@@ -84,7 +84,6 @@ qx.Mixin.define("qx.ui.core.MChildrenHandling",
      *
      * @param child {LayoutItem} the widget to add.
      * @param options {Map?null} Optional layout data for widget.
-     * @return {void}
      */
     add : function(child, options) {
       this._add(child, options);
@@ -102,7 +101,6 @@ qx.Mixin.define("qx.ui.core.MChildrenHandling",
      * @param child {LayoutItem} Widget to add
      * @param index {Integer} Index, at which the widget will be inserted
      * @param options {Map?null} Optional layout data for widget.
-     * @return {void}
      */
     addAt : function(child, index, options) {
       this._addAt(child, index, options);
@@ -120,7 +118,6 @@ qx.Mixin.define("qx.ui.core.MChildrenHandling",
      * @param child {LayoutItem} Widget to add
      * @param before {LayoutItem} Widget before the new widget will be inserted.
      * @param options {Map?null} Optional layout data for widget.
-     * @return {void}
      */
     addBefore : function(child, before, options) {
       this._addBefore(child, before, options);
@@ -138,7 +135,6 @@ qx.Mixin.define("qx.ui.core.MChildrenHandling",
      * @param child {LayoutItem} Widget to add
      * @param after {LayoutItem} Widget, after which the new widget will be inserted
      * @param options {Map?null} Optional layout data for widget.
-     * @return {void}
      */
     addAfter : function(child, after, options) {
       this._addAfter(child, after, options);
@@ -149,7 +145,6 @@ qx.Mixin.define("qx.ui.core.MChildrenHandling",
      * Remove the given child widget.
      *
      * @param child {LayoutItem} the widget to remove
-     * @return {void}
      */
     remove : function(child) {
       this._remove(child);

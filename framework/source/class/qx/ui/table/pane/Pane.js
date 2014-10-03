@@ -49,6 +49,8 @@ qx.Class.define("qx.ui.table.pane.Pane",
     this.__lastRowCount = 0;
 
     this.__rowCache = [];
+
+    this.addListener("track", this._onTrack, this);
   },
 
 
@@ -70,7 +72,7 @@ qx.Class.define("qx.ui.table.pane.Pane",
     "paneReloadsData" : "qx.event.type.Data",
 
     /**
-     * Whenever the content of the table panehas been updated (rendered)
+     * Whenever the content of the table pane has been updated (rendered)
      * trigger a paneUpdated event. This allows the canvas cellrenderer to act
      * once the new cells have been integrated in the dom.
      */
@@ -168,7 +170,7 @@ qx.Class.define("qx.ui.table.pane.Pane",
       return {
         width: this.getPaneScroller().getTablePaneModel().getTotalWidth(),
         height: 400
-      }
+      };
     },
 
 
@@ -199,7 +201,6 @@ qx.Class.define("qx.ui.table.pane.Pane",
      * @param row {Integer?null} the model index of the focused cell's row.
      * @param massUpdate {Boolean ? false} Whether other updates are planned as well.
      *          If true, no repaint will be done.
-     * @return {void}
      */
     setFocusedCell : function(col, row, massUpdate)
     {
@@ -219,6 +220,36 @@ qx.Class.define("qx.ui.table.pane.Pane",
             this.updateContent(false, null, row, true);
           }
         }
+      }
+    },
+
+
+    /**
+     * Handler for the track event which sets a new track target to make
+     * sure drag & drop works after a content update.
+     * @param e {qx.event.type.Track} The trackstart event.
+     */
+    _onTrack : function(e) {
+      var w = this.getTable();
+      var draggable = false;
+      while (w) {
+        if (w.getDraggable()) {
+          draggable = true;
+          break;
+        }
+        w = w.getLayoutParent();
+      }
+      // ignore if drag & drop is disabled
+      if (!draggable) {
+        return;
+      }
+      var delta = e.getDelta();
+      // if the mouse moved a bit in any direction
+      var distance = qx.event.handler.DragDrop.MIN_DRAG_DISTANCE;
+      if (Math.abs(delta.x) > distance || Math.abs(delta.y) > distance) {
+        // reset the target for drag & drop
+        var gestureHandler = qx.event.Registration.getManager(window).getHandler(qx.event.handler.Gesture);
+        gestureHandler.updateGestureTarget(e.getPointerId(), this.getContentElement().getDomElement());
       }
     },
 
@@ -244,7 +275,6 @@ qx.Class.define("qx.ui.table.pane.Pane",
      *
      * @param col {Integer} the column to change the width for.
      * @param width {Integer} the new width.
-     * @return {void}
      */
     setColumnWidth : function(col, width) {
       this.updateContent(true);
@@ -254,7 +284,6 @@ qx.Class.define("qx.ui.table.pane.Pane",
     /**
      * Event handler. Called the column order has changed.
      *
-     * @return {void}
      */
     onColOrderChanged : function() {
       this.updateContent(true);
@@ -295,7 +324,6 @@ qx.Class.define("qx.ui.table.pane.Pane",
     /**
      * Event handler. Called when the table model meta data has changed.
      *
-     * @return {void}
      */
     onTableModelMetaDataChanged : function() {
       this.updateContent(true);
@@ -373,7 +401,6 @@ qx.Class.define("qx.ui.table.pane.Pane",
      * @param onlyRow {Integer ? null} if set only the specified row will be updated.
      * @param onlySelectionOrFocusChanged {Boolean ? false} if true, cell values won't
      *          be updated. Only the row background will.
-     * @return {void}
      */
     updateContent : function(completeUpdate, scrollOffset, onlyRow, onlySelectionOrFocusChanged)
     {
@@ -381,25 +408,13 @@ qx.Class.define("qx.ui.table.pane.Pane",
         this.__rowCacheClear();
       }
 
-      //var start = new Date();
-
-      if (scrollOffset && Math.abs(scrollOffset) <= Math.min(10, this.getVisibleRowCount()))
-      {
-        //this.debug("scroll", scrollOffset);
+      if (scrollOffset && Math.abs(scrollOffset) <= Math.min(10, this.getVisibleRowCount())) {
         this._scrollContent(scrollOffset);
-      }
-      else if (onlySelectionOrFocusChanged && !this.getTable().getAlwaysUpdateCells())
-      {
-        //this.debug("update row styles");
+      } else if (onlySelectionOrFocusChanged && !this.getTable().getAlwaysUpdateCells()) {
         this._updateRowStyles(onlyRow);
-      }
-      else
-      {
-        //this.debug("full update");
+      } else {
         this._updateAllRows();
       }
-
-      //this.debug("render time: " + (new Date() - start) + "ms");
     },
 
 
@@ -428,7 +443,7 @@ qx.Class.define("qx.ui.table.pane.Pane",
       var cellInfo = { table : table };
 
       // We don't want to execute the row loop below more than necessary. If
-      // onlyrow is not null, we want to do the loop only for that row.
+      // onlyRow is not null, we want to do the loop only for that row.
       // In that case, we start at (set the "row" variable to) that row, and
       // stop at (set the "end" variable to the offset of) the next row.
       var row = this.getFirstVisibleRow();
@@ -626,7 +641,7 @@ qx.Class.define("qx.ui.table.pane.Pane",
       var removeRowBase = rowOffset < 0 ? rowCount + rowOffset : 0;
       var addRowBase = rowOffset < 0 ? 0: rowCount - rowOffset;
 
-      for (i=Math.abs(rowOffset)-1; i>=0; i--)
+      for (var i=Math.abs(rowOffset)-1; i>=0; i--)
       {
         var rowElem = tableChildNodes[removeRowBase];
         try {
@@ -751,5 +766,6 @@ qx.Class.define("qx.ui.table.pane.Pane",
 
   destruct : function() {
     this.__tableContainer = this.__paneScroller = this.__rowCache = null;
+    this.removeListener("track", this._onTrack, this);
   }
 });

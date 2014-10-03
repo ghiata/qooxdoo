@@ -43,7 +43,7 @@ qx.Class.define("qx.ui.form.SplitButton",
    * @param label {String} Label to use
    * @param icon {String?null} Icon to use
    * @param menu {qx.ui.menu.Menu} Connect to menu instance
-   * @param command {qx.ui.core.Command} Command instance to connect with
+   * @param command {qx.ui.command.Command} Command instance to connect with
    */
   construct : function(label, icon, menu, command)
   {
@@ -54,9 +54,9 @@ qx.Class.define("qx.ui.form.SplitButton",
     // Force arrow creation
     this._createChildControl("arrow");
 
-    // Add mouse listeners
-    this.addListener("mouseover", this._onMouseOver, this, true);
-    this.addListener("mouseout", this._onMouseOut, this, true);
+    // Add pointer listeners
+    this.addListener("pointerover", this._onPointerOver, this, true);
+    this.addListener("pointerout", this._onPointerOut, this, true);
 
     // Add key listeners
     this.addListener("keydown", this._onKeyDown);
@@ -139,7 +139,7 @@ qx.Class.define("qx.ui.form.SplitButton",
     },
 
 
-    /** The menu instance to show when clicking on the button */
+    /** The menu instance to show when tapping on the button */
     menu :
     {
       check : "qx.ui.menu.Menu",
@@ -183,8 +183,9 @@ qx.Class.define("qx.ui.form.SplitButton",
           break;
 
         case "arrow":
-          control = new qx.ui.form.MenuButton;
+          control = new qx.ui.form.MenuButton();
           control.setFocusable(false);
+          control.setShow("both");
           this._addAt(control, 1);
           break;
       }
@@ -265,11 +266,11 @@ qx.Class.define("qx.ui.form.SplitButton",
     */
 
     /**
-     * Listener for <code>mouseover</code> event
+     * Listener for <code>pointerover</code> event
      *
-     * @param e {qx.event.type.Mouse} mouseover event
+     * @param e {qx.event.type.Pointer} pointerover event
      */
-    _onMouseOver : function(e)
+    _onPointerOver : function(e)
     {
       // Captured listener
       // Whole stop for event, do not let the
@@ -285,11 +286,11 @@ qx.Class.define("qx.ui.form.SplitButton",
 
 
     /**
-     * Listener for <code>mouseout</code> event
+     * Listener for <code>pointerout</code> event
      *
-     * @param e {qx.event.type.Mouse} mouseout event
+     * @param e {qx.event.type.Pointer} pointerout event
      */
-    _onMouseOut : function(e)
+    _onPointerOut : function(e)
     {
       // Captured listener
       // Whole stop for event, do not let the

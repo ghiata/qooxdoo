@@ -1,73 +1,32 @@
 <!DOCTYPE html>
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
   <title>qooxdoo &raquo; Playground</title>
   <style type="text/css">
     .qx_samples { display:none }
+    .vbox {
+      /* Solves Firefox bug on playground.*/
+      height:100%;
+    }
+
   </style>
 
-  <script type="text/javascript" charset="utf-8">
-  
-    // fix Object.keys for IE
-    // https://github.com/ajaxorg/ace/issues/139
-    if (!Object.keys) {
-      var shadowedKeys = [
-        "isPrototypeOf",
-        "hasOwnProperty",
-        "toLocaleString",
-        "toString",
-        "valueOf",
-        "constructor"];
+  <script type="text/javascript">
+  if (location.hostname === "demo.qooxdoo.org") {
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-415440-1']);
+    _gaq.push(['_setDomainName', 'qooxdoo.org']);
+    _gaq.push(['_trackPageview']);
 
-      Object.keys = ({
-        "BROKEN_IE" : function(map)
-        {
-          var arr = [];
-          var hasOwnProperty = Object.prototype.hasOwnProperty;
-          for (var key in map) {
-            if (hasOwnProperty.call(map, key)) {
-              arr.push(key);
-            }
-          }
-
-          // IE does not return "shadowed" keys even if they are defined directly
-          // in the object. This is incompatible with the ECMA standard!!
-          // This is why this checks are needed.
-          for (var i=0, a=shadowedKeys, l=a.length; i<l; i++)
-          {
-            if (hasOwnProperty.call(map, a[i])) {
-              arr.push(a[i]);
-            }
-          }
-
-          return arr;
-        },
-
-        "default" : function(map)
-        {
-          var arr = [];
-
-          var hasOwnProperty = Object.prototype.hasOwnProperty;
-          for (var key in map) {
-            if (hasOwnProperty.call(map, key)) {
-              arr.push(key);
-            }
-          }
-
-          return arr;
-        }
-      })[
-        (function() {for (var key in {toString : 1}) { return key }})() !== "toString" ? "BROKEN_IE" : "default"
-      ];
-    }
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  }
   </script>
-
-  <script src="resource/playground/editor/ace.js" type="text/javascript" charset="utf-8"></script>
-  <script src="resource/playground/editor/theme-eclipse.js" type="text/javascript" charset="utf-8"></script>
-  <script src="resource/playground/editor/mode-javascript.js" type="text/javascript" charset="utf-8"></script>
-
-  <script type="text/javascript">if (location.hostname === "demo.qooxdoo.org") document.write('<script src="http://resources.qooxdoo.org/script/analytics.js" type="text/javascript"></scr' + 'ipt>');</script>
 
 </head>
 <body>
@@ -80,16 +39,19 @@
 
 <!-- ********************************************************************** -->
 
-<textarea class="qx_samples" title="Hello World-mobile">var page = new qx.ui.mobile.page.NavigationPage();
+<textarea class="qx_samples" title="Hello World-mobile">
+var page = new qx.ui.mobile.page.NavigationPage();
 page.setTitle("Hello World");
 page.addListener("initialize", function() {
   var button = new qx.ui.mobile.form.Button("First Button");
-  page.getContent().add(button);          
+  page.getContent().add(button);
 
   button.addListener("tap", function() {
     alert("Hello World");
   }, this);
 },this);
+
+this.getManager().addDetail(page);
 
 page.show();</textarea>
 
@@ -97,7 +59,8 @@ page.show();</textarea>
 <!-- ********************************************************************** -->
 
 
-<textarea class="qx_samples" title="List-mobile">var page = new qx.ui.mobile.page.NavigationPage();
+<textarea class="qx_samples" title="List-mobile">
+var page = new qx.ui.mobile.page.NavigationPage();
 page.setTitle("List");
 page.addListener("initialize", function() {
   // List creation
@@ -105,7 +68,7 @@ page.addListener("initialize", function() {
     configureItem : function(item, data, row) {
       item.setImage("qx/icon/Tango/22/apps/internet-mail.png");
       item.setTitle(row<4 ? ("Selectable " + data.title) : data.title);
-      item.setSubTitle(data.subTitle);
+      item.setSubtitle(data.subTitle);
       item.setSelectable(row<4);
       item.setShowArrow(row<4);
     }
@@ -121,9 +84,11 @@ page.addListener("initialize", function() {
   list.addListener("changeSelection", function(evt) {
     alert("Item Selected #" + evt.getData());
   }, this);
-  
+
   page.getContent().add(list);
 },this);
+
+this.getManager().addDetail(page);
 
 page.show();</textarea>
 
@@ -159,70 +124,38 @@ page2.addListener("back", function() {
   page1.show({reverse:true});
 }, this);
 
+this.getManager().addDetail([page1,page2]);
+
 page1.show();</textarea>
 
 
 
-
 <!-- ********************************************************************** -->
 
 
-<textarea class="qx_samples" title="List-mobile">var page = new qx.ui.mobile.page.NavigationPage();
-page.setTitle("List");
-page.addListener("initialize", function() {
-  // List creation
-  var list = new qx.ui.mobile.list.List({
-    configureItem : function(item, data, row) {
-      item.setImage("qx/icon/Tango/22/apps/internet-mail.png");
-      item.setTitle(row<4 ? ("Selectable " + data.title) : data.title);
-      item.setSubTitle(data.subTitle);
-      item.setSelectable(row<4);
-      item.setShowArrow(row<4);
-    }
-  });
-
-  // Create the data
-  var data = [];
-  for (var i=0; i < 50; i++) {
-    data.push({title:"Item" + i, subTitle:"Subtitle for Item #" + i});
-  }
-
-  list.setModel(new qx.data.Array(data));
-  list.addListener("changeSelection", function(evt) {
-    alert("Item Selected #" + evt.getData());
-  }, this);
-  
-  page.getContent().add(list);
-},this);
-
-page.show();</textarea>
-
-
-<!-- ********************************************************************** -->
-
-
-<textarea class="qx_samples" title="Form-mobile">var page = new qx.ui.mobile.page.NavigationPage();
+<textarea class="qx_samples" title="Form-mobile">
+var page = new qx.ui.mobile.page.NavigationPage();
 page.setTitle("Login");
 page.addListener("initialize", function() {
   var form = new qx.ui.mobile.form.Form();
-  
+
   // User name
   var user = new qx.ui.mobile.form.TextField();
   user.setRequired(true);
   form.add(user, "Username");
-  
+
   // Password
   var pwd = new qx.ui.mobile.form.PasswordField();
   pwd.setRequired(true);
   form.add(pwd, "Password");
-  
+
   // Use form renderer
-  page.getContent().add(new qx.ui.mobile.form.renderer.SinglePlaceholder(form));
-  
+  page.getContent().add(new qx.ui.mobile.form.renderer.Single(form));
+
   // login button
   var button = new qx.ui.mobile.form.Button("Login");
   page.getContent().add(button);
-  
+
   button.addListener("tap", function() {
     if (form.validate()) {  // use form validation
       alert("Loggin in " + user.getValue());
@@ -230,13 +163,16 @@ page.addListener("initialize", function() {
   }, this);
 },this);
 
+this.getManager().addDetail(page);
+
 page.show();</textarea>
 
 
 <!-- ********************************************************************** -->
 
 
-<textarea class="qx_samples" title="YQL Binding-mobile">// Data model
+<textarea class="qx_samples" title="YQL Binding-mobile">
+// Data model
 var query = "select * from feed where url='http://feeds.feedburner.com/qooxdoo/news/content'";
 
 var delegate = {manipulateData : function(data) {
@@ -253,7 +189,7 @@ page.addListener("initialize", function()
     configureItem : function(item, data, row)
     {
       item.setTitle(data.getTitle());
-      item.setSubTitle(data.getPubDate());
+      item.setSubtitle(data.getPubDate());
     }
   });
 
@@ -261,6 +197,7 @@ page.addListener("initialize", function()
   page.getContent().add(list);
 },this);
 
+this.getManager().addDetail(page);
 page.show();</textarea>
 
 
@@ -287,8 +224,8 @@ button1.addListener("execute", function(e) {
 
 <!-- ********************************************************************** -->
 
-<div id="compare_div1" visibility="hidden"></div>
-<div id="compare_div2" visibility="hidden"></div>
+<div id="compare_div1" style="visibility: hidden;"></div>
+<div id="compare_div2" style="visibility: hidden;"></div>
 
 <textarea class="qx_samples" title="Window-ria">var win = new qx.ui.window.Window("First Window");
 win.setWidth(300);
@@ -387,7 +324,7 @@ buttonPane.add(cancelButton);</textarea>
 <textarea class="qx_samples" title="Calculator-ria">var win = new qx.ui.window.Window("Calculator");
 win.setLayout(new qx.ui.layout.VBox(3));
 win.setShowMinimize(false);
-this.getRoot().add(win, {left:100, top:50}); 
+this.getRoot().add(win, {left:100, top:50});
 win.open();
 
 var display = new qx.ui.basic.Label("0").set({
@@ -411,7 +348,7 @@ var labels = [
   ["4", "5", "6", "+"],
   ["1", "2", "3", "="],
   ["0", null, ".", null]
-]; 
+];
 
 var buttons = {};
 for (var row=0; row<6; row++) {
@@ -428,10 +365,10 @@ for (var row=0; row<6; row++) {
       buttons[label] = button;
     }
   }
-} 
+}
 
 buttons["="].setLayoutProperties({rowSpan: 2});
-buttons["0"].setLayoutProperties({colSpan: 2}); 
+buttons["0"].setLayoutProperties({colSpan: 2});
 
 for (label in buttons) {
   buttons[label].addListener("execute", function(e) {

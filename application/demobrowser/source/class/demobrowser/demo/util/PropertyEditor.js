@@ -34,8 +34,11 @@ qx.Class.define("demobrowser.demo.util.PropertyEditor",
 
     this._editorGroups = {};
 
-    var decor = new qx.ui.decoration.Single();
-    decor.setLeft(1, "solid", "black");
+    var decor = new qx.ui.decoration.Decorator().set({
+      widthLeft: 1,
+      styleLeft: "solid",
+      colorLeft: "black"
+    });
 
     this.setDecorator(decor);
     this.setBackgroundColor("white");
@@ -79,7 +82,7 @@ qx.Class.define("demobrowser.demo.util.PropertyEditor",
 
   members :
   {
-    handleWidgetClick : function(e)
+    handleWidgetTap : function(e)
     {
       var widget = e.getTarget();
       this.setWidget(widget);

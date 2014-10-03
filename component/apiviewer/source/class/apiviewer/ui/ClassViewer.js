@@ -23,6 +23,7 @@
 
 /**
  * Shows the class details.
+ * @require(qx.module.event.GestureHandler)
  */
 qx.Class.define("apiviewer.ui.ClassViewer",
 {
@@ -83,6 +84,8 @@ qx.Class.define("apiviewer.ui.ClassViewer",
       "Float"     : true,
       "Double"    : true,
 
+      "Color"    : true,
+
       "Error"     : true,
       "RegExp"    : true,
 
@@ -110,6 +113,7 @@ qx.Class.define("apiviewer.ui.ClassViewer",
       "Function" : "https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function",
       "Array" : "https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Array",
       "Object" : "https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object",
+      "Map" : "https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Object",
       "RegExp" : "https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/RegExp",
       "Error" : "https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Error",
       "Number" : "https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Number",
@@ -119,6 +123,37 @@ qx.Class.define("apiviewer.ui.ClassViewer",
       "arguments" : "https://developer.mozilla.org/en/JavaScript/Reference/Global_Objects/Function/arguments",
       "Font" : "https://developer.mozilla.org/en/CSS/font",
       "Color" : "https://developer.mozilla.org/en/CSS/color"
+    },
+
+
+    /**
+     * {Map} Replacement rules for placeholders in the source view URI.
+     * Functions will be called with the current @link{apiviewer.dao.Node} as the
+     * only parameter and must return a string.
+    **/
+    SOURCE_VIEW_MACROS :
+    {
+      classFilePath : function(node) {
+        var classNode = node.getClass ? node.getClass() : node;
+        return classNode.getFullName().replace(/\./gi, "/") + ".js";
+      },
+
+      lineNumber : function(node) {
+        if (node.getLineNumber && typeof node.getLineNumber() == "number") {
+          return node.getLineNumber() + "";
+        }
+        else {
+          return "0";
+        }
+      },
+
+      qxGitBranch : function(node) {
+        return qx.core.Environment.get("qx.revision") ? // e.g. "master:47ac02f"
+          qx.core.Environment.get("qx.revision").split(":")[1] :
+          qx.core.Environment.get("qx.version") ? // e.g. "2.1.2"
+            "release_" + qx.core.Environment.get("qx.version").replace(/\./g,"_") :
+            "master";
+      }
     },
 
 
@@ -194,6 +229,60 @@ qx.Class.define("apiviewer.ui.ClassViewer",
       html += '</span>';
 
       return html;
+    },
+
+
+    /**
+     * Returns the source view URI for a doc node. This is determined by getting
+     * the value for the "sourceViewUri" key from the library that contains the
+     * item represented by the node. Placeholders of the form %{key} in the URI
+     * are then resolved by applying the rules defined in the SOURCE_VIEW_MACROS
+     * map.
+     *
+     * @param node {apiviewer.dao.Node} the documentation node for the title
+     * @return {String|null} Source view URI or <code>null</code> if it couldn't
+     * be determined
+     */
+    getSourceUri : function(node)
+    {
+      var classNode;
+      if (node instanceof apiviewer.dao.Class) {
+        classNode = node;
+      }
+      else {
+        classNode = node.getClass();
+      }
+
+      // get the library's top-level namespace
+      var libNs = classNode.getFullName().split(".")[0];
+      if (!qx.util.LibraryManager.getInstance().has(libNs)) {
+        return null;
+      }
+
+      var sourceViewUri = qx.util.LibraryManager.getInstance().get(libNs, "sourceViewUri");
+      if (!sourceViewUri) {
+        return null;
+      }
+
+      var replacements = this.SOURCE_VIEW_MACROS;
+      for (var key in replacements) {
+        var macro = "%{" + key + "}";
+        if (sourceViewUri.indexOf(macro) >=0 && typeof replacements[key] == "function") {
+          var replacement = replacements[key](node);
+          if (typeof replacement == "string") {
+            sourceViewUri = sourceViewUri.replace(new RegExp(macro), replacement);
+          }
+        }
+      }
+
+      if (sourceViewUri.indexOf("%{") >= 0) {
+        if (qx.core.Environment.get("qx.debug")) {
+          qx.log.Logger.warn("Source View URI contains unresolved macro(s):", sourceViewUri);
+        }
+        return null;
+      }
+
+      return sourceViewUri;
     }
 
   },
@@ -219,18 +308,16 @@ qx.Class.define("apiviewer.ui.ClassViewer",
      */
     _getTitleHtml : function(classNode)
     {
+      var objectName = "Class";
+
       switch (classNode.getType())
       {
         case "mixin" :
-          var objectName = "Mixin";
+          objectName = "Mixin";
           break;
 
         case "interface" :
-          var objectName = "Interface";
-          break;
-
-        default:
-          var objectName = "Class";
+          objectName = "Interface";
           break;
       }
 
@@ -248,10 +335,18 @@ qx.Class.define("apiviewer.ui.ClassViewer",
       }
 
       titleHtml.add(objectName, ' </span>');
-      titleHtml.add(apiviewer.ui.panels.InfoPanel.setTitleClass(classNode, classNode.getName()));
+
+      var className = classNode.getName();
+      var sourceUri = this.self(arguments).getSourceUri(classNode);
+      if (sourceUri) {
+        className = '<a href="' + sourceUri + '" target="_blank" title="View Source">' + className + '</a>';
+      }
+
+      titleHtml.add(apiviewer.ui.panels.InfoPanel.setTitleClass(classNode, className));
 
       return titleHtml.get();
     },
+
 
     _getTocHtml : function(classNode)
     {
@@ -321,22 +416,24 @@ qx.Class.define("apiviewer.ui.ClassViewer",
           if(lastTocItem) {
             tocHtml.appendChild(document.createTextNode(' | '));
           }
-          var tocItem = qx.bom.Element.create('span');
+          var tocItem = qx.dom.Element.create('span');
           qx.bom.element.Class.add(tocItem,'tocitem');
 
           // add icon in front of the TOC item
           tocItem.innerHTML = apiviewer.ui.ClassViewer.createImageHtml(iconURL[members[i]],members[i])+' ';
 
-          qx.bom.Element.addListener(tocItem,'click',(function(panel,firstItem){
-            return function()
-            {
-              this.__enableSection(firstItem, firstItem.getName());
-              qx.bom.element.Scroll.intoView(panel.getTitleElement(), null, "left", "top");
-              if(!panel.getIsOpen()) {
-                this.togglePanelVisibility(panel);
-              }
-            };})(panelByName[members[i]],memberList[0]),this,false);
-          var textSpan = qx.bom.Element.create('span');
+          q(tocItem).on('tap',
+            (function(panel, firstItem) {
+              return (function() {
+                this.__enableSection(firstItem, firstItem.getName());
+                qx.bom.element.Scroll.intoView(panel.getTitleElement(), null, "left", "top");
+                if(!panel.getIsOpen()) {
+                  this.togglePanelVisibility(panel);
+                }
+              }).bind(this);
+            }).bind(this)
+            (panelByName[members[i]], memberList[0]), false);
+          var textSpan = qx.dom.Element.create('span');
           if(members[i] === 'methods-static' && qx.core.Environment.get("engine.name")=='webkit') {
             qx.bom.element.Style.set(textSpan,'margin-left','25px');
           }
@@ -353,32 +450,38 @@ qx.Class.define("apiviewer.ui.ClassViewer",
 
     _getDescriptionHtml : function(classNode)
     {
+      var subObjectsName = "sub classes";
+      var desc = classNode.getDescription();
+
       switch (classNode.getType())
       {
         case "mixin" :
-          var subObjectsName = "sub mixins"
+          subObjectsName = "sub mixins";
           break;
 
         case "interface" :
-          var subObjectsName = "sub interfaces"
-          break;
-
-        default:
-          var subObjectsName = "sub classes"
+          subObjectsName = "sub interfaces";
           break;
       }
 
       var classHtml = new qx.util.StringBuilder();
 
       // Add the class description
-      var desc = classNode.getDescription();
-
-      if (desc != "") {
+      if (desc !== "") {
         classHtml.add(
           '<div class="class-description">',
           apiviewer.ui.panels.InfoPanel.resolveLinkAttributes(desc, classNode),
           '</div>'
         );
+      }
+
+      var seeAlso = apiviewer.ui.panels.InfoPanel.createSeeAlsoHtml(classNode);
+      if (seeAlso) {
+        if (classHtml.length > 0) {
+          classHtml.splice(-1, 0, seeAlso);
+        } else {
+          classHtml.add(seeAlso);
+        }
       }
 
       if (classNode.getErrors().length > 0) {
@@ -391,15 +494,10 @@ qx.Class.define("apiviewer.ui.ClassViewer",
 
 
       // Add the class hierarchy
-      switch (classNode.getType())
-      {
-        case "interface" :
+      if (classNode.getType() === "interface") {
           classHtml.add(this.__getInterfaceHierarchyHtml(classNode));
-          break;
-
-        default:
+      } else {
           classHtml.add(this.__getClassHierarchyHtml(classNode));
-          break;
       }
 
       classHtml.add(this.__getDependentClassesHtml(classNode.getChildClasses(), "Direct " + subObjectsName + ":"));
@@ -408,18 +506,15 @@ qx.Class.define("apiviewer.ui.ClassViewer",
       classHtml.add(this.__getDependentClassesHtml(classNode.getImplementations(), "Implementations of this interface:"));
       classHtml.add(this.__getDependentClassesHtml(classNode.getIncluder(), "Classes including this mixin:"));
 
-      var construct = classNode.getConstructor();
-      if (construct) {
-        classHtml.add(apiviewer.ui.panels.InfoPanel.createSeeAlsoHtml(construct));
-      }
-
       if (classNode.isDeprecated())
       {
         classHtml.add('<h2 class="warning">', "Deprecated:", '</h2>');
         classHtml.add('<p>');
-        var desc = classNode.getDeprecationText();
+        desc = classNode.getDeprecationText();
         if (desc) {
-          classHtml.add(desc);
+          classHtml.add(
+            apiviewer.ui.panels.InfoPanel.resolveLinkAttributes(desc, classNode)
+          );
         } else {
           classHtml.add("This ", classNode.getType(), " is deprecated!");
         }
@@ -452,21 +547,21 @@ qx.Class.define("apiviewer.ui.ClassViewer",
      */
     __getDependentClassesHtml : function(dependentClasses, title)
     {
+      var result = "";
+
       if (dependentClasses.length > 0)
       {
-        var result = new qx.util.StringBuilder("<h2>", title, "</h2>");
+        result = new qx.util.StringBuilder("<h2>", title, "</h2>");
 
         for (var i=0; i<dependentClasses.length; i++)
         {
-          if (i != 0) {
+          if (i !== 0) {
             result.add(", ");
           }
           result.add(apiviewer.ui.panels.InfoPanel.createItemLinkHtml(dependentClasses[i], null, true, false));
         }
 
         result = result.get();
-      } else {
-        result = "";
       }
       return result;
     },
@@ -501,7 +596,7 @@ qx.Class.define("apiviewer.ui.ClassViewer",
           !apiviewer.dao.Class.isNativeObject(classHierarchy[i]) ? ClassViewer.createImageHtml(apiviewer.TreeUtil.getIconUrl(classHierarchy[i])) : ClassViewer.createImageHtml("apiviewer/image/class18.gif")
         );
 
-        if (i != 0) {
+        if (i !== 0) {
           if(!apiviewer.dao.Class.isNativeObject(classHierarchy[i]))
           {
             classHtml.add(apiviewer.ui.panels.InfoPanel.createItemLinkHtml(classHierarchy[i].getFullName(), null, false));
@@ -543,21 +638,22 @@ qx.Class.define("apiviewer.ui.ClassViewer",
 
       html.add("<h2>", "Inheritance hierarchy:", "</h2>");
 
-      var indent = 0, l = hierarchy.length;
-      for (var i=l-1; i>=0; i--) {
+      var indent = 0;
+      for (var i=hierarchy.length - 1; i >= 0; i--) {
         var name = hierarchy[i].getFullName();
         var icon = TreeUtil.getIconUrl(hierarchy[i]);
 
         html.add("<div>");
 
-        if (i == l-1) {
-          html.add(ClassViewer.createImageHtml(icon));
-          html.add(InfoPanel.createItemLinkHtml(name, null, false));
-        } else {
+        if (hierarchy[i].getSuperInterfaces().length > 0) {
           html.add(ClassViewer.createImageHtml("apiviewer/image/nextlevel.gif", null, "margin-left:" + indent + "px"));
           html.add(ClassViewer.createImageHtml(icon));
-          html.add(i != 0 ? InfoPanel.createItemLinkHtml(name, null, false) : name);
+          html.add(i !== 0 ? InfoPanel.createItemLinkHtml(name, null, false) : name);
           indent += 18;
+        }
+        else {
+          html.add(ClassViewer.createImageHtml(icon));
+          html.add(InfoPanel.createItemLinkHtml(name, null, false));
         }
 
         html.add("</div>");
@@ -575,7 +671,7 @@ qx.Class.define("apiviewer.ui.ClassViewer",
     showItem : function(itemName)
     {
       var itemNode;
-      
+
       var nameMap = {
                       "event": "events",
                       "method_public": "methods",
@@ -585,7 +681,7 @@ qx.Class.define("apiviewer.ui.ClassViewer",
                       "property_private" : "properties",
                       "property_protected" : "properties",
                       "constant" : "constants",
-                      "childcontrol": "childcontrols"
+                      "childcontrol": "childControls"
                     };
 
       // special handling for constructor methods since the constructor

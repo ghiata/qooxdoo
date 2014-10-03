@@ -18,12 +18,6 @@
 
 ************************************************************************ */
 
-/* ************************************************************************
-
-#require(qx.io.ScriptLoader)
-
-************************************************************************ */
-
 /**
  * The part loader knows about all generated packages and parts.
  *
@@ -170,24 +164,6 @@ qx.Bootstrap.define("qx.Part",
 
 
     /**
-     * Internal addListener for closure packages.
-     *
-     * @internal
-     * @param pkg {qx.io.part.ClosurePackage} The closure package to listen
-     *   for.
-     * @param callback {Function} The method to call when the package is loaded.
-     */
-    addClosurePackageListener : function(pkg, callback)
-    {
-      var key = pkg.getId();
-      if (!this.__packageClosureListeners[key]) {
-        this.__packageClosureListeners[key] = [];
-      }
-      this.__packageClosureListeners[key].push(callback);
-    },
-
-
-    /**
      * Internal helper method to save the closure and notify that the load.
      *
      * @internal
@@ -256,7 +232,14 @@ qx.Bootstrap.define("qx.Part",
 
       var parts = [];
       for (var i=0; i<partNames.length; i++) {
-        parts.push(this.__parts[partNames[i]]);
+        var part = this.__parts[partNames[i]];
+        if (part === undefined) {
+          var registeredPartNames = qx.Bootstrap.keys(this.getParts());
+          throw new Error('Part "' + partNames[i] + '" not found in parts (' +
+            registeredPartNames.join(', ') + ')');
+        } else {
+          parts.push(part);
+        }
       }
 
       var partsLoaded = 0;

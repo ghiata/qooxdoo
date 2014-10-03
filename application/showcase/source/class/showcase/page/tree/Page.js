@@ -20,12 +20,13 @@
 
 /* ************************************************************************
 
-#use(showcase.page.tree.Content)
 
 ************************************************************************ */
 /**
  * @lint ignoreReferenceField(__descriptionText, __tryThis,
  *   __features, __manual, __demos, __api)
+ *
+ * @use(showcase.page.tree.Content)
  */
 qx.Class.define("showcase.page.tree.Page",
 {
@@ -59,7 +60,7 @@ qx.Class.define("showcase.page.tree.Page",
     "some additional infomation attached to each item.",
 
     __tryThis : {
-      "Expand" : "Try expanding some folders by using the arrow icon or double clicking.",
+      "Expand" : "Try expanding some folders by using the arrow icon or double taping.",
       "Resize" : "Resize the window to make the tree scrollbars appear.",
       "Selection" : "Select multiple items, e.g. by holding the Shift key."
     },

@@ -17,6 +17,7 @@
      * Sebastian Werner (wpbasti)
      * Alexander Steitz (aback)
      * Christian Hagendorn (chris_schmidt)
+     * Tobias Oberrauch (toberrauch) <tobias.oberrauch@1und1.de>
 
    ======================================================================
 
@@ -64,7 +65,7 @@
  * This class should not be used directly normally. It's better
  * to use {@link qx.event.Registration} instead.
  */
-qx.Class.define("qx.bom.Event",
+qx.Bootstrap.define("qx.bom.Event",
 {
   statics :
   {
@@ -91,7 +92,7 @@ qx.Class.define("qx.bom.Event",
         target["on" + type] = listener;
       } else {
         if (qx.core.Environment.get("qx.debug")) {
-          this.warn("No method available to add native listener to " + target);
+          qx.log.Logger.warn("No method available to add native listener to " + target);
         }
       }
     },
@@ -134,7 +135,7 @@ qx.Class.define("qx.bom.Event",
       else
       {
         if (qx.core.Environment.get("qx.debug")) {
-          this.warn("No method available to remove native listener from " + target);
+          qx.log.Logger.warn("No method available to remove native listener from " + target);
         }
       }
     },
@@ -168,14 +169,16 @@ qx.Class.define("qx.bom.Event",
         {
           try {
             e.relatedTarget && e.relatedTarget.nodeType;
-          } catch (e) {
+          } catch (ex) {
             return null;
           }
         }
 
         return e.relatedTarget;
       }
-      else if (e.fromElement !== undefined && e.type === "mouseover") {
+      else if (e.fromElement !== undefined &&
+        (e.type === "mouseover" || e.type === "pointerover"))
+      {
         return e.fromElement;
       } else if (e.toElement !== undefined) {
         return e.toElement;
@@ -195,36 +198,11 @@ qx.Class.define("qx.bom.Event",
      */
     preventDefault : function(e)
     {
-      if (e.preventDefault)
-      {
-        // Firefox 3 does not fire a "contextmenu" event if the mousedown
-        // called "preventDefault" => don't prevent the default behavior for
-        // right clicks.
-        if ((qx.core.Environment.get("engine.name") == "gecko") &&
-            parseFloat(qx.core.Environment.get("engine.version")) >= 1.9 &&
-            e.type == "mousedown" &&
-            e.button == 2) {
-          return;
-        }
-
+      if (e.preventDefault) {
         e.preventDefault();
-
-        // not working in firefox 3 and above
-        if ((qx.core.Environment.get("engine.name") == "gecko") &&
-            parseFloat(qx.core.Environment.get("engine.version")) < 1.9)
-        {
-          try
-          {
-            // this allows us to prevent some key press events in Firefox.
-            // See bug #1049
-            e.keyCode = 0;
-          } catch(ex) {}
-        }
       }
-      else
-      {
-        try
-        {
+      else {
+        try {
           // this allows us to prevent some key press events in IE.
           // See bug #1049
           e.keyCode = 0;
@@ -286,38 +264,97 @@ qx.Class.define("qx.bom.Event",
      * Useful for testing for support of new features like
      * touch events, gesture events, orientation change, on/offline, etc.
      *
-     * @signature function(target, type)
+     * *NOTE:* This check is *case-insensitive*.
+     * <code>supportsEvent(window, "cLicK")</code> will return <code>true</code>
+     * but <code>window.addEventListener("cLicK", callback)</code> will fail
+     * silently!
+     *
      * @param target {var} Any valid target e.g. window, dom node, etc.
      * @param type {String} Type of the event e.g. click, mousedown
      * @return {Boolean} Whether the given event is supported
      */
-    supportsEvent : qx.core.Environment.select("engine.name",
+    supportsEvent : function(target, type)
     {
-      "webkit" : function(target, type) {
-        return target.hasOwnProperty("on" + type);
-      },
+      var browserName = qx.core.Environment.get("browser.name");
+      var engineName = qx.core.Environment.get("engine.name");
 
-      "default" : function(target, type)
+      // transitionEnd support can not be detected generically for Internet Explorer 10+ [BUG #7875]
+      if (type.toLowerCase().indexOf("transitionend") != -1
+          && engineName === "mshtml"
+          && qx.core.Environment.get("browser.documentmode") > 9)
       {
-        var eventName = "on" + type;
+        return true;
+      }
 
-        var supportsEvent = (eventName in target);
+      /**
+       * add exception for safari mobile ()
+       * @see http://bugzilla.qooxdoo.org/show_bug.cgi?id=8244
+       */
+      var safariBrowserNames = ["mobile safari", "safari"];
+      if (
+        engineName === "webkit" &&
+        safariBrowserNames.indexOf(browserName) > -1
+      ) {
+        var supportedEvents = [
+          'loadeddata', 'progress', 'timeupdate', 'seeked', 'canplay', 'play',
+          'playing', 'pause', 'loadedmetadata', 'ended', 'volumechange'
+        ];
+        if (supportedEvents.indexOf(type.toLowerCase() > -1)) {
+          return true;
+        }
+      }
 
-        if (!supportsEvent)
+      // The 'transitionend' event can only be detected on window objects,
+      // not DOM elements [BUG #7249]
+      if (target != window && type.toLowerCase().indexOf("transitionend") != -1) {
+        var transitionSupport = qx.core.Environment.get("css.transition");
+        return (transitionSupport && transitionSupport["end-event"] == type);
+      }
+      // Using the lowercase representation is important for the
+      // detection of events like 'MSPointer*'. They have to detected
+      // using the lower case name of the event.
+      var eventName = "on" + type.toLowerCase();
+
+      var supportsEvent = (eventName in target);
+
+      if (!supportsEvent)
+      {
+        supportsEvent = typeof target[eventName] == "function";
+
+        if (!supportsEvent && target.setAttribute)
         {
+          target.setAttribute(eventName, "return;");
           supportsEvent = typeof target[eventName] == "function";
 
-          if (!supportsEvent && target.setAttribute)
-          {
-            target.setAttribute(eventName, "return;");
-            supportsEvent = typeof target[eventName] == "function";
-
-            target.removeAttribute(eventName);
-          }
+          target.removeAttribute(eventName);
         }
-
-        return supportsEvent;
       }
-    })
+
+      return supportsEvent;
+    },
+
+
+    /**
+     * Returns the (possibly vendor-prefixed) name of the given event type.
+     * *NOTE:* Incorrect capitalization of type names will *not* be corrected. See
+     * {@link #supportsEvent} for details.
+     *
+     * @param target {var} Any valid target e.g. window, dom node, etc.
+     * @param type {String} Type of the event e.g. click, mousedown
+     * @return {String|null} Event name or <code>null</code> if the event is not
+     * supported.
+     */
+    getEventName : function(target, type)
+    {
+      var pref = [""].concat(qx.bom.Style.VENDOR_PREFIXES);
+      for (var i=0, l=pref.length; i<l; i++) {
+        var prefix = pref[i].toLowerCase();
+        if (qx.bom.Event.supportsEvent(target, prefix + type)) {
+          return prefix ? prefix + qx.lang.String.firstUp(type) : type;
+        }
+      }
+
+      return null;
+    }
   }
 });

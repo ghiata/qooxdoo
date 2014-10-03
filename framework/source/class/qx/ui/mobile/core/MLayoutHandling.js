@@ -18,8 +18,6 @@
 ************************************************************************ */
 
 /**
- * EXPERIMENTAL - NOT READY FOR PRODUCTION
- *
  * This mixin exposes all methods to manage the layout manager of a widget.
  * It can only be included into instances of {@link Widget}.
  *
@@ -44,10 +42,9 @@ qx.Mixin.define("qx.ui.mobile.core.MLayoutHandling",
      *
      * @param layout {qx.ui.mobile.layout.Abstract} The new layout or
      *     <code>null</code> to reset the layout.
-     * @return {void}
      */
     setLayout : function(layout) {
-      return this._setLayout(layout);
+      this._setLayout(layout);
     },
 
 
